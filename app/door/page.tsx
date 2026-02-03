@@ -4,6 +4,7 @@
 import { useState, useRef, useEffect } from 'react';
 import AdminHeader from '../admin/components/AdminHeader';
 import AuthGuard from '../../components/AuthGuard';
+import GuestListCard from '../../components/GuestListCard';
 
 interface Guest {
   id: string;
@@ -237,92 +238,17 @@ function DoorPageContent() {
                   {filteredGuests.map((guest, index) => {
                     const guestDJ = djs.find(dj => dj.id === guest.djId);
                     return (
-                      <div key={guest.id} className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3 sm:gap-4">
-                            <div className="w-8 h-8 sm:w-10 sm:h-10 border border-gray-600 flex items-center justify-center">
-                              <span className="text-xs sm:text-sm font-mono text-gray-400">
-                                {String(index + 1).padStart(2, '0')}
-                              </span>
-                            </div>
-                            <div>
-                              <p className="font-mono text-sm sm:text-base tracking-wider text-white uppercase">
-                                {guest.name}
-                              </p>
-                              <div className="flex flex-wrap gap-2 mt-1">
-                                {selectedDJ === 'all' && guestDJ && (
-                                  <span className="text-xs font-mono text-gray-400">
-                                    DJ: {guestDJ.name}
-                                  </span>
-                                )}
-                                {guest.checkInTime && (
-                                  <span className="text-xs font-mono text-green-400">
-                                    IN: {guest.checkInTime}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex gap-2">
-                            {guest.status === 'pending' && (
-                              <>
-                                <button
-                                  onClick={() => handleStatusChange(guest.id, 'checked', 'check')}
-                                  disabled={loadingStates[`${guest.id}_check`]}
-                                  className="px-4 sm:px-6 py-2 sm:py-3 bg-white text-black font-mono text-xs tracking-wider uppercase hover:bg-gray-200 transition-colors disabled:opacity-50"
-                                >
-                                  {loadingStates[`${guest.id}_check`] ? (
-                                    <div className="flex items-center justify-center">
-                                      <div className="w-3 h-3 border border-black border-t-transparent rounded-full animate-spin"></div>
-                                    </div>
-                                  ) : (
-                                    'CHECK'
-                                  )}
-                                </button>
-                                <button
-                                  onClick={() => handleStatusChange(guest.id, 'deleted', 'remove')}
-                                  disabled={loadingStates[`${guest.id}_remove`]}
-                                  className="px-3 sm:px-4 py-2 sm:py-3 border border-gray-600 text-gray-400 font-mono text-xs tracking-wider uppercase hover:bg-gray-800 transition-colors disabled:opacity-50"
-                                >
-                                  {loadingStates[`${guest.id}_remove`] ? (
-                                    <div className="flex items-center justify-center">
-                                      <div className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-                                    </div>
-                                  ) : (
-                                    <i className="ri-close-line"></i>
-                                  )}
-                                </button>
-                              </>
-                            )}
-
-                            {guest.status === 'checked' && (
-                              <div className="flex items-center gap-2">
-                                <span className="px-4 sm:px-6 py-2 sm:py-3 bg-green-600/20 border border-green-600 text-green-400 font-mono text-xs tracking-wider uppercase">
-                                  ACTIVE
-                                </span>
-                                <button
-                                  onClick={() => handleStatusChange(guest.id, 'deleted', 'remove')}
-                                  disabled={loadingStates[`${guest.id}_remove`]}
-                                  className="w-8 h-8 sm:w-10 sm:h-10 border border-gray-600 flex items-center justify-center text-gray-400 hover:bg-gray-800 transition-colors disabled:opacity-50"
-                                >
-                                  {loadingStates[`${guest.id}_remove`] ? (
-                                    <div className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-                                  ) : (
-                                    <i className="ri-close-line text-sm"></i>
-                                  )}
-                                </button>
-                              </div>
-                            )}
-
-                            {guest.status === 'deleted' && (
-                              <span className="px-4 sm:px-6 py-2 sm:py-3 bg-gray-800 text-gray-500 font-mono text-xs tracking-wider uppercase">
-                                REMOVED
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
+                      <GuestListCard
+                        key={guest.id}
+                        guest={guest}
+                        index={index}
+                        variant="admin"
+                        djName={selectedDJ === 'all' && guestDJ ? guestDJ.name : undefined}
+                        onCheck={() => handleStatusChange(guest.id, 'checked', 'check')}
+                        onDelete={() => handleStatusChange(guest.id, 'deleted', 'remove')}
+                        isCheckLoading={loadingStates[`${guest.id}_check`]}
+                        isDeleteLoading={loadingStates[`${guest.id}_remove`]}
+                      />
                     );
                   })}
                 </div>
