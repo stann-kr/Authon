@@ -17,12 +17,11 @@ CREATE TABLE IF NOT EXISTS public.venues (
 );
 
 -- Users table
--- Ideally, id should reference auth.users(id).
+-- id references auth.users(id) explicitly.
 CREATE TABLE IF NOT EXISTS public.users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(), -- REFERENCES auth.users(id) recommended
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     venue_id UUID NOT NULL REFERENCES public.venues(id) ON DELETE CASCADE,
     email TEXT NOT NULL,
-    -- password_hash removed as we now rely on Supabase Auth
     name TEXT NOT NULL,
     role TEXT NOT NULL CHECK (role IN ('admin', 'door', 'dj')),
     guest_limit INTEGER DEFAULT 10,
@@ -44,6 +43,7 @@ CREATE TABLE IF NOT EXISTS public.djs (
 );
 
 -- Guests table
+-- Removed subquery check constraint to avoid errors
 CREATE TABLE IF NOT EXISTS public.guests (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     venue_id UUID NOT NULL REFERENCES public.venues(id) ON DELETE CASCADE,
@@ -53,12 +53,29 @@ CREATE TABLE IF NOT EXISTS public.guests (
     check_in_time TIMESTAMPTZ,
     date DATE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    CONSTRAINT guests_dj_venue_check CHECK (
-        dj_id IS NULL OR
-        venue_id = (SELECT venue_id FROM public.djs WHERE id = dj_id)
-    )
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Function to validate guest's DJ venue match
+CREATE OR REPLACE FUNCTION check_guest_dj_venue()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.dj_id IS NOT NULL THEN
+        IF NOT EXISTS (
+            SELECT 1 FROM public.djs
+            WHERE id = NEW.dj_id AND venue_id = NEW.venue_id
+        ) THEN
+            RAISE EXCEPTION 'DJ does not belong to the specified venue';
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to enforce venue consistency
+CREATE TRIGGER enforce_guest_dj_venue
+    BEFORE INSERT OR UPDATE ON public.guests
+    FOR EACH ROW EXECUTE FUNCTION check_guest_dj_venue();
 
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_venues_active ON public.venues(active);
@@ -183,8 +200,6 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Trigger 활성화
--- 이 부분은 Supabase 대시보드에서 권한 문제가 생길 수 있으므로,
--- 실행 오류 시 postgres role이나 extension 설정을 확인해야 합니다.
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
