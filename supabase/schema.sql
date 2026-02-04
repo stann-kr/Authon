@@ -163,3 +163,29 @@ CREATE POLICY "Door can check in guests" ON public.guests
             AND users.role IN ('admin', 'door')
         )
     );
+
+-- [NEW] Handle New User Signups
+-- Supabase Auth에 유저가 생성되면 public.users에도 자동으로 row를 생성하는 트리거입니다.
+-- 회원가입 시 user_metadata에 'name', 'role', 'venue_id'가 포함되어야 합니다.
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.users (id, email, name, role, venue_id)
+  VALUES (
+    new.id,
+    new.email,
+    COALESCE(new.raw_user_meta_data->>'name', 'New User'),
+    COALESCE(new.raw_user_meta_data->>'role', 'dj'), -- 기본값 DJ
+    (new.raw_user_meta_data->>'venue_id')::uuid -- venue_id는 필수
+  );
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger 활성화
+-- 이 부분은 Supabase 대시보드에서 권한 문제가 생길 수 있으므로,
+-- 실행 오류 시 postgres role이나 extension 설정을 확인해야 합니다.
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
