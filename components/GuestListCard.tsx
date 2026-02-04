@@ -80,7 +80,7 @@ const GuestListCard: React.FC<GuestListCardProps> = ({
                 </button>
               )}
 
-              {variant === 'user' && (
+              {variant === 'user' && onDelete && (
                 <button
                   onClick={onDelete}
                   disabled={isDeleteLoading}
