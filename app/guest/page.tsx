@@ -1,9 +1,10 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AdminHeader from '../admin/components/AdminHeader';
 import AuthGuard from '../../components/AuthGuard';
+import { fetchGuestsByDate, createGuest, deleteGuest } from '../../lib/api/guests';
 import GuestListCard from '../../components/GuestListCard';
 
 export default function GuestPage() {
@@ -20,10 +21,30 @@ function GuestPageContent() {
   );
   const [guestName, setGuestName] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [guests, setGuests] = useState<Array<{id: string, name: string, status: 'pending' | 'checked' | 'deleted', date: string}>>([
-    { id: '1', name: 'test1', status: 'deleted', date: '2025-08-25' },
-    { id: '2', name: 'test2', status: 'checked', date: '2025-08-25' },
-  ]);
+  const [isFetching, setIsFetching] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [guests, setGuests] = useState<Array<{id: string, name: string, status: 'pending' | 'checked' | 'deleted', date: string}>>([]);
+
+  // Fetch guests when date changes
+  useEffect(() => {
+    const loadGuests = async () => {
+      setIsFetching(true);
+      setError(null);
+      
+      const { data, error: fetchError } = await fetchGuestsByDate(selectedDate);
+      
+      if (fetchError) {
+        console.error('Failed to fetch guests:', fetchError);
+        setError('게스트 정보를 불러오는데 실패했습니다.');
+      } else if (data) {
+        setGuests(data);
+      }
+      
+      setIsFetching(false);
+    };
+
+    loadGuests();
+  }, [selectedDate]);
 
   const formatDateDisplay = (dateString: string) => {
     const date = new Date(dateString);
@@ -34,27 +55,47 @@ function GuestPageContent() {
     if (!guestName.trim()) return;
 
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 100));
+    setError(null);
 
-    const newGuest = {
-      id: Date.now().toString(),
-      name: guestName,
-      status: 'pending' as const,
-      date: selectedDate
-    };
+    const { data, error: createError } = await createGuest({
+      name: guestName.trim().toUpperCase(),
+      date: selectedDate,
+      status: 'pending',
+    });
 
-    setGuests(prev => [newGuest, ...prev]);
-    setGuestName('');
+    if (createError) {
+      console.error('Failed to create guest:', createError);
+      setError('게스트 등록에 실패했습니다.');
+      setIsLoading(false);
+      return;
+    }
+
+    if (data) {
+      setGuests(prev => [data, ...prev]);
+      setGuestName('');
+    }
+
     setIsLoading(false);
   };
 
   const handleDelete = async (id: string) => {
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 100));
+    setError(null);
 
-    setGuests(prev => prev.map(guest => 
-      guest.id === id ? { ...guest, status: 'deleted' } : guest
-    ));
+    const { data, error: deleteError } = await deleteGuest(id);
+
+    if (deleteError) {
+      console.error('Failed to delete guest:', deleteError);
+      setError('게스트 삭제에 실패했습니다.');
+      setIsLoading(false);
+      return;
+    }
+
+    if (data) {
+      setGuests(prev => prev.map(guest => 
+        guest.id === id ? data : guest
+      ));
+    }
 
     setIsLoading(false);
   };
@@ -82,6 +123,18 @@ function GuestPageContent() {
               />
             </div>
           </div>
+
+          {error && (
+            <div className="mb-6 bg-red-900/20 border border-red-600 p-4 text-center">
+              <p className="text-red-400 font-mono text-sm tracking-wider">{error}</p>
+            </div>
+          )}
+
+          {isFetching && (
+            <div className="mb-6 text-center">
+              <div className="inline-block w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             <div className="lg:col-span-1 space-y-4">
@@ -137,14 +190,50 @@ function GuestPageContent() {
 
                 <div className="divide-y divide-gray-700 lg:[max-height:calc(100vh-320px)] lg:overflow-y-auto">
                   {filteredGuests.map((guest, index) => (
-                    <GuestListCard
-                      key={guest.id}
-                      guest={guest}
-                      index={index}
-                      variant="user"
-                      onDelete={() => handleDelete(guest.id)}
-                      isDeleteLoading={isLoading}
-                    />
+                    <div key={guest.id} className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 sm:gap-4">
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 border border-gray-600 flex items-center justify-center">
+                            <span className="text-xs sm:text-sm font-mono text-gray-400">
+                              {String(index + 1).padStart(2, '0')}
+                            </span>
+                          </div>
+                          <span className="font-mono text-sm sm:text-base tracking-wider text-white uppercase">
+                            {guest.name}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {guest.status === 'pending' && (
+                            <button
+                              onClick={() => handleDelete(guest.id)}
+                              disabled={isLoading}
+                              className="px-3 sm:px-4 py-2 sm:py-3 bg-red-600 text-white font-mono text-xs tracking-wider uppercase hover:bg-red-700 transition-colors disabled:opacity-50"
+                            >
+                              {isLoading ? (
+                                <div className="flex items-center justify-center">
+                                  <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
+                                </div>
+                              ) : (
+                                'DELETE'
+                              )}
+                            </button>
+                          )}
+
+                          {guest.status === 'checked' && (
+                            <span className="px-4 sm:px-6 py-2 sm:py-3 bg-green-600/20 border border-green-600 text-green-400 font-mono text-xs tracking-wider uppercase">
+                              ACTIVE
+                            </span>
+                          )}
+
+                          {guest.status === 'deleted' && (
+                            <span className="px-4 sm:px-6 py-2 sm:py-3 bg-gray-800 text-gray-500 font-mono text-xs tracking-wider uppercase">
+                              REMOVED
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   ))}
                 </div>
 
