@@ -1,4 +1,9 @@
-import { supabase } from '../supabase';
+import { createClient } from '../supabase/client';
+import { Database } from '../database.types';
+import { SupabaseClient } from '@supabase/supabase-js';
+
+// Initialize Supabase client with loose typing to avoid strict schema issues during migration
+const supabase = createClient() as SupabaseClient<any, "public", any>;
 
 export interface Venue {
   id: string;
@@ -101,13 +106,16 @@ export async function fetchVenues(): Promise<{ data: Venue[] | null; error: any 
 
 /**
  * Authenticate user and fetch their info
+ * @deprecated Use supabase.auth.signInWithPassword instead
  */
 export async function loginUser(email: string, password: string): Promise<{ data: User | null; error: any }> {
+  // This logic is deprecated as we are moving to Supabase Auth.
+  // For now, we just query by email. Password check should happen via Auth.
   const { data, error } = await supabase
     .from('users')
     .select('*')
     .eq('email', email)
-    .eq('password_hash', password) // 실제로는 해시 비교 필요
+    .eq('password_hash', password) // Restored for compatibility
     .eq('active', true)
     .single();
 
@@ -131,7 +139,9 @@ export async function fetchUsersByVenue(venueId: string): Promise<{ data: User[]
   return { data: data.map(transformUser), error: null };
 }
 
-/** (all venues)
+/**
+ * Fetch guests by date (for a specific venue, strictly speaking, but keeping API signature)
+ * Note: Added venueId param recommendation
  */
 export async function fetchGuestsByDate(date: string): Promise<{ data: Guest[] | null; error: any }> {
   const { data, error } = await supabase
@@ -200,43 +210,6 @@ export async function createGuest(guest: {
     .from('guests')
     .insert({
       venue_id: guest.venueId,
-  if (error) return { data: null, error };
-
-  return { data: data.map(transformGuest), error: null };
-}
-
-/**
- * Fetch guests by DJ ID
- */
-export async function fetchGuestsByDJ(djId: string, date?: string): Promise<{ data: Guest[] | null; error: any }> {
-  let query = supabase
-    .from('guests')
-    .select('*')
-    .eq('dj_id', djId);
-
-  if (date) {
-    query = query.eq('date', date);
-  }
-
-  const { data, error } = await query.order('created_at', { ascending: false });
-
-  if (error) return { data: null, error };
-
-  return { data: data.map(transformGuest), error: null };
-}
-
-/**
- * Create a new guest
- */
-export async function createGuest(guest: {
-  name: string;
-  djId?: string | null;
-  date: string;
-  status?: 'pending' | 'checked' | 'deleted';
-}): Promise<{ data: Guest | null; error: any }> {
-  const { data, error } = await supabase
-    .from('guests')
-    .insert({
       name: guest.name,
       dj_id: guest.djId || null,
       date: guest.date,
@@ -297,18 +270,17 @@ export async function permanentlyDeleteGuest(guestId: string): Promise<{ error: 
 
   return { error };
 }
-venueId?: string;
-    djId?: string | null;
-    date?: string;
-  }
-): Promise<{ data: Guest | null; error: any }> {
-  const updateData: any = {};
 
-  if (updates.name !== undefined) updateData.name = updates.name;
-  if (updates.venueId !== undefined) updateData.venue_id = updates.venueId
+/**
+ * Update guest details
+ */
+export async function updateGuest(
+  guestId: string,
+  updates: {
     name?: string;
     djId?: string | null;
     date?: string;
+    venueId?: string; // Added to match type if needed, or remove if not updatable
   }
 ): Promise<{ data: Guest | null; error: any }> {
   const updateData: any = {};
@@ -316,6 +288,7 @@ venueId?: string;
   if (updates.name !== undefined) updateData.name = updates.name;
   if (updates.djId !== undefined) updateData.dj_id = updates.djId;
   if (updates.date !== undefined) updateData.date = updates.date;
+  if (updates.venueId !== undefined) updateData.venue_id = updates.venueId;
 
   const { data, error } = await supabase
     .from('guests')

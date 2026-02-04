@@ -1,5 +1,6 @@
 export interface User {
   id: string;
+  venue_id?: string;
   email: string;
   name: string;
   role: 'DJ' | 'Door' | 'Admin';
@@ -65,8 +66,9 @@ export const login = async (email: string, password: string): Promise<{ success:
     }
 
     // 사용자 정보 저장 (비밀번호 제외)
-    const userInfo = {
+    const userInfo: User = {
       id: user.id,
+      venue_id: user.venue_id,
       email: user.email,
       name: user.name,
       role: user.role,

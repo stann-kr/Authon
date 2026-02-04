@@ -1,19 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Supabase URL and Anon Key are required. Please check your .env file.');
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: false, // 정적 빌드에서는 세션 유지 불필요
-  },
-});
-
-// Type definitions for database tables
 export interface Database {
   public: {
     Tables: {
@@ -54,7 +38,7 @@ export interface Database {
           id: string;
           venue_id: string;
           email: string;
-          password_hash: string;
+          password_hash: string; // Restored for compatibility
           name: string;
           role: 'admin' | 'door' | 'dj';
           guest_limit: number;
