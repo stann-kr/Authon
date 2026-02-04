@@ -38,7 +38,6 @@ export interface Database {
           id: string;
           venue_id: string;
           email: string;
-          password_hash: string; // Restored for compatibility
           name: string;
           role: 'admin' | 'door' | 'dj';
           guest_limit: number;
@@ -50,7 +49,6 @@ export interface Database {
           id?: string;
           venue_id: string;
           email: string;
-          password_hash: string;
           name: string;
           role: 'admin' | 'door' | 'dj';
           guest_limit?: number;
@@ -62,7 +60,6 @@ export interface Database {
           id?: string;
           venue_id?: string;
           email?: string;
-          password_hash?: string;
           name?: string;
           role?: 'admin' | 'door' | 'dj';
           guest_limit?: number;

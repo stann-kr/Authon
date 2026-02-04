@@ -1,10 +1,8 @@
 -- Supabase Auth Integration & RLS Improvements
 --
 -- [IMPORTANT] Security & Migration Note:
--- 1. 현재 설정은 개발 편의를 위해 RLS(Row Level Security)가 모든 접근을 허용하도록 설정되어 있습니다.
--- 2. 실제 서비스 배포 전에는 반드시 아래 주석 처리된 "Secure Policies" 섹션의 정책을 적용해야 합니다.
--- 3. 보안 정책을 적용하려면 기존 로컬 인증(`lib/auth.ts`) 대신 Supabase Auth(`supabase.auth.signInWithPassword`)를 사용해야 합니다.
--- 4. `public.users` 테이블의 `id`는 `auth.users.id`와 일치시키는 것이 권장됩니다.
+-- This schema enables Row Level Security (RLS) policies that rely on Supabase Auth.
+-- Ensure that your application is using Supabase Auth for login (`supabase.auth.signInWithPassword`).
 
 -- Venues table
 CREATE TABLE IF NOT EXISTS public.venues (
@@ -19,13 +17,12 @@ CREATE TABLE IF NOT EXISTS public.venues (
 );
 
 -- Users table
--- Legacy Auth Support: `password_hash` is kept for existing local auth compatibility.
--- Future Migration: Remove `password_hash` and rely on Supabase Auth.
+-- Ideally, id should reference auth.users(id).
 CREATE TABLE IF NOT EXISTS public.users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(), -- Should ideally reference auth.users(id)
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(), -- REFERENCES auth.users(id) recommended
     venue_id UUID NOT NULL REFERENCES public.venues(id) ON DELETE CASCADE,
     email TEXT NOT NULL,
-    password_hash TEXT NOT NULL, -- Kept for compatibility
+    -- password_hash removed as we now rely on Supabase Auth
     name TEXT NOT NULL,
     role TEXT NOT NULL CHECK (role IN ('admin', 'door', 'dj')),
     guest_limit INTEGER DEFAULT 10,
@@ -104,17 +101,6 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.djs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.guests ENABLE ROW LEVEL SECURITY;
 
--- [DEVELOPMENT MODE] Allow all access
--- WARNING: This is insecure. Migrate to the policies below for production.
-CREATE POLICY "Enable all access for venues" ON public.venues FOR ALL USING (true);
-CREATE POLICY "Enable all access for users" ON public.users FOR ALL USING (true);
-CREATE POLICY "Enable all access for djs" ON public.djs FOR ALL USING (true);
-CREATE POLICY "Enable all access for guests" ON public.guests FOR ALL USING (true);
-
-/*
--- [SECURE POLICIES] - Enable these after migrating to Supabase Auth
--- Drop the development policies above and uncomment these.
-
 -- Helper function to get current user role
 CREATE OR REPLACE FUNCTION public.get_current_user_role()
 RETURNS TEXT AS $$
@@ -177,4 +163,3 @@ CREATE POLICY "Door can check in guests" ON public.guests
             AND users.role IN ('admin', 'door')
         )
     );
-*/
