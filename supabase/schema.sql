@@ -20,9 +20,9 @@ CREATE TABLE IF NOT EXISTS public.venues (
 
 -- Users table
 -- Legacy Auth Support: `password_hash` is kept for existing local auth compatibility.
--- Supabase Auth 연동: public.users.id는 auth.users.id를 참조
+-- Future Migration: Remove `password_hash` and rely on Supabase Auth.
 CREATE TABLE IF NOT EXISTS public.users (
-    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(), -- Should ideally reference auth.users(id)
     venue_id UUID NOT NULL REFERENCES public.venues(id) ON DELETE CASCADE,
     email TEXT NOT NULL,
     password_hash TEXT NOT NULL, -- Kept for compatibility
@@ -56,7 +56,11 @@ CREATE TABLE IF NOT EXISTS public.guests (
     check_in_time TIMESTAMPTZ,
     date DATE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT guests_dj_venue_check CHECK (
+        dj_id IS NULL OR
+        venue_id = (SELECT venue_id FROM public.djs WHERE id = dj_id)
+    )
 );
 
 -- Indexes
@@ -81,30 +85,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Validate guest venue matches dj venue (subquery not allowed in CHECK)
-CREATE OR REPLACE FUNCTION enforce_guest_dj_venue_match()
-RETURNS TRIGGER AS $$
-DECLARE
-    dj_venue_id UUID;
-BEGIN
-    IF NEW.dj_id IS NULL THEN
-        RETURN NEW;
-    END IF;
-
-    SELECT venue_id INTO dj_venue_id FROM public.djs WHERE id = NEW.dj_id;
-
-    IF dj_venue_id IS NULL THEN
-        RAISE EXCEPTION 'DJ not found for dj_id: %', NEW.dj_id;
-    END IF;
-
-    IF NEW.venue_id <> dj_venue_id THEN
-        RAISE EXCEPTION 'Guest venue_id % does not match DJ venue_id %', NEW.venue_id, dj_venue_id;
-    END IF;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
 -- Triggers
 CREATE TRIGGER update_venues_updated_at BEFORE UPDATE ON public.venues
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -117,10 +97,6 @@ CREATE TRIGGER update_djs_updated_at BEFORE UPDATE ON public.djs
 
 CREATE TRIGGER update_guests_updated_at BEFORE UPDATE ON public.guests
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER enforce_guest_dj_venue_match_trigger
-    BEFORE INSERT OR UPDATE ON public.guests
-    FOR EACH ROW EXECUTE FUNCTION enforce_guest_dj_venue_match();
 
 -- Row Level Security (RLS)
 ALTER TABLE public.venues ENABLE ROW LEVEL SECURITY;
@@ -202,9 +178,3 @@ CREATE POLICY "Door can check in guests" ON public.guests
         )
     );
 */
-
--- Add unique constraint to users.email
-ALTER TABLE public.users ADD CONSTRAINT users_email_unique UNIQUE (email);
-
--- Add extension for generating random UUIDs
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
