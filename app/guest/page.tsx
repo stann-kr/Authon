@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import AdminHeader from '../admin/components/AdminHeader';
 import AuthGuard from '../../components/AuthGuard';
+import GuestListCard from '../../components/GuestListCard';
 
 export default function GuestPage() {
   return (
@@ -136,50 +137,14 @@ function GuestPageContent() {
 
                 <div className="divide-y divide-gray-700 lg:[max-height:calc(100vh-320px)] lg:overflow-y-auto">
                   {filteredGuests.map((guest, index) => (
-                    <div key={guest.id} className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3 sm:gap-4">
-                          <div className="w-8 h-8 sm:w-10 sm:h-10 border border-gray-600 flex items-center justify-center">
-                            <span className="text-xs sm:text-sm font-mono text-gray-400">
-                              {String(index + 1).padStart(2, '0')}
-                            </span>
-                          </div>
-                          <span className="font-mono text-sm sm:text-base tracking-wider text-white uppercase">
-                            {guest.name}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          {guest.status === 'pending' && (
-                            <button
-                              onClick={() => handleDelete(guest.id)}
-                              disabled={isLoading}
-                              className="px-3 sm:px-4 py-2 sm:py-3 bg-red-600 text-white font-mono text-xs tracking-wider uppercase hover:bg-red-700 transition-colors disabled:opacity-50"
-                            >
-                              {isLoading ? (
-                                <div className="flex items-center justify-center">
-                                  <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
-                                </div>
-                              ) : (
-                                'DELETE'
-                              )}
-                            </button>
-                          )}
-
-                          {guest.status === 'checked' && (
-                            <span className="px-4 sm:px-6 py-2 sm:py-3 bg-green-600/20 border border-green-600 text-green-400 font-mono text-xs tracking-wider uppercase">
-                              ACTIVE
-                            </span>
-                          )}
-
-                          {guest.status === 'deleted' && (
-                            <span className="px-4 sm:px-6 py-2 sm:py-3 bg-gray-800 text-gray-500 font-mono text-xs tracking-wider uppercase">
-                              REMOVED
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                    <GuestListCard
+                      key={guest.id}
+                      guest={guest}
+                      index={index}
+                      variant="user"
+                      onDelete={() => handleDelete(guest.id)}
+                      isDeleteLoading={isLoading}
+                    />
                   ))}
                 </div>
 
