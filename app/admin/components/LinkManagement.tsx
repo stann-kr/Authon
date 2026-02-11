@@ -1,17 +1,15 @@
 
 'use client';
 
-import { useState } from 'react';
-
-interface GeneratedLink {
-  id: string;
-  date: string;
-  dj: string;
-  event: string;
-  maxGuests: number;
-  url: string;
-  createdAt: string;
-}
+import { useState, useEffect, useCallback } from 'react';
+import { getUser } from '../../../lib/auth';
+import {
+  fetchExternalLinksByDate,
+  createExternalLink,
+  deleteExternalLink,
+  deactivateExternalLink,
+  type ExternalDJLink,
+} from '../../../lib/api/guests';
 
 interface LinkManagementProps {
   selectedDate: string;
@@ -25,78 +23,75 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
     event: '',
     maxGuests: 5
   });
-  const [generatedLink, setGeneratedLink] = useState('');
+  const [generatedLink, setGeneratedLink] = useState<ExternalDJLink | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCopying, setIsCopying] = useState(false);
-
-  const [links, setLinks] = useState<GeneratedLink[]>([
-    {
-      id: '1',
-      date: '2025-08-30',
-      dj: 'JK',
-      event: 'INVITES: KERRIE',
-      maxGuests: 5,
-      url: 'Y2FG7QMNGKFMHSFTFU',
-      createdAt: '2025-08-25 14:30'
-    },
-    {
-      id: '2',
-      date: '2025-08-30',
-      dj: 'MUJ',
-      event: 'INVITES: KERRIE',
-      maxGuests: 5,
-      url: 'E1QJW069XSG3UHCLPQ',
-      createdAt: '2025-08-25 14:35'
-    },
-    {
-      id: '3',
-      date: '2025-08-29',
-      dj: 'FDA',
-      event: 'Authon NACHT',
-      maxGuests: 5,
-      url: 'HZZBRMZTWYJ8GKONWPLG',
-      createdAt: '2025-08-25 14:40'
-    }
-  ]);
-
+  const [links, setLinks] = useState<ExternalDJLink[]>([]);
+  const [isFetching, setIsFetching] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [loadingStates, setLoadingStates] = useState<{[key: string]: boolean}>({});
+  const [error, setError] = useState<string | null>(null);
 
-  const generateRandomString = (length: number) => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = '';
-    for (let i = 0; i < length; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
+  const user = getUser();
+  const venueId = user?.venue_id;
+
+  // Update form date when selectedDate prop changes
+  useEffect(() => {
+    setFormData(prev => ({ ...prev, date: selectedDate }));
+  }, [selectedDate]);
+
+  const loadLinks = useCallback(async () => {
+    if (!venueId) return;
+    setIsFetching(true);
+    try {
+      const { data, error } = await fetchExternalLinksByDate(venueId, selectedDate);
+      if (error) {
+        console.error('Failed to load links:', error);
+      } else if (data) {
+        setLinks(data);
+      }
+    } catch (err) {
+      console.error('Failed to load links:', err);
+    } finally {
+      setIsFetching(false);
     }
-    return result;
+  }, [venueId, selectedDate]);
+
+  useEffect(() => {
+    if (activeTab === 'manage') {
+      loadLinks();
+    }
+  }, [activeTab, loadLinks]);
+
+  const getGuestPageUrl = (token: string) => {
+    if (typeof window === 'undefined') return '';
+    return `${window.location.origin}/guest?token=${token}`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.date || !formData.dj || !formData.event) return;
+    if (!formData.date || !formData.dj || !formData.event || !venueId) return;
 
     setIsGenerating(true);
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    const newLink = generateRandomString(18);
-    const newLinkData: GeneratedLink = {
-      id: Date.now().toString(),
-      date: formData.date,
-      dj: formData.dj,
+    setError(null);
+
+    const { data, error } = await createExternalLink({
+      venueId,
+      djName: formData.dj,
       event: formData.event,
+      date: formData.date,
       maxGuests: formData.maxGuests,
-      url: newLink,
-      createdAt: new Date().toLocaleString('ko-KR', { 
-        year: 'numeric', 
-        month: '2-digit', 
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      })
-    };
-    
-    setLinks(prev => [newLinkData, ...prev]);
-    setGeneratedLink(newLink);
+      createdBy: user?.id,
+    });
+
+    if (error) {
+      console.error('Failed to create link:', error);
+      setError('링크 생성에 실패했습니다.');
+    } else if (data) {
+      setGeneratedLink(data);
+      setFormData({ date: selectedDate, dj: '', event: '', maxGuests: 5 });
+    }
+
     setIsGenerating(false);
   };
 
@@ -126,13 +121,28 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
     }, 100);
   };
 
-  const deleteLink = async (id: string) => {
-    if (confirm('DELETE THIS LINK?')) {
-      setLoadingStates(prev => ({ ...prev, [`delete_${id}`]: true }));
-      await new Promise(resolve => setTimeout(resolve, 100));
+  const handleDeleteLink = async (id: string) => {
+    if (!confirm('DELETE THIS LINK?')) return;
+    setLoadingStates(prev => ({ ...prev, [`delete_${id}`]: true }));
+    const { error } = await deleteExternalLink(id);
+    if (error) {
+      console.error('Failed to delete link:', error);
+      alert('링크 삭제에 실패했습니다.');
+    } else {
       setLinks(prev => prev.filter(link => link.id !== id));
-      setLoadingStates(prev => ({ ...prev, [`delete_${id}`]: false }));
     }
+    setLoadingStates(prev => ({ ...prev, [`delete_${id}`]: false }));
+  };
+
+  const handleDeactivateLink = async (id: string) => {
+    setLoadingStates(prev => ({ ...prev, [`deactivate_${id}`]: true }));
+    const { error } = await deactivateExternalLink(id);
+    if (error) {
+      console.error('Failed to deactivate link:', error);
+    } else {
+      setLinks(prev => prev.map(link => link.id === id ? { ...link, active: false } : link));
+    }
+    setLoadingStates(prev => ({ ...prev, [`deactivate_${id}`]: false }));
   };
 
   const formatDateDisplay = (dateString: string) => {
@@ -140,7 +150,8 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
     return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
   };
 
-  const filteredLinks = links.filter(link => link.date === selectedDate);
+  const activeLinks = links.filter(l => l.active);
+  const inactiveLinks = links.filter(l => !l.active);
 
   const getTabInfo = () => {
     switch (activeTab) {
@@ -202,7 +213,7 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
           </div>
           <div className="text-center mb-4">
             <div className="text-white font-mono text-3xl sm:text-4xl tracking-wider">
-              {filteredLinks.length}
+              {links.length}
             </div>
             <div className="text-gray-400 text-xs font-mono tracking-wider uppercase">
               TOTAL LINKS
@@ -212,7 +223,7 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
           <div className="grid grid-cols-2 gap-px bg-gray-700">
             <div className="bg-gray-800 p-3 text-center">
               <div className="text-green-400 font-mono text-lg sm:text-xl tracking-wider">
-                {filteredLinks.length}
+                {activeLinks.length}
               </div>
               <div className="text-gray-400 text-xs font-mono tracking-wider uppercase">
                 ACTIVE
@@ -220,7 +231,7 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
             </div>
             <div className="bg-gray-800 p-3 text-center">
               <div className="text-gray-500 font-mono text-lg sm:text-xl tracking-wider">
-                0
+                {inactiveLinks.length}
               </div>
               <div className="text-gray-400 text-xs font-mono tracking-wider uppercase">
                 EXPIRED
@@ -236,8 +247,14 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
             <div className="bg-gray-900 border border-gray-700 p-4 sm:p-6">
               <div className="mb-6">
                 <h2 className="font-mono text-sm sm:text-base tracking-wider text-white uppercase mb-1">CREATE ACCESS LINK</h2>
-                <p className="text-gray-400 font-mono text-xs tracking-wider uppercase">GENERATE NEW GUEST CODE</p>
+                <p className="text-gray-400 font-mono text-xs tracking-wider uppercase">GENERATE NEW GUEST CODE FOR EXTERNAL DJ</p>
               </div>
+
+              {error && (
+                <div className="mb-4 bg-red-900/30 border border-red-700 p-3">
+                  <p className="text-red-400 font-mono text-xs tracking-wider">{error}</p>
+                </div>
+              )}
 
               <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
@@ -256,7 +273,7 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
                   
                   <div>
                     <label className="block font-mono text-xs tracking-wider text-gray-400 uppercase mb-2">
-                      DJ
+                      DJ NAME
                     </label>
                     <input
                       type="text"
@@ -317,15 +334,21 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
             {generatedLink && (
               <div className="bg-gray-900 border border-gray-700 p-4 sm:p-6">
                 <div className="mb-4">
-                  <h3 className="font-mono text-sm tracking-wider text-white uppercase mb-2">GENERATED ACCESS CODE</h3>
+                  <h3 className="font-mono text-sm tracking-wider text-white uppercase mb-2">GENERATED ACCESS LINK</h3>
+                  <p className="text-gray-400 font-mono text-xs">
+                    {generatedLink.djName} — {generatedLink.event} | MAX: {generatedLink.maxGuests}
+                  </p>
                 </div>
                 
                 <div className="bg-black border border-gray-700 p-4 mb-4">
-                  <div className="font-mono text-sm tracking-widest text-white break-all">{generatedLink}</div>
+                  <div className="font-mono text-xs tracking-wider text-gray-400 mb-1">GUEST URL</div>
+                  <div className="font-mono text-sm tracking-wider text-white break-all">
+                    {getGuestPageUrl(generatedLink.token)}
+                  </div>
                 </div>
                 
                 <button
-                  onClick={() => copyToClipboard(generatedLink)}
+                  onClick={() => copyToClipboard(getGuestPageUrl(generatedLink.token))}
                   disabled={isCopying}
                   className="w-full bg-white text-black py-3 font-mono text-xs tracking-wider uppercase hover:bg-gray-200 transition-colors disabled:opacity-50"
                 >
@@ -335,7 +358,7 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
                       COPYING...
                     </div>
                   ) : (
-                    'COPY CODE'
+                    'COPY LINK'
                   )}
                 </button>
               </div>
@@ -345,84 +368,126 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
 
         {activeTab === 'manage' && (
           <div className="bg-gray-900 border border-gray-700">
-            <div className="border-b border-gray-700 p-4">
+            <div className="border-b border-gray-700 p-4 flex items-center justify-between">
               <h3 className="font-mono text-xs sm:text-sm tracking-wider text-white uppercase">
-                LINK LIST ({filteredLinks.length})
+                LINK LIST ({links.length})
               </h3>
+              <button
+                onClick={loadLinks}
+                className="px-3 py-1 bg-gray-800 text-gray-400 font-mono text-xs tracking-wider uppercase hover:text-white transition-colors border border-gray-700"
+              >
+                <i className="ri-refresh-line mr-1"></i>REFRESH
+              </button>
             </div>
             
-            <div className="divide-y divide-gray-700 max-h-[500px] lg:max-h-[600px] overflow-y-auto">
-              {filteredLinks.length === 0 ? (
-                <div className="p-8 text-center">
-                  <div className="w-16 h-16 border border-gray-600 mx-auto mb-4 flex items-center justify-center">
-                    <i className="ri-link text-gray-400 text-2xl"></i>
+            {isFetching ? (
+              <div className="flex items-center justify-center p-8">
+                <div className="w-6 h-6 border border-white border-t-transparent rounded-full animate-spin"></div>
+                <span className="ml-2 text-white font-mono text-sm">LOADING...</span>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-700 max-h-[500px] lg:max-h-[600px] overflow-y-auto">
+                {links.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <div className="w-16 h-16 border border-gray-600 mx-auto mb-4 flex items-center justify-center">
+                      <i className="ri-link text-gray-400 text-2xl"></i>
+                    </div>
+                    <p className="text-gray-400 font-mono text-sm tracking-wider uppercase">
+                      NO LINKS FOUND FOR THIS DATE
+                    </p>
                   </div>
-                  <p className="text-gray-400 font-mono text-sm tracking-wider uppercase">
-                    NO LINKS FOUND FOR THIS DATE
-                  </p>
-                </div>
-              ) : (
-                filteredLinks.map((link, index) => (
-                  <div key={link.id} className="p-4">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-6 h-6 sm:w-8 sm:h-8 border border-gray-600 flex items-center justify-center">
-                          <span className="text-xs font-mono text-gray-400">
-                            {String(index + 1).padStart(2, '0')}
-                          </span>
-                        </div>
-                        <div>
-                          <p className="font-mono text-sm tracking-wider text-white uppercase">
-                            {link.dj} - {link.event}
-                          </p>
-                          <p className="text-xs font-mono text-gray-400 mt-1">
-                            MAX: {link.maxGuests} | CREATED: {link.createdAt}
-                          </p>
+                ) : (
+                  links.map((link, index) => (
+                    <div key={link.id} className={`p-4 ${!link.active ? 'opacity-50' : ''}`}>
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-6 h-6 sm:w-8 sm:h-8 border border-gray-600 flex items-center justify-center">
+                            <span className="text-xs font-mono text-gray-400">
+                              {String(index + 1).padStart(2, '0')}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="font-mono text-sm tracking-wider text-white uppercase">
+                              {link.djName} - {link.event}
+                            </p>
+                            <p className="text-xs font-mono text-gray-400 mt-1">
+                              MAX: {link.maxGuests} | USED: {link.usedGuests} | {link.active ? (
+                                <span className="text-green-400">ACTIVE</span>
+                              ) : (
+                                <span className="text-red-400">INACTIVE</span>
+                              )}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="bg-black border border-gray-700 p-3 mb-4">
-                      <div className="mb-1">
-                        <span className="font-mono text-xs tracking-wider text-gray-400 uppercase">ACCESS CODE</span>
+                      <div className="bg-black border border-gray-700 p-3 mb-4">
+                        <div className="mb-1">
+                          <span className="font-mono text-xs tracking-wider text-gray-400 uppercase">GUEST URL</span>
+                        </div>
+                        <div className="font-mono text-xs tracking-wider text-white break-all">
+                          {getGuestPageUrl(link.token)}
+                        </div>
                       </div>
-                      <div className="font-mono text-sm tracking-widest text-white break-all">{link.url}</div>
-                    </div>
 
-                    <div className="grid grid-cols-2 gap-px bg-gray-700">
-                      <button
-                        onClick={() => copyToClipboard(link.url, link.id)}
-                        disabled={loadingStates[`copy_${link.id}`]}
-                        className="bg-white text-black py-2 font-mono text-xs tracking-wider uppercase hover:bg-gray-200 transition-colors disabled:opacity-50"
-                      >
-                        {loadingStates[`copy_${link.id}`] ? (
-                          <div className="flex items-center justify-center">
-                            <div className="w-3 h-3 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
-                          </div>
-                        ) : copiedId === link.id ? (
-                          'COPIED'
-                        ) : (
-                          'COPY'
+                      {/* Usage progress bar */}
+                      <div className="mb-4">
+                        <div className="flex justify-between text-xs font-mono text-gray-400 mb-1">
+                          <span>USAGE</span>
+                          <span>{link.usedGuests}/{link.maxGuests}</span>
+                        </div>
+                        <div className="w-full bg-gray-800 h-1">
+                          <div 
+                            className={`h-1 transition-all ${link.usedGuests >= link.maxGuests ? 'bg-red-500' : 'bg-green-500'}`}
+                            style={{ width: `${Math.min((link.usedGuests / link.maxGuests) * 100, 100)}%` }}
+                          ></div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-px bg-gray-700">
+                        <button
+                          onClick={() => copyToClipboard(getGuestPageUrl(link.token), link.id)}
+                          disabled={loadingStates[`copy_${link.id}`]}
+                          className="bg-white text-black py-2 font-mono text-xs tracking-wider uppercase hover:bg-gray-200 transition-colors disabled:opacity-50"
+                        >
+                          {loadingStates[`copy_${link.id}`] ? (
+                            <div className="flex items-center justify-center">
+                              <div className="w-3 h-3 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                          ) : copiedId === link.id ? (
+                            'COPIED'
+                          ) : (
+                            'COPY'
+                          )}
+                        </button>
+                        {link.active && (
+                          <button
+                            onClick={() => handleDeactivateLink(link.id)}
+                            disabled={loadingStates[`deactivate_${link.id}`]}
+                            className="bg-gray-900 border border-gray-600 text-yellow-400 py-2 font-mono text-xs tracking-wider uppercase hover:bg-gray-800 transition-colors disabled:opacity-50"
+                          >
+                            DEACTIVATE
+                          </button>
                         )}
-                      </button>
-                      <button
-                        onClick={() => deleteLink(link.id)}
-                        disabled={loadingStates[`delete_${link.id}`]}
-                        className="bg-gray-900 border border-gray-600 text-gray-400 py-2 font-mono text-xs tracking-wider uppercase hover:bg-gray-800 transition-colors disabled:opacity-50"
-                      >
-                        {loadingStates[`delete_${link.id}`] ? (
-                          <div className="flex items-center justify-center">
-                            <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-                          </div>
-                        ) : (
-                          'DELETE'
-                        )}
-                      </button>
+                        <button
+                          onClick={() => handleDeleteLink(link.id)}
+                          disabled={loadingStates[`delete_${link.id}`]}
+                          className="bg-gray-900 border border-gray-600 text-red-400 py-2 font-mono text-xs tracking-wider uppercase hover:bg-gray-800 transition-colors disabled:opacity-50"
+                        >
+                          {loadingStates[`delete_${link.id}`] ? (
+                            <div className="flex items-center justify-center">
+                              <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                          ) : (
+                            'DELETE'
+                          )}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))
-              )}
-            </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

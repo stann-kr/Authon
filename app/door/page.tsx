@@ -1,24 +1,19 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import AdminHeader from '../admin/components/AdminHeader';
 import AuthGuard from '../../components/AuthGuard';
 import GuestListCard from '../../components/GuestListCard';
-
-interface Guest {
-  id: string;
-  name: string;
-  djId: string;
-  status: 'pending' | 'checked' | 'deleted';
-  checkInTime?: string;
-}
-
-interface DJ {
-  id: string;
-  name: string;
-  event: string;
-}
+import { getUser } from '../../lib/auth';
+import {
+  fetchGuestsByDate,
+  fetchDJsByVenue,
+  updateGuestStatus,
+  deleteGuest,
+  type Guest,
+  type DJ,
+} from '../../lib/api/guests';
 
 export default function DoorPage() {
   return (
@@ -29,38 +24,40 @@ export default function DoorPage() {
 }
 
 function DoorPageContent() {
-  const [selectedDate, setSelectedDate] = useState('2025-08-30');
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().split('T')[0]
+  );
   const [selectedDJ, setSelectedDJ] = useState<string>('all');
   const [loadingStates, setLoadingStates] = useState<{ [key: string]: boolean }>({});
   const [isDJDropdownOpen, setIsDJDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [djs, setDJs] = useState<DJ[]>([]);
+  const [guests, setGuests] = useState<Guest[]>([]);
+  const [isFetching, setIsFetching] = useState(true);
 
-  const [djs] = useState<DJ[]>([
-    { id: '1', name: 'STANN LUMO', event: 'INVITES' },
-    { id: '2', name: 'JOHN DOE', event: 'MIDNIGHT SESSIONS' },
-    { id: '3', name: 'KATE MOON', event: 'DEEP HOUSE NIGHT' },
-    { id: '4', name: 'ALEX JONES', event: 'TECHNO PARADISE' },
-    { id: '5', name: 'SARA KIM', event: 'ELECTRONIC VIBES' }
-  ]);
+  const user = getUser();
+  const venueId = user?.venue_id;
 
-  const [guests, setGuests] = useState<Guest[]>([
-    { id: '1', name: 'KIM MINSU', djId: '1', status: 'pending' },
-    { id: '2', name: 'LEE YOUNGHEE', djId: '1', status: 'checked', checkInTime: '19:30' },
-    { id: '3', name: 'PARK JUNHO', djId: '2', status: 'pending' },
-    { id: '4', name: 'CHOI SEOYEON', djId: '2', status: 'checked', checkInTime: '20:15' },
-    { id: '5', name: 'JUNG DAEUN', djId: '3', status: 'pending' },
-    { id: '6', name: 'WANG MINHO', djId: '3', status: 'checked', checkInTime: '21:00' },
-    { id: '7', name: 'SONG JIHYE', djId: '4', status: 'pending' },
-    { id: '8', name: 'KIM TAEHYUN', djId: '5', status: 'pending' },
-    { id: '1', name: 'KIM MINSU', djId: '1', status: 'pending' },
-    { id: '2', name: 'LEE YOUNGHEE', djId: '1', status: 'checked', checkInTime: '19:30' },
-    { id: '3', name: 'PARK JUNHO', djId: '2', status: 'pending' },
-    { id: '4', name: 'CHOI SEOYEON', djId: '2', status: 'checked', checkInTime: '20:15' },
-    { id: '5', name: 'JUNG DAEUN', djId: '3', status: 'pending' },
-    { id: '6', name: 'WANG MINHO', djId: '3', status: 'checked', checkInTime: '21:00' },
-    { id: '7', name: 'SONG JIHYE', djId: '4', status: 'pending' },
-    { id: '8', name: 'KIM TAEHYUN', djId: '5', status: 'pending' }
-  ]);
+  const loadData = useCallback(async () => {
+    if (!venueId) return;
+    setIsFetching(true);
+    try {
+      const [guestRes, djRes] = await Promise.all([
+        fetchGuestsByDate(selectedDate, venueId),
+        fetchDJsByVenue(venueId),
+      ]);
+      if (guestRes.data) setGuests(guestRes.data);
+      if (djRes.data) setDJs(djRes.data);
+    } catch (err) {
+      console.error('Failed to load data:', err);
+    } finally {
+      setIsFetching(false);
+    }
+  }, [selectedDate, venueId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -79,13 +76,16 @@ function DoorPageContent() {
 
   const handleStatusChange = async (id: string, newStatus: Guest['status'], action: string) => {
     setLoadingStates(prev => ({ ...prev, [`${id}_${action}`]: true }));
-    await new Promise(resolve => setTimeout(resolve, 100));
 
-    setGuests(prev => prev.map(guest =>
-      guest.id === id
-        ? { ...guest, status: newStatus, checkInTime: newStatus === 'checked' ? new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : undefined }
-        : guest
-    ));
+    const { data, error } = newStatus === 'deleted'
+      ? await deleteGuest(id)
+      : await updateGuestStatus(id, newStatus);
+
+    if (!error && data) {
+      setGuests(prev => prev.map(g => g.id === id ? data : g));
+    } else {
+      console.error('Failed to update guest status:', error);
+    }
 
     setLoadingStates(prev => ({ ...prev, [`${id}_${action}`]: false }));
   };
@@ -198,7 +198,7 @@ function DoorPageContent() {
                 </div>
                 <div className="text-center mb-4">
                   <div className="text-white font-mono text-3xl sm:text-4xl tracking-wider">
-                    {pendingGuests.length + checkedGuests.length}
+                    {isFetching ? '...' : pendingGuests.length + checkedGuests.length}
                   </div>
                   <div className="text-gray-400 text-xs font-mono tracking-wider uppercase">
                     TOTAL GUESTS
@@ -228,30 +228,58 @@ function DoorPageContent() {
 
             <div className="lg:col-span-3">
               <div className="bg-gray-900 border border-gray-700">
-                <div className="border-b border-gray-700 p-4">
+                <div className="border-b border-gray-700 p-4 flex items-center justify-between">
                   <h3 className="font-mono text-xs sm:text-sm tracking-wider text-white uppercase">
                     GUEST LIST ({filteredGuests.length})
                   </h3>
+                  <button
+                    onClick={loadData}
+                    className="px-3 py-1 bg-gray-800 text-gray-400 font-mono text-xs tracking-wider uppercase hover:text-white transition-colors border border-gray-700"
+                  >
+                    <i className="ri-refresh-line mr-1"></i>REFRESH
+                  </button>
                 </div>
 
-                <div className="divide-y divide-gray-700 lg:[max-height:calc(100vh-320px)] lg:overflow-y-auto">
-                  {filteredGuests.map((guest, index) => {
-                    const guestDJ = djs.find(dj => dj.id === guest.djId);
-                    return (
-                      <GuestListCard
-                        key={guest.id}
-                        guest={guest}
-                        index={index}
-                        variant="admin"
-                        djName={selectedDJ === 'all' && guestDJ ? guestDJ.name : undefined}
-                        onCheck={() => handleStatusChange(guest.id, 'checked', 'check')}
-                        onDelete={() => handleStatusChange(guest.id, 'deleted', 'remove')}
-                        isCheckLoading={loadingStates[`${guest.id}_check`]}
-                        isDeleteLoading={loadingStates[`${guest.id}_remove`]}
-                      />
-                    );
-                  })}
-                </div>
+                {isFetching ? (
+                  <div className="flex items-center justify-center p-8">
+                    <div className="w-6 h-6 border border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span className="ml-2 text-white font-mono text-sm">LOADING...</span>
+                  </div>
+                ) : filteredGuests.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <div className="w-16 h-16 border border-gray-600 mx-auto mb-4 flex items-center justify-center">
+                      <i className="ri-user-line text-gray-400 text-2xl"></i>
+                    </div>
+                    <p className="text-gray-400 font-mono text-sm tracking-wider uppercase">
+                      NO GUESTS FOR THIS DATE
+                    </p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-700 lg:[max-height:calc(100vh-320px)] lg:overflow-y-auto">
+                    {filteredGuests.map((guest, index) => {
+                      const guestDJ = djs.find(dj => dj.id === guest.djId);
+                      return (
+                        <GuestListCard
+                          key={guest.id}
+                          guest={{
+                            id: guest.id,
+                            name: guest.name,
+                            status: guest.status,
+                            checkInTime: guest.checkInTime || undefined,
+                            djId: guest.djId || undefined,
+                          }}
+                          index={index}
+                          variant="admin"
+                          djName={selectedDJ === 'all' && guestDJ ? guestDJ.name : undefined}
+                          onCheck={() => handleStatusChange(guest.id, 'checked', 'check')}
+                          onDelete={() => handleStatusChange(guest.id, 'deleted', 'remove')}
+                          isCheckLoading={loadingStates[`${guest.id}_check`]}
+                          isDeleteLoading={loadingStates[`${guest.id}_remove`]}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           </div>

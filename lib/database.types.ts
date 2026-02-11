@@ -103,12 +103,60 @@ export interface Database {
           updated_at?: string;
         };
       };
+      external_dj_links: {
+        Row: {
+          id: string;
+          venue_id: string;
+          token: string;
+          dj_name: string;
+          event: string;
+          date: string;
+          max_guests: number;
+          used_guests: number;
+          active: boolean;
+          expires_at: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          venue_id: string;
+          token?: string;
+          dj_name: string;
+          event: string;
+          date: string;
+          max_guests?: number;
+          used_guests?: number;
+          active?: boolean;
+          expires_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          venue_id?: string;
+          token?: string;
+          dj_name?: string;
+          event?: string;
+          date?: string;
+          max_guests?: number;
+          used_guests?: number;
+          active?: boolean;
+          expires_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       guests: {
         Row: {
           id: string;
           venue_id: string;
           name: string;
           dj_id: string | null;
+          external_link_id: string | null;
           status: 'pending' | 'checked' | 'deleted';
           check_in_time: string | null;
           date: string;
@@ -120,6 +168,7 @@ export interface Database {
           venue_id: string;
           name: string;
           dj_id?: string | null;
+          external_link_id?: string | null;
           status?: 'pending' | 'checked' | 'deleted';
           check_in_time?: string | null;
           date: string;
@@ -131,6 +180,7 @@ export interface Database {
           venue_id?: string;
           name?: string;
           dj_id?: string | null;
+          external_link_id?: string | null;
           status?: 'pending' | 'checked' | 'deleted';
           check_in_time?: string | null;
           date?: string;
