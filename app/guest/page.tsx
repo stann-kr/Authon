@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import AdminHeader from '../admin/components/AdminHeader';
 import AuthGuard from '../../components/AuthGuard';
 import { fetchGuestsByDate, createGuest, deleteGuest } from '../../lib/api/guests';
+import { getUser } from '../../lib/auth';
 import GuestListCard from '../../components/GuestListCard';
 
 export default function GuestPage() {
@@ -54,10 +55,18 @@ function GuestPageContent() {
   const handleSave = async () => {
     if (!guestName.trim()) return;
 
+    const user = getUser();
+    if (!user || !user.venue_id) {
+        console.error('No venue ID found for user');
+        setError('로그인 정보가 올바르지 않습니다.');
+        return;
+    }
+
     setIsLoading(true);
     setError(null);
 
     const { data, error: createError } = await createGuest({
+      venueId: user.venue_id,
       name: guestName.trim().toUpperCase(),
       date: selectedDate,
       status: 'pending',
