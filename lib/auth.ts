@@ -2,10 +2,11 @@ import { createClient } from './supabase/client';
 
 export interface User {
   id: string;
+  auth_user_id: string | null;
   venue_id?: string;
   email: string;
   name: string;
-  role: 'DJ' | 'Door' | 'Admin';
+  role: 'super_admin' | 'venue_admin' | 'door' | 'dj';
   guest_limit: number;
 }
 
@@ -31,7 +32,7 @@ export const login = async (email: string, password: string): Promise<{ success:
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('*')
-      .eq('id', user.id)
+      .eq('auth_user_id', user.id)
       .single();
 
     if (userError || !userData) {
@@ -55,10 +56,11 @@ export const login = async (email: string, password: string): Promise<{ success:
     // 하지만 리팩토링 범위를 줄이기 위해 localStorage에도 저장합니다.
     const userInfo: User = {
       id: activeUser.id,
+      auth_user_id: activeUser.auth_user_id,
       venue_id: activeUser.venue_id,
       email: activeUser.email,
       name: activeUser.name,
-      role: activeUser.role as 'DJ' | 'Door' | 'Admin', // 타입 캐스팅 필요
+      role: activeUser.role as 'super_admin' | 'venue_admin' | 'door' | 'dj',
       guest_limit: activeUser.guest_limit
     };
 
@@ -98,9 +100,10 @@ export const getUser = (): User | null => {
 
 export const hasAccess = (userRole: string, requiredAccess: string[]): boolean => {
   const accessMap: Record<string, string[]> = {
-    'DJ': ['guest'],
-    'Door': ['guest', 'door'],
-    'Admin': ['guest', 'door', 'admin']
+    'super_admin': ['guest', 'door', 'admin', 'venue'],
+    'venue_admin': ['guest', 'door', 'admin'],
+    'door': ['guest', 'door'],
+    'dj': ['guest']
   };
   
   return requiredAccess.some(access => accessMap[userRole]?.includes(access));

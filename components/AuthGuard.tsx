@@ -54,7 +54,7 @@ export default function AuthGuard({ children, requiredAccess }: AuthGuardProps) 
     checkAuth();
 
     // Listen for auth state changes (e.g. sign out from another tab)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: any, session: any) => {
       if (event === 'SIGNED_OUT' || !session) {
         router.push('/auth/login');
       }

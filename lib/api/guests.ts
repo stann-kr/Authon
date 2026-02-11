@@ -1,6 +1,6 @@
 import { createClient } from '../supabase/client';
 import { Database } from '../database.types';
-import { SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Initialize Supabase client with loose typing to avoid strict schema issues during migration
 const supabase = createClient() as SupabaseClient<any, "public", any>;
@@ -16,10 +16,11 @@ export interface Venue {
 
 export interface User {
   id: string;
+  authUserId: string | null;
   venueId: string;
   email: string;
   name: string;
-  role: 'admin' | 'door' | 'dj';
+  role: 'super_admin' | 'venue_admin' | 'door' | 'dj';
   guestLimit: number;
   active: boolean;
 }
@@ -58,6 +59,7 @@ const transformVenue = (row: any): Venue => ({
 // Transform database row to frontend format
 const transformUser = (row: any): User => ({
   id: row.id,
+  authUserId: row.auth_user_id,
   venueId: row.venue_id,
   email: row.email,
   name: row.name,

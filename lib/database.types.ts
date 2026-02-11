@@ -36,10 +36,11 @@ export interface Database {
       users: {
         Row: {
           id: string;
+          auth_user_id: string | null;
           venue_id: string;
           email: string;
           name: string;
-          role: 'admin' | 'door' | 'dj';
+          role: 'super_admin' | 'venue_admin' | 'door' | 'dj';
           guest_limit: number;
           active: boolean;
           created_at: string;
@@ -47,10 +48,11 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          auth_user_id?: string | null;
           venue_id: string;
           email: string;
           name: string;
-          role: 'admin' | 'door' | 'dj';
+          role: 'super_admin' | 'venue_admin' | 'door' | 'dj';
           guest_limit?: number;
           active?: boolean;
           created_at?: string;
@@ -58,10 +60,11 @@ export interface Database {
         };
         Update: {
           id?: string;
+          auth_user_id?: string | null;
           venue_id?: string;
           email?: string;
           name?: string;
-          role?: 'admin' | 'door' | 'dj';
+          role?: 'super_admin' | 'venue_admin' | 'door' | 'dj';
           guest_limit?: number;
           active?: boolean;
           created_at?: string;
