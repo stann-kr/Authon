@@ -8,7 +8,9 @@ import {
   createExternalLink,
   deleteExternalLink,
   deactivateExternalLink,
+  fetchVenues,
   type ExternalDJLink,
+  type Venue,
 } from '../../../lib/api/guests';
 
 interface LinkManagementProps {
@@ -31,9 +33,26 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [loadingStates, setLoadingStates] = useState<{[key: string]: boolean}>({});
   const [error, setError] = useState<string | null>(null);
+  const [venues, setVenues] = useState<Venue[]>([]);
+  const [selectedVenueId, setSelectedVenueId] = useState<string>('');
 
   const user = getUser();
-  const venueId = user?.venue_id;
+  const isSuperAdmin = user?.role === 'super_admin';
+  const venueId = isSuperAdmin ? selectedVenueId : user?.venue_id;
+
+  // Load venues for super_admin
+  useEffect(() => {
+    if (isSuperAdmin) {
+      fetchVenues().then(({ data }) => {
+        if (data) {
+          setVenues(data);
+          if (data.length > 0 && !selectedVenueId) {
+            setSelectedVenueId(data[0].id);
+          }
+        }
+      });
+    }
+  }, [isSuperAdmin]);
 
   // Update form date when selectedDate prop changes
   useEffect(() => {
@@ -169,6 +188,21 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
       <div className="lg:col-span-1 space-y-4">
+        {/* Venue selector for super_admin */}
+        {isSuperAdmin && venues.length > 0 && (
+          <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
+            <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase mb-3">SELECT VENUE</h3>
+            <select
+              value={selectedVenueId}
+              onChange={(e) => setSelectedVenueId(e.target.value)}
+              className="w-full bg-gray-800 border border-gray-700 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
+            >
+              {venues.map(v => (
+                <option key={v.id} value={v.id}>{v.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
           <div className="mb-4">
             <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase mb-3">SELECT MENU</h3>

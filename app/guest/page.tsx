@@ -11,6 +11,7 @@ import {
   deleteGuest,
   validateExternalToken,
   createGuestViaExternalLink,
+  fetchVenues,
   type Guest,
   type ExternalDJLink,
   type Venue,
@@ -311,13 +312,34 @@ function AuthenticatedGuestPage() {
   const [error, setError] = useState<string | null>(null);
   const [guests, setGuests] = useState<Guest[]>([]);
 
+  // super_admin venue selector
+  const [venues, setVenues] = useState<Venue[]>([]);
+  const [selectedVenueId, setSelectedVenueId] = useState<string>('');
+  const user = getUser();
+  const isSuperAdmin = user?.role === 'super_admin';
+  const effectiveVenueId = isSuperAdmin ? selectedVenueId : (user?.venue_id ?? '');
+
   useEffect(() => {
+    if (isSuperAdmin) {
+      fetchVenues().then(({ data }) => {
+        if (data) {
+          setVenues(data);
+          if (data.length > 0) setSelectedVenueId(data[0].id);
+        }
+      });
+    }
+  }, [isSuperAdmin]);
+
+  useEffect(() => {
+    if (!effectiveVenueId) {
+      setIsFetching(false);
+      return;
+    }
     const loadGuests = async () => {
       setIsFetching(true);
       setError(null);
       
-      const user = getUser();
-      const { data, error: fetchError } = await fetchGuestsByDate(selectedDate, user?.venue_id);
+      const { data, error: fetchError } = await fetchGuestsByDate(selectedDate, effectiveVenueId);
       
       if (fetchError) {
         console.error('Failed to fetch guests:', fetchError);
@@ -330,7 +352,7 @@ function AuthenticatedGuestPage() {
     };
 
     loadGuests();
-  }, [selectedDate]);
+  }, [selectedDate, effectiveVenueId]);
 
   const formatDateDisplay = (dateString: string) => {
     const date = new Date(dateString);
@@ -340,10 +362,9 @@ function AuthenticatedGuestPage() {
   const handleSave = async () => {
     if (!guestName.trim()) return;
 
-    const user = getUser();
-    if (!user || !user.venue_id) {
-        console.error('No venue ID found for user');
-        setError('로그인 정보가 올바르지 않습니다.');
+    if (!effectiveVenueId) {
+        console.error('No venue ID available');
+        setError('Venue를 선택해주세요.');
         return;
     }
 
@@ -351,7 +372,7 @@ function AuthenticatedGuestPage() {
     setError(null);
 
     const { data, error: createError } = await createGuest({
-      venueId: user.venue_id,
+      venueId: effectiveVenueId,
       name: guestName.trim().toUpperCase(),
       date: selectedDate,
       status: 'pending',
@@ -404,8 +425,25 @@ function AuthenticatedGuestPage() {
 
       <div className="pt-20 sm:pt-24 pb-4">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mb-6">
-            <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
+          <div className="mb-6 flex flex-col sm:flex-row gap-4">
+            {isSuperAdmin && (
+              <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5 flex-1">
+                <div className="mb-2">
+                  <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase">SELECT VENUE</h3>
+                </div>
+                <select
+                  value={selectedVenueId}
+                  onChange={(e) => setSelectedVenueId(e.target.value)}
+                  className="w-full bg-black border border-gray-600 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
+                >
+                  <option value="">-- Select Venue --</option>
+                  {venues.map((v) => (
+                    <option key={v.id} value={v.id}>{v.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5 flex-1">
               <div className="mb-2">
                 <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase">SELECT DATE</h3>
               </div>

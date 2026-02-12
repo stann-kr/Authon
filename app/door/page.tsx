@@ -34,9 +34,28 @@ function DoorPageContent() {
   const [djs, setDJs] = useState<DJ[]>([]);
   const [guests, setGuests] = useState<Guest[]>([]);
   const [isFetching, setIsFetching] = useState(true);
+  const [venues, setVenues] = useState<any[]>([]);
+  const [selectedVenueId, setSelectedVenueId] = useState<string>('');
 
   const user = getUser();
-  const venueId = user?.venue_id;
+  const isSuperAdmin = user?.role === 'super_admin';
+  const venueId = isSuperAdmin ? selectedVenueId : user?.venue_id;
+
+  // Load venues for super_admin
+  useEffect(() => {
+    if (isSuperAdmin) {
+      import('../../lib/api/guests').then(({ fetchVenues }) => {
+        fetchVenues().then(({ data }) => {
+          if (data) {
+            setVenues(data);
+            if (data.length > 0 && !selectedVenueId) {
+              setSelectedVenueId(data[0].id);
+            }
+          }
+        });
+      });
+    }
+  }, [isSuperAdmin]);
 
   const loadData = useCallback(async () => {
     if (!venueId) return;
@@ -116,8 +135,25 @@ function DoorPageContent() {
 
       <div className="pt-20 sm:pt-24 pb-4">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mb-6">
-            <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
+          <div className="mb-6 flex flex-col sm:flex-row gap-4">
+            {isSuperAdmin && (
+              <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5 flex-1">
+                <div className="mb-2">
+                  <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase">SELECT VENUE</h3>
+                </div>
+                <select
+                  value={selectedVenueId}
+                  onChange={(e) => setSelectedVenueId(e.target.value)}
+                  className="w-full bg-black border border-gray-600 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
+                >
+                  <option value="">-- Select Venue --</option>
+                  {venues.map((v) => (
+                    <option key={v.id} value={v.id}>{v.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5 flex-1">
               <div className="mb-2">
                 <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase">SELECT DATE</h3>
               </div>

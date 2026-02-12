@@ -109,10 +109,16 @@ serve(async (req) => {
     // ---- CREATE USER ----
     const { email, password, name, role, venueId, guestLimit } = body
 
-    // Validate required fields
-    if (!email || !password || !name || !role || !venueId) {
+    // Validate required fields (venueId nullable for super_admin)
+    if (!email || !password || !name || !role) {
       return new Response(
-        JSON.stringify({ error: '필수 필드가 누락되었습니다. (email, password, name, role, venueId)' }),
+        JSON.stringify({ error: '필수 필드가 누락되었습니다. (email, password, name, role)' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    if (role !== 'super_admin' && !venueId) {
+      return new Response(
+        JSON.stringify({ error: 'super_admin 이외의 역할은 venueId가 필요합니다.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -160,8 +166,12 @@ serve(async (req) => {
       user_metadata: {
         name,
         role,
-        venue_id: venueId,
+        venue_id: venueId ?? null,
         guest_limit: guestLimit ?? 10,
+      },
+      app_metadata: {
+        app_role: role,
+        app_venue_id: venueId ?? null,
       },
     })
 

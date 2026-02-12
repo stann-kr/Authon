@@ -19,7 +19,7 @@ export interface Venue {
 export interface User {
   id: string;
   authUserId: string | null;
-  venueId: string;
+  venueId: string | null;  // null for super_admin (platform-wide)
   email: string;
   name: string;
   role: 'super_admin' | 'venue_admin' | 'door' | 'dj';
@@ -146,12 +146,20 @@ export async function fetchVenues(): Promise<{ data: Venue[] | null; error: any 
 // User APIs (read via RLS, create/delete via Edge Functions)
 // ============================================================
 
-export async function fetchUsersByVenue(venueId: string): Promise<{ data: User[] | null; error: any }> {
-  const { data, error } = await supabase
+/**
+ * Fetch users. If venueId is provided, filter by venue.
+ * If venueId is omitted (super_admin view), fetch all users.
+ */
+export async function fetchUsersByVenue(venueId?: string | null): Promise<{ data: User[] | null; error: any }> {
+  let query = supabase
     .from('users')
-    .select('*')
-    .eq('venue_id', venueId)
-    .order('name', { ascending: true });
+    .select('*');
+
+  if (venueId) {
+    query = query.eq('venue_id', venueId);
+  }
+
+  const { data, error } = await query.order('name', { ascending: true });
 
   if (error) return { data: null, error };
   return { data: data.map(transformUser), error: null };
@@ -186,8 +194,8 @@ export async function createUserViaEdge(params: {
   email: string;
   password: string;
   name: string;
-  role: 'venue_admin' | 'door' | 'dj';
-  venueId: string;
+  role: 'super_admin' | 'venue_admin' | 'door' | 'dj';
+  venueId?: string | null;  // optional for super_admin role
   guestLimit?: number;
 }): Promise<{ data: any; error: any }> {
   const { data, error } = await supabase.functions.invoke('create-user', {

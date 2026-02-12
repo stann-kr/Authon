@@ -8,7 +8,9 @@ import {
   fetchUsersByVenue,
   updateUserProfile,
   deleteUserViaEdge,
+  fetchVenues,
   type User,
+  type Venue,
 } from '../../../lib/api/guests';
 
 export default function UserManagement() {
@@ -16,23 +18,38 @@ export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [venues, setVenues] = useState<Venue[]>([]);
+  const [selectedVenueId, setSelectedVenueId] = useState<string>('');
+
+  const isSuperAdmin = currentUser?.role === 'super_admin';
 
   useEffect(() => {
     const user = getUser();
     setCurrentUser(user);
+    // Load venues for super_admin
+    if (user?.role === 'super_admin') {
+      fetchVenues().then(({ data }) => {
+        if (data) {
+          setVenues(data);
+          if (data.length > 0) setSelectedVenueId(data[0].id);
+        }
+      });
+    }
   }, []);
 
+  const effectiveVenueId = isSuperAdmin ? selectedVenueId : currentUser?.venue_id;
+
   useEffect(() => {
-    if (activeTab === 'users' && currentUser?.venue_id) {
+    if (activeTab === 'users' && effectiveVenueId) {
       loadUsers();
     }
-  }, [activeTab, currentUser]);
+  }, [activeTab, currentUser, effectiveVenueId]);
 
   const loadUsers = async () => {
-    if (!currentUser?.venue_id) return;
+    if (!effectiveVenueId && !isSuperAdmin) return;
     setIsLoading(true);
     try {
-      const { data, error } = await fetchUsersByVenue(currentUser.venue_id);
+      const { data, error } = await fetchUsersByVenue(isSuperAdmin ? effectiveVenueId || null : effectiveVenueId);
       if (error) {
         console.error('Failed to load users:', error);
       } else if (data) {
@@ -109,6 +126,22 @@ export default function UserManagement() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
       <div className="lg:col-span-1 space-y-4">
+        {/* Venue selector for super_admin */}
+        {isSuperAdmin && venues.length > 0 && (
+          <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
+            <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase mb-3">SELECT VENUE</h3>
+            <select
+              value={selectedVenueId}
+              onChange={(e) => setSelectedVenueId(e.target.value)}
+              className="w-full bg-gray-800 border border-gray-700 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
+            >
+              <option value="">ALL VENUES</option>
+              {venues.map(v => (
+                <option key={v.id} value={v.id}>{v.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
           <div className="mb-4">
             <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase mb-3">SELECT MENU</h3>
