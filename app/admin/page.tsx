@@ -45,12 +45,12 @@ function AdminPageContent() {
   };
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="h-screen overflow-hidden flex flex-col bg-black">
       <AdminHeader />
       
-      <div className="pt-20 sm:pt-24 pb-6">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mb-6">
+      <div className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden pt-20 sm:pt-24 pb-6 flex flex-col">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10 w-full lg:flex-1 lg:min-h-0 flex flex-col">
+          <div className="mb-4 lg:mb-6 flex-shrink-0">
             <div className={`grid ${tabs.length === 4 ? 'grid-cols-4' : 'grid-cols-3'} gap-px bg-gray-700`}>
               {tabs.map((tab) => (
                 <button
@@ -72,7 +72,7 @@ function AdminPageContent() {
           </div>
 
           {(activeTab === 'guests' || activeTab === 'links') && (
-            <div className="mb-6">
+            <div className="mb-4 lg:mb-6 flex-shrink-0">
               <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
                 <div className="mb-2">
                   <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase">SELECT DATE</h3>
@@ -87,7 +87,7 @@ function AdminPageContent() {
             </div>
           )}
 
-          <div>
+          <div className="lg:flex-1 lg:min-h-0 flex flex-col">
             {activeTab === 'guests' && <GuestList selectedDate={selectedDate} />}
             {activeTab === 'links' && <LinkManagement selectedDate={selectedDate} />}
             {activeTab === 'users' && <UserManagement />}

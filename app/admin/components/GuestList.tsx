@@ -158,23 +158,26 @@ export default function GuestList({ selectedDate }: GuestListProps) {
   const filteredExtLinks = externalLinks.filter(l => activeExtLinkIds.has(l.id));
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-      <div className="lg:col-span-1 space-y-4">
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6 lg:flex-1 lg:min-h-0">
+      <div className="lg:col-span-1 space-y-4 lg:overflow-y-auto">
         {isSuperAdmin && (
           <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
             <div className="mb-2">
               <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase">SELECT VENUE</h3>
             </div>
-            <select
-              value={selectedVenueId}
-              onChange={(e) => setSelectedVenueId(e.target.value)}
-              className="w-full bg-black border border-gray-600 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
-            >
-              <option value="">-- Select Venue --</option>
-              {venues.map((v) => (
-                <option key={v.id} value={v.id}>{v.name}</option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                value={selectedVenueId}
+                onChange={(e) => setSelectedVenueId(e.target.value)}
+                className="w-full appearance-none bg-black border border-gray-600 px-4 py-3 pr-10 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
+              >
+                <option value="">-- Select Venue --</option>
+                {venues.map((v) => (
+                  <option key={v.id} value={v.id}>{v.name}</option>
+                ))}
+              </select>
+              <i className="ri-arrow-down-s-line absolute right-3 top-1/2 -translate-y-1/2 text-base text-gray-400 pointer-events-none"></i>
+            </div>
           </div>
         )}
         <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
@@ -191,23 +194,26 @@ export default function GuestList({ selectedDate }: GuestListProps) {
               >
                 ALL USERS
               </button>
-              <select
-                value={selectedDJ === 'all' ? '' : selectedDJ}
-                onChange={(e) => setSelectedDJ(e.target.value || 'all')}
-                className="w-full bg-gray-800 border border-gray-700 px-4 py-4 text-white font-mono text-sm tracking-wider uppercase focus:outline-none focus:border-white min-h-[52px]"
-              >
-                <option value="">SELECT USER</option>
-                {filteredUsers.map((u) => (
-                  <option key={u.id} value={u.id} className="bg-gray-900">
-                    {u.name} ({u.role.toUpperCase()})
-                  </option>
-                ))}
-                {filteredExtLinks.map((link) => (
-                  <option key={`ext:${link.id}`} value={`ext:${link.id}`} className="bg-gray-900">
-                    {link.djName} (EXTERNAL)
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={selectedDJ === 'all' ? '' : selectedDJ}
+                  onChange={(e) => setSelectedDJ(e.target.value || 'all')}
+                  className="w-full appearance-none bg-gray-800 border border-gray-700 px-4 py-4 pr-10 text-white font-mono text-sm tracking-wider uppercase focus:outline-none focus:border-white min-h-[52px]"
+                >
+                  <option value="">SELECT USER</option>
+                  {filteredUsers.map((u) => (
+                    <option key={u.id} value={u.id} className="bg-gray-900">
+                      {u.name} ({u.role.toUpperCase()})
+                    </option>
+                  ))}
+                  {filteredExtLinks.map((link) => (
+                    <option key={`ext:${link.id}`} value={`ext:${link.id}`} className="bg-gray-900">
+                      {link.djName} (EXTERNAL)
+                    </option>
+                  ))}
+                </select>
+                <i className="ri-arrow-down-s-line absolute right-3 top-1/2 -translate-y-1/2 text-base text-gray-400 pointer-events-none"></i>
+              </div>
             </div>
           </div>
         </div>
@@ -254,9 +260,9 @@ export default function GuestList({ selectedDate }: GuestListProps) {
         </div>
       </div>
 
-      <div className="lg:col-span-3">
-        <div className="bg-gray-900 border border-gray-700">
-                <div className="border-b border-gray-700 p-4 flex items-center justify-between">
+      <div className="lg:col-span-3 flex flex-col lg:min-h-0">
+        <div className="bg-gray-900 border border-gray-700 flex flex-col lg:min-h-0 lg:max-h-full">
+                <div className="border-b border-gray-700 p-4 flex items-center justify-between flex-shrink-0">
             <h3 className="font-mono text-xs sm:text-sm tracking-wider text-white uppercase">
               GUEST LIST ({filteredGuests.length})
             </h3>
@@ -291,7 +297,7 @@ export default function GuestList({ selectedDate }: GuestListProps) {
               </p>
             </div>
           ) : (
-                  <div className="divide-y divide-gray-700 lg:[max-height:calc(100vh-320px)] lg:overflow-y-auto">
+                  <div className="divide-y divide-gray-700 lg:overflow-y-auto">
                     {displayGuests.map((guest, index) => {
                 return (
                   <GuestListCard

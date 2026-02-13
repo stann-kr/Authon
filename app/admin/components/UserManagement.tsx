@@ -124,22 +124,25 @@ export default function UserManagement() {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6">
       <div className="lg:col-span-1 space-y-4">
         {/* Venue selector for super_admin */}
         {isSuperAdmin && venues.length > 0 && (
           <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
             <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase mb-3">SELECT VENUE</h3>
-            <select
-              value={selectedVenueId}
-              onChange={(e) => setSelectedVenueId(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
-            >
-              <option value="">ALL VENUES</option>
-              {venues.map(v => (
-                <option key={v.id} value={v.id}>{v.name}</option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                value={selectedVenueId}
+                onChange={(e) => setSelectedVenueId(e.target.value)}
+                className="w-full appearance-none bg-gray-800 border border-gray-700 px-4 py-3 pr-10 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
+              >
+                <option value="">ALL VENUES</option>
+                {venues.map(v => (
+                  <option key={v.id} value={v.id}>{v.name}</option>
+                ))}
+              </select>
+              <i className="ri-arrow-down-s-line absolute right-3 top-1/2 -translate-y-1/2 text-base text-gray-400 pointer-events-none"></i>
+            </div>
           </div>
         )}
         <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
