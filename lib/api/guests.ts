@@ -3,6 +3,12 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 const supabase = createClient() as SupabaseClient<any, "public", any>;
 
+const getAuthHeaders = async (): Promise<{ Authorization: string } | null> => {
+  const { data, error } = await supabase.auth.getSession();
+  if (error || !data.session?.access_token) return null;
+  return { Authorization: `Bearer ${data.session.access_token}` };
+};
+
 // ============================================================
 // Types
 // ============================================================
@@ -33,6 +39,7 @@ export interface Guest {
   name: string;
   djId?: string | null;
   externalLinkId?: string | null;
+  createdByUserId?: string | null;
   status: 'pending' | 'checked' | 'deleted';
   checkInTime?: string | null;
   date: string;
@@ -95,6 +102,7 @@ const transformGuest = (row: any): Guest => ({
   name: row.name,
   djId: row.dj_id,
   externalLinkId: row.external_link_id,
+  createdByUserId: row.created_by_user_id,
   status: row.status,
   checkInTime: row.check_in_time,
   date: row.date,
@@ -131,15 +139,62 @@ const transformExternalLink = (row: any): ExternalDJLink => ({
 // Venue APIs
 // ============================================================
 
-export async function fetchVenues(): Promise<{ data: Venue[] | null; error: any }> {
-  const { data, error } = await supabase
+export async function fetchVenues(includeInactive = false): Promise<{ data: Venue[] | null; error: any }> {
+  let query = supabase
     .from('venues')
     .select('*')
-    .eq('active', true)
     .order('name', { ascending: true });
 
+  if (!includeInactive) {
+    query = query.eq('active', true);
+  }
+
+  const { data, error } = await query;
   if (error) return { data: null, error };
   return { data: data.map(transformVenue), error: null };
+}
+
+export async function createVenue(venue: {
+  name: string;
+  type: Venue['type'];
+  address?: string;
+  description?: string;
+}): Promise<{ data: Venue | null; error: any }> {
+  const { data, error } = await supabase
+    .from('venues')
+    .insert({
+      name: venue.name,
+      type: venue.type,
+      address: venue.address || null,
+      description: venue.description || null,
+    })
+    .select()
+    .single();
+
+  if (error) return { data: null, error };
+  return { data: transformVenue(data), error: null };
+}
+
+export async function updateVenue(
+  id: string,
+  updates: Partial<Pick<Venue, 'name' | 'type' | 'address' | 'description' | 'active'>>
+): Promise<{ data: Venue | null; error: any }> {
+  const dbUpdates: any = {};
+  if (updates.name !== undefined) dbUpdates.name = updates.name;
+  if (updates.type !== undefined) dbUpdates.type = updates.type;
+  if (updates.address !== undefined) dbUpdates.address = updates.address;
+  if (updates.description !== undefined) dbUpdates.description = updates.description;
+  if (updates.active !== undefined) dbUpdates.active = updates.active;
+
+  const { data, error } = await supabase
+    .from('venues')
+    .update(dbUpdates)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) return { data: null, error };
+  return { data: transformVenue(data), error: null };
 }
 
 // ============================================================
@@ -198,8 +253,13 @@ export async function createUserViaEdge(params: {
   venueId?: string | null;  // optional for super_admin role
   guestLimit?: number;
 }): Promise<{ data: any; error: any }> {
+  const authHeaders = await getAuthHeaders();
+  if (!authHeaders) {
+    return { data: null, error: { message: '로그인이 필요합니다.' } };
+  }
   const { data, error } = await supabase.functions.invoke('create-user', {
     body: params,
+    headers: authHeaders,
   });
 
   if (error) return { data: null, error };
@@ -210,8 +270,13 @@ export async function createUserViaEdge(params: {
  * Delete/deactivate a user via Edge Function
  */
 export async function deleteUserViaEdge(userId: string): Promise<{ error: any }> {
+  const authHeaders = await getAuthHeaders();
+  if (!authHeaders) {
+    return { error: { message: '로그인이 필요합니다.' } };
+  }
   const { error } = await supabase.functions.invoke('create-user', {
     body: { action: 'delete', userId },
+    headers: authHeaders,
   });
   return { error };
 }
@@ -311,6 +376,7 @@ export async function createGuest(guest: {
   name: string;
   djId?: string | null;
   externalLinkId?: string | null;
+  createdByUserId?: string | null;
   date: string;
   status?: 'pending' | 'checked' | 'deleted';
 }): Promise<{ data: Guest | null; error: any }> {
@@ -321,6 +387,7 @@ export async function createGuest(guest: {
       name: guest.name,
       dj_id: guest.djId || null,
       external_link_id: guest.externalLinkId || null,
+      created_by_user_id: guest.createdByUserId || null,
       date: guest.date,
       status: guest.status || 'pending',
     })
@@ -355,7 +422,31 @@ export async function updateGuestStatus(
 }
 
 export async function deleteGuest(guestId: string): Promise<{ data: Guest | null; error: any }> {
-  return updateGuestStatus(guestId, 'deleted');
+  // First, fetch the guest to check if it belongs to an external link
+  const { data: guestRow } = await supabase
+    .from('guests')
+    .select('external_link_id')
+    .eq('id', guestId)
+    .single();
+
+  const result = await updateGuestStatus(guestId, 'deleted');
+
+  // If the guest was from an external link, decrement used_guests
+  if (!result.error && guestRow?.external_link_id) {
+    const { data: linkRow } = await supabase
+      .from('external_dj_links')
+      .select('used_guests')
+      .eq('id', guestRow.external_link_id)
+      .single();
+    if (linkRow) {
+      await supabase
+        .from('external_dj_links')
+        .update({ used_guests: Math.max(0, (linkRow.used_guests || 0) - 1) })
+        .eq('id', guestRow.external_link_id);
+    }
+  }
+
+  return result;
 }
 
 export async function permanentlyDeleteGuest(guestId: string): Promise<{ error: any }> {
@@ -460,7 +551,7 @@ export async function deactivateExternalLink(linkId: string): Promise<{ error: a
  * (no auth required — public endpoint)
  */
 export async function validateExternalToken(token: string): Promise<{
-  data: { link: ExternalDJLink; venue: Venue } | null;
+  data: { link: ExternalDJLink; venue: Venue; guests: Guest[] } | null;
   error: any;
 }> {
   const { data, error } = await supabase.functions.invoke('external-dj-links', {
@@ -469,7 +560,16 @@ export async function validateExternalToken(token: string): Promise<{
 
   if (error) return { data: null, error };
   if (data?.error) return { data: null, error: data.error };
-  return { data, error: null };
+
+  // Edge Function returns snake_case → transform to camelCase
+  return {
+    data: {
+      link: data.link ? transformExternalLink(data.link) : data.link,
+      venue: data.venue ? transformVenue(data.venue) : data.venue,
+      guests: Array.isArray(data.guests) ? data.guests.map(transformGuest) : [],
+    },
+    error: null,
+  };
 }
 
 /**
@@ -487,4 +587,20 @@ export async function createGuestViaExternalLink(params: {
   if (error) return { data: null, error };
   if (data?.error) return { data: null, error: data.error };
   return { data: data?.guest ? transformGuest(data.guest) : null, error: null };
+}
+
+/**
+ * Delete a guest via external DJ link (no auth, via Edge Function)
+ */
+export async function deleteGuestViaExternalLink(params: {
+  token: string;
+  guestId: string;
+}): Promise<{ error: any }> {
+  const { data, error } = await supabase.functions.invoke('external-dj-links', {
+    body: { action: 'delete-guest', ...params },
+  });
+
+  if (error) return { error };
+  if (data?.error) return { error: data.error };
+  return { error: null };
 }

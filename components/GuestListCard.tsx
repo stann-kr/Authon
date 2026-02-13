@@ -6,9 +6,15 @@ export interface Guest {
   name: string;
   status: 'pending' | 'checked' | 'deleted';
   checkInTime?: string;
+  createdAt?: string;
   djId?: string;
   date?: string;
 }
+
+const formatTime = (timeStr: string) => {
+  const date = new Date(timeStr);
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+};
 
 interface GuestListCardProps {
   guest: Guest;
@@ -44,16 +50,21 @@ const GuestListCard: React.FC<GuestListCardProps> = ({
             <p className="font-mono text-sm sm:text-base tracking-wider text-white uppercase">
               {guest.name}
             </p>
-            {(djName || guest.checkInTime) && (
+            {(djName || guest.checkInTime || guest.createdAt) && (
               <div className="flex flex-wrap gap-2 mt-1">
                 {djName && (
                   <span className="text-xs font-mono text-gray-400">
-                    DJ: {djName}
+                    BY: {djName}
+                  </span>
+                )}
+                {guest.createdAt && (
+                  <span className="text-xs font-mono text-gray-500">
+                    {formatTime(guest.createdAt)}
                   </span>
                 )}
                 {guest.checkInTime && (
                   <span className="text-xs font-mono text-green-400">
-                    IN: {guest.checkInTime}
+                    IN: {formatTime(guest.checkInTime)}
                   </span>
                 )}
               </div>

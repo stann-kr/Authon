@@ -1,12 +1,14 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AdminHeader from './components/AdminHeader';
 import GuestList from './components/GuestList';
 import LinkManagement from './components/LinkManagement';
 import UserManagement from './components/UserManagement';
+import VenueManagement from './components/VenueManagement';
 import AuthGuard from '../../components/AuthGuard';
+import { getUser } from '../../lib/auth';
 
 export default function AdminPage() {
   return (
@@ -18,12 +20,23 @@ export default function AdminPage() {
 
 function AdminPageContent() {
   const [activeTab, setActiveTab] = useState('guests');
-  const [selectedDate, setSelectedDate] = useState('2025-08-30');
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().split('T')[0]
+  );
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
+  useEffect(() => {
+    const user = getUser();
+    setIsSuperAdmin(user?.role === 'super_admin');
+  }, []);
 
   const tabs = [
     { id: 'guests', label: 'GUEST', icon: 'ri-group-line' },
     { id: 'links', label: 'LINKS', icon: 'ri-link' },
-    { id: 'users', label: 'USERS', icon: 'ri-user-settings-line' }
+    { id: 'users', label: 'USERS', icon: 'ri-user-settings-line' },
+    ...(isSuperAdmin
+      ? [{ id: 'venues', label: 'VENUES', icon: 'ri-store-2-line' }]
+      : []),
   ];
 
   const formatDateDisplay = (dateString: string) => {
@@ -38,7 +51,7 @@ function AdminPageContent() {
       <div className="pt-20 sm:pt-24 pb-6">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-6">
-            <div className="grid grid-cols-3 gap-px bg-gray-700">
+            <div className={`grid grid-cols-${tabs.length} gap-px bg-gray-700`}>
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
@@ -78,6 +91,7 @@ function AdminPageContent() {
             {activeTab === 'guests' && <GuestList selectedDate={selectedDate} />}
             {activeTab === 'links' && <LinkManagement selectedDate={selectedDate} />}
             {activeTab === 'users' && <UserManagement />}
+            {activeTab === 'venues' && <VenueManagement />}
           </div>
         </div>
       </div>

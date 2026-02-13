@@ -11,6 +11,7 @@ import {
   deleteGuest,
   validateExternalToken,
   createGuestViaExternalLink,
+  deleteGuestViaExternalLink,
   fetchVenues,
   type Guest,
   type ExternalDJLink,
@@ -60,6 +61,7 @@ function ExternalDJGuestPage({ token }: { token: string }) {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [guestName, setGuestName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [guests, setGuests] = useState<Guest[]>([]);
 
@@ -72,6 +74,9 @@ function ExternalDJGuestPage({ token }: { token: string }) {
       } else if (data) {
         setLinkInfo(data.link);
         setVenueInfo(data.venue);
+        if (data.guests && data.guests.length > 0) {
+          setGuests(data.guests);
+        }
       }
       setIsValidating(false);
     };
@@ -92,12 +97,30 @@ function ExternalDJGuestPage({ token }: { token: string }) {
     if (createError) {
       setError(typeof createError === 'string' ? createError : createError.message || '게스트 등록에 실패했습니다.');
     } else if (data) {
-      setGuests(prev => [data, ...prev]);
+      setGuests(prev => [...prev, data]);
       setGuestName('');
       // Update used count locally
       setLinkInfo(prev => prev ? { ...prev, usedGuests: prev.usedGuests + 1 } : prev);
     }
     setIsLoading(false);
+  };
+
+  const handleDelete = async (guestId: string) => {
+    setDeletingId(guestId);
+    setError(null);
+
+    const { error: deleteError } = await deleteGuestViaExternalLink({
+      token,
+      guestId,
+    });
+
+    if (deleteError) {
+      setError(typeof deleteError === 'string' ? deleteError : deleteError.message || '게스트 삭제에 실패했습니다.');
+    } else {
+      setGuests(prev => prev.filter(g => g.id !== guestId));
+      setLinkInfo(prev => prev ? { ...prev, usedGuests: Math.max(0, prev.usedGuests - 1) } : prev);
+    }
+    setDeletingId(null);
   };
 
   const formatDateDisplay = (dateString: string) => {
@@ -228,9 +251,24 @@ function ExternalDJGuestPage({ token }: { token: string }) {
                             {guest.name}
                           </span>
                         </div>
-                        <span className="px-4 py-2 bg-green-600/20 border border-green-600 text-green-400 font-mono text-xs tracking-wider uppercase">
-                          REGISTERED
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="px-4 py-2 bg-green-600/20 border border-green-600 text-green-400 font-mono text-xs tracking-wider uppercase">
+                            REGISTERED
+                          </span>
+                          {guest.status === 'pending' && (
+                            <button
+                              onClick={() => handleDelete(guest.id)}
+                              disabled={deletingId === guest.id}
+                              className="px-3 py-2 border border-gray-600 text-gray-400 font-mono text-xs tracking-wider uppercase hover:bg-gray-800 transition-colors disabled:opacity-50"
+                            >
+                              {deletingId === guest.id ? (
+                                <div className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                              ) : (
+                                <i className="ri-close-line"></i>
+                              )}
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -354,6 +392,20 @@ function AuthenticatedGuestPage() {
     loadGuests();
   }, [selectedDate, effectiveVenueId]);
 
+  // Polling for real-time updates (every 15 seconds)
+  useEffect(() => {
+    if (!effectiveVenueId) return;
+    const interval = setInterval(async () => {
+      try {
+        const { data } = await fetchGuestsByDate(selectedDate, effectiveVenueId);
+        if (data) setGuests(data);
+      } catch (err) {
+        // Silent fail for polling
+      }
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [selectedDate, effectiveVenueId]);
+
   const formatDateDisplay = (dateString: string) => {
     const date = new Date(dateString);
     return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
@@ -371,11 +423,21 @@ function AuthenticatedGuestPage() {
     setIsLoading(true);
     setError(null);
 
+    // Guest limit check
+    const activeGuests = filteredGuests.filter(g => g.status !== 'deleted');
+    const limit = user?.guest_limit ?? 0;
+    if (limit > 0 && activeGuests.length >= limit) {
+      setError(`게스트 등록 한도에 도달했습니다. (${limit}명/일)`);
+      setIsLoading(false);
+      return;
+    }
+
     const { data, error: createError } = await createGuest({
       venueId: effectiveVenueId,
       name: guestName.trim().toUpperCase(),
       date: selectedDate,
       status: 'pending',
+      createdByUserId: user?.id,
     });
 
     if (createError) {
@@ -386,7 +448,7 @@ function AuthenticatedGuestPage() {
     }
 
     if (data) {
-      setGuests(prev => [data, ...prev]);
+      setGuests(prev => [...prev, data]);
       setGuestName('');
     }
 
@@ -415,9 +477,12 @@ function AuthenticatedGuestPage() {
     setIsLoading(false);
   };
 
-  const filteredGuests = guests.filter(guest => guest.date === selectedDate);
+  const filteredGuests = guests.filter(guest => guest.date === selectedDate && guest.createdByUserId === user?.id);
   const pendingGuests = filteredGuests.filter(guest => guest.status === 'pending');
   const checkedGuests = filteredGuests.filter(guest => guest.status === 'checked');
+  const activeGuests = filteredGuests.filter(guest => guest.status !== 'deleted');
+  const guestLimit = user?.guest_limit ?? 0;
+  const isAtLimit = guestLimit > 0 && activeGuests.length >= guestLimit;
 
   return (
     <div className="min-h-screen bg-black">
@@ -484,14 +549,14 @@ function AuthenticatedGuestPage() {
                 </div>
                 <div className="text-center mb-4">
                   <div className="text-white font-mono text-3xl sm:text-4xl tracking-wider">
-                    {filteredGuests.length}
+                    {activeGuests.length}
                   </div>
                   <div className="text-gray-400 text-xs font-mono tracking-wider uppercase">
                     TOTAL GUESTS
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-px bg-gray-700">
+                <div className="grid grid-cols-3 gap-px bg-gray-700">
                   <div className="bg-gray-800 p-3 text-center">
                     <div className="text-white font-mono text-lg sm:text-xl tracking-wider">
                       {pendingGuests.length}
@@ -506,6 +571,14 @@ function AuthenticatedGuestPage() {
                     </div>
                     <div className="text-gray-400 text-xs font-mono tracking-wider uppercase">
                       CHECKED
+                    </div>
+                  </div>
+                  <div className="bg-gray-800 p-3 text-center">
+                    <div className={`font-mono text-lg sm:text-xl tracking-wider ${isAtLimit ? 'text-red-400' : 'text-green-400'}`}>
+                      {guestLimit > 0 ? guestLimit - activeGuests.length : '∞'}
+                    </div>
+                    <div className="text-gray-400 text-xs font-mono tracking-wider uppercase">
+                      REMAINING
                     </div>
                   </div>
                 </div>
@@ -567,11 +640,12 @@ function AuthenticatedGuestPage() {
                   ))}
                 </div>
 
+                {!isAtLimit ? (
                 <div className="p-4 border-t-2 border-gray-600">
                   <div className="flex items-center gap-3 sm:gap-4">
                     <div className="w-8 h-8 sm:w-10 sm:h-10 border border-gray-600 flex items-center justify-center">
                       <span className="text-xs sm:text-sm font-mono text-gray-400">
-                        {String(filteredGuests.length + 1).padStart(2, '0')}
+                        {String(activeGuests.length + 1).padStart(2, '0')}
                       </span>
                     </div>
 
@@ -601,6 +675,13 @@ function AuthenticatedGuestPage() {
                     </button>
                   </div>
                 </div>
+                ) : (
+                <div className="p-4 border-t-2 border-gray-600 text-center">
+                  <p className="text-yellow-400 font-mono text-xs tracking-wider uppercase">
+                    GUEST LIMIT REACHED ({guestLimit}/{guestLimit})
+                  </p>
+                </div>
+                )}
               </div>
 
               {filteredGuests.length === 0 && (

@@ -80,12 +80,23 @@ CREATE TABLE IF NOT EXISTS public.guests (
     name TEXT NOT NULL,
     dj_id UUID REFERENCES public.djs(id) ON DELETE SET NULL,
     external_link_id UUID REFERENCES public.external_dj_links(id) ON DELETE SET NULL,
+    created_by_user_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'checked', 'deleted')),
     check_in_time TIMESTAMPTZ,
     date DATE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Migration: add created_by_user_id if not exists (for existing deployments)
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'guests' AND column_name = 'created_by_user_id'
+    ) THEN
+        ALTER TABLE public.guests ADD COLUMN created_by_user_id UUID REFERENCES public.users(id) ON DELETE SET NULL;
+    END IF;
+END $$;
 
 -- ============================================================
 -- 2. FUNCTIONS & TRIGGERS

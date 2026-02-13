@@ -8,11 +8,13 @@ import GuestListCard from '../../components/GuestListCard';
 import { getUser } from '../../lib/auth';
 import {
   fetchGuestsByDate,
-  fetchDJsByVenue,
+  fetchUsersByVenue,
+  fetchExternalLinksByDate,
   updateGuestStatus,
   deleteGuest,
   type Guest,
-  type DJ,
+  type User,
+  type ExternalDJLink,
 } from '../../lib/api/guests';
 
 export default function DoorPage() {
@@ -31,7 +33,8 @@ function DoorPageContent() {
   const [loadingStates, setLoadingStates] = useState<{ [key: string]: boolean }>({});
   const [isDJDropdownOpen, setIsDJDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const [djs, setDJs] = useState<DJ[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [externalLinks, setExternalLinks] = useState<ExternalDJLink[]>([]);
   const [guests, setGuests] = useState<Guest[]>([]);
   const [isFetching, setIsFetching] = useState(true);
   const [venues, setVenues] = useState<any[]>([]);
@@ -61,12 +64,14 @@ function DoorPageContent() {
     if (!venueId) return;
     setIsFetching(true);
     try {
-      const [guestRes, djRes] = await Promise.all([
+      const [guestRes, userRes, linkRes] = await Promise.all([
         fetchGuestsByDate(selectedDate, venueId),
-        fetchDJsByVenue(venueId),
+        fetchUsersByVenue(venueId),
+        fetchExternalLinksByDate(venueId, selectedDate),
       ]);
       if (guestRes.data) setGuests(guestRes.data);
-      if (djRes.data) setDJs(djRes.data);
+      if (userRes.data) setUsers(userRes.data);
+      if (linkRes.data) setExternalLinks(linkRes.data);
     } catch (err) {
       console.error('Failed to load data:', err);
     } finally {
@@ -77,6 +82,20 @@ function DoorPageContent() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Polling for real-time updates (every 15 seconds)
+  useEffect(() => {
+    if (!venueId) return;
+    const interval = setInterval(async () => {
+      try {
+        const { data } = await fetchGuestsByDate(selectedDate, venueId);
+        if (data) setGuests(data);
+      } catch (err) {
+        // Silent fail for polling
+      }
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [selectedDate, venueId]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -109,25 +128,55 @@ function DoorPageContent() {
     setLoadingStates(prev => ({ ...prev, [`${id}_${action}`]: false }));
   };
 
+  // Helper: get contributor name for a guest (user or external DJ)
+  const getContributorName = (guest: Guest): string | undefined => {
+    if (guest.createdByUserId) {
+      const u = users.find(u => u.id === guest.createdByUserId);
+      return u?.name;
+    }
+    if (guest.externalLinkId) {
+      const link = externalLinks.find(l => l.id === guest.externalLinkId);
+      return link ? `${link.djName} (EXT)` : undefined;
+    }
+    return undefined;
+  };
+
   const filteredGuests = selectedDJ === 'all'
     ? guests
-    : guests.filter(guest => guest.djId === selectedDJ);
+    : selectedDJ.startsWith('ext:')
+      ? guests.filter(guest => guest.externalLinkId === selectedDJ.replace('ext:', ''))
+      : guests.filter(guest => guest.createdByUserId === selectedDJ);
 
   const pendingGuests = filteredGuests.filter(guest => guest.status === 'pending');
   const checkedGuests = filteredGuests.filter(guest => guest.status === 'checked');
 
   const getSelectedDJInfo = () => {
-    if (selectedDJ === 'all') return { name: 'ALL DJS', event: 'TOTAL OVERVIEW' };
-    return djs.find(dj => dj.id === selectedDJ) || { name: '', event: '' };
+    if (selectedDJ === 'all') return { name: 'ALL USERS', event: 'TOTAL OVERVIEW' };
+    if (selectedDJ.startsWith('ext:')) {
+      const link = externalLinks.find(l => l.id === selectedDJ.replace('ext:', ''));
+      return link ? { name: link.djName, event: 'EXTERNAL DJ' } : { name: '', event: '' };
+    }
+    const u = users.find(u => u.id === selectedDJ);
+    return u ? { name: u.name, event: u.role.toUpperCase() } : { name: '', event: '' };
   };
 
   const selectedDJInfo = getSelectedDJInfo();
 
   const getSelectedDJName = () => {
-    if (selectedDJ === 'all') return 'SELECT DJ';
-    const dj = djs.find(d => d.id === selectedDJ);
-    return dj ? dj.name : 'SELECT DJ';
+    if (selectedDJ === 'all') return 'SELECT USER';
+    if (selectedDJ.startsWith('ext:')) {
+      const link = externalLinks.find(l => l.id === selectedDJ.replace('ext:', ''));
+      return link ? link.djName : 'SELECT USER';
+    }
+    const u = users.find(u => u.id === selectedDJ);
+    return u ? u.name : 'SELECT USER';
   };
+
+  // Only show users/links who registered guests on the selected date
+  const activeUserIds = new Set(guests.map(g => g.createdByUserId).filter(Boolean));
+  const filteredUsers = users.filter(u => activeUserIds.has(u.id));
+  const activeExtLinkIds = new Set(guests.map(g => g.externalLinkId).filter(Boolean));
+  const filteredExtLinks = externalLinks.filter(l => activeExtLinkIds.has(l.id));
 
   return (
     <div className="min-h-screen bg-black">
@@ -170,7 +219,7 @@ function DoorPageContent() {
             <div className="lg:col-span-1 space-y-4">
               <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
                 <div className="mb-4">
-                  <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase mb-3">SELECT DJ</h3>
+                  <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase mb-3">SELECT USER</h3>
                   <div className="space-y-2">
                     <button
                       onClick={() => setSelectedDJ('all')}
@@ -180,7 +229,7 @@ function DoorPageContent() {
                           : 'bg-gray-800 text-gray-400 hover:text-white border border-gray-700'
                       }`}
                     >
-                      ALL DJS
+                      ALL USERS
                     </button>
                     
                     <div className="relative" ref={dropdownRef}>
@@ -196,21 +245,38 @@ function DoorPageContent() {
                       
                       {isDJDropdownOpen && (
                         <div className="absolute top-full left-0 right-0 mt-1 bg-gray-900 border border-gray-700 z-50 max-h-60 overflow-y-auto">
-                          {djs.map((dj) => (
+                          {filteredUsers.map((u) => (
                             <button
-                              key={dj.id}
+                              key={u.id}
                               onClick={() => {
-                                setSelectedDJ(dj.id);
+                                setSelectedDJ(u.id);
                                 setIsDJDropdownOpen(false);
                               }}
                               className={`w-full p-3 font-mono text-xs tracking-wider uppercase text-left transition-colors ${
-                                selectedDJ === dj.id
+                                selectedDJ === u.id
                                   ? 'bg-white text-black'
                                   : 'text-gray-400 hover:bg-gray-800 hover:text-white'
                               }`}
                             >
-                              <div>{dj.name}</div>
-                              <div className="text-[10px] mt-1 opacity-60">{dj.event}</div>
+                              <div>{u.name}</div>
+                              <div className="text-[10px] mt-1 opacity-60">{u.role.toUpperCase()}</div>
+                            </button>
+                          ))}
+                          {filteredExtLinks.map((link) => (
+                            <button
+                              key={`ext:${link.id}`}
+                              onClick={() => {
+                                setSelectedDJ(`ext:${link.id}`);
+                                setIsDJDropdownOpen(false);
+                              }}
+                              className={`w-full p-3 font-mono text-xs tracking-wider uppercase text-left transition-colors ${
+                                selectedDJ === `ext:${link.id}`
+                                  ? 'bg-white text-black'
+                                  : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                              }`}
+                            >
+                              <div>{link.djName}</div>
+                              <div className="text-[10px] mt-1 opacity-60">EXTERNAL DJ</div>
                             </button>
                           ))}
                         </div>
@@ -293,7 +359,6 @@ function DoorPageContent() {
                 ) : (
                   <div className="divide-y divide-gray-700 lg:[max-height:calc(100vh-320px)] lg:overflow-y-auto">
                     {filteredGuests.map((guest, index) => {
-                      const guestDJ = djs.find(dj => dj.id === guest.djId);
                       return (
                         <GuestListCard
                           key={guest.id}
@@ -302,11 +367,12 @@ function DoorPageContent() {
                             name: guest.name,
                             status: guest.status,
                             checkInTime: guest.checkInTime || undefined,
+                            createdAt: guest.createdAt || undefined,
                             djId: guest.djId || undefined,
                           }}
                           index={index}
                           variant="admin"
-                          djName={selectedDJ === 'all' && guestDJ ? guestDJ.name : undefined}
+                          djName={getContributorName(guest)}
                           onCheck={() => handleStatusChange(guest.id, 'checked', 'check')}
                           onDelete={() => handleStatusChange(guest.id, 'deleted', 'remove')}
                           isCheckLoading={loadingStates[`${guest.id}_check`]}

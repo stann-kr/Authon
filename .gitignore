@@ -5,6 +5,9 @@ public/local-users.json
 node_modules
 .docs/
 
+# Supabase CLI cache (contains project-ref)
+supabase/.temp/
+
 ### NextJS ###
 # dependencies
 /node_modules
@@ -59,3 +62,4 @@ next-env.d.ts
 # Ignore all local history of files
 .history
 .ionide
+/temp

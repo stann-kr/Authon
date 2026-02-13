@@ -69,6 +69,14 @@ serve(async (req) => {
         .eq('id', link.venue_id)
         .single()
 
+      // Get existing guests for this link
+      const { data: existingGuests } = await supabaseAdmin
+        .from('guests')
+        .select('*')
+        .eq('external_link_id', link.id)
+        .neq('status', 'deleted')
+        .order('created_at', { ascending: true })
+
       return new Response(
         JSON.stringify({
           link: {
@@ -83,6 +91,7 @@ serve(async (req) => {
             active: link.active,
           },
           venue: venue || null,
+          guests: existingGuests || [],
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
@@ -153,13 +162,88 @@ serve(async (req) => {
         throw guestError
       }
 
-      // used_guests is auto-incremented by the trigger
+      // Increment used_guests
+      await supabaseAdmin
+        .from('external_dj_links')
+        .update({ used_guests: link.used_guests + 1 })
+        .eq('id', link.id)
 
       return new Response(
         JSON.stringify({
           message: '게스트가 등록되었습니다.',
           guest,
         }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // ---- DELETE GUEST VIA EXTERNAL LINK (public, no auth required) ----
+    if (action === 'delete-guest') {
+      const { token, guestId } = body
+
+      if (!token || !guestId) {
+        return new Response(
+          JSON.stringify({ error: '필수 필드가 누락되었습니다. (token, guestId)' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // Validate the link
+      const { data: link, error: linkError } = await supabaseAdmin
+        .from('external_dj_links')
+        .select('*')
+        .eq('token', token)
+        .eq('active', true)
+        .single()
+
+      if (linkError || !link) {
+        return new Response(
+          JSON.stringify({ error: '유효하지 않은 링크입니다.' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // Verify the guest belongs to this link
+      const { data: guest, error: guestError } = await supabaseAdmin
+        .from('guests')
+        .select('*')
+        .eq('id', guestId)
+        .eq('external_link_id', link.id)
+        .single()
+
+      if (guestError || !guest) {
+        return new Response(
+          JSON.stringify({ error: '게스트를 찾을 수 없습니다.' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // Only allow deletion of pending guests
+      if (guest.status !== 'pending') {
+        return new Response(
+          JSON.stringify({ error: '체크인된 게스트는 삭제할 수 없습니다.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // Delete the guest
+      const { error: deleteError } = await supabaseAdmin
+        .from('guests')
+        .delete()
+        .eq('id', guestId)
+
+      if (deleteError) {
+        throw deleteError
+      }
+
+      // Decrement used_guests
+      await supabaseAdmin
+        .from('external_dj_links')
+        .update({ used_guests: Math.max(0, link.used_guests - 1) })
+        .eq('id', link.id)
+
+      return new Response(
+        JSON.stringify({ message: '게스트가 삭제되었습니다.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
