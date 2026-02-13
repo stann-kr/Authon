@@ -189,27 +189,30 @@ function DoorPageContent() {
   const filteredExtLinks = externalLinks.filter(l => activeExtLinkIds.has(l.id));
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="h-screen overflow-hidden flex flex-col bg-black">
       <AdminHeader />
 
-      <div className="pt-20 sm:pt-24 pb-4">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mb-6 flex flex-col sm:flex-row gap-4">
+      <div className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden pt-20 sm:pt-24 pb-6 flex flex-col">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10 w-full lg:flex-1 lg:min-h-0 flex flex-col">
+          <div className="mb-4 lg:mb-6 flex-shrink-0 flex flex-col sm:flex-row gap-4">
             {isSuperAdmin && (
               <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5 flex-1">
                 <div className="mb-2">
                   <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase">SELECT VENUE</h3>
                 </div>
-                <select
-                  value={selectedVenueId}
-                  onChange={(e) => setSelectedVenueId(e.target.value)}
-                  className="w-full bg-black border border-gray-600 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
-                >
-                  <option value="">-- Select Venue --</option>
-                  {venues.map((v) => (
-                    <option key={v.id} value={v.id}>{v.name}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    value={selectedVenueId}
+                    onChange={(e) => setSelectedVenueId(e.target.value)}
+                    className="w-full appearance-none bg-black border border-gray-600 px-4 py-3 pr-10 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
+                  >
+                    <option value="">-- Select Venue --</option>
+                    {venues.map((v) => (
+                      <option key={v.id} value={v.id}>{v.name}</option>
+                    ))}
+                  </select>
+                  <i className="ri-arrow-down-s-line absolute right-3 top-1/2 -translate-y-1/2 text-base text-gray-400 pointer-events-none"></i>
+                </div>
               </div>
             )}
             <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5 flex-1">
@@ -225,8 +228,8 @@ function DoorPageContent() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            <div className="lg:col-span-1 space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6 lg:flex-1 lg:min-h-0">
+            <div className="lg:col-span-1 space-y-4 lg:overflow-y-auto">
               <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
                 <div className="mb-4">
                   <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase mb-3">SELECT USER</h3>
@@ -245,12 +248,12 @@ function DoorPageContent() {
                     <div className="relative" ref={dropdownRef}>
                       <button
                         onClick={() => setIsDJDropdownOpen(!isDJDropdownOpen)}
-                        className={`w-full bg-gray-800 border border-gray-700 p-3 font-mono text-xs tracking-wider uppercase focus:outline-none focus:border-white flex items-center justify-between transition-colors ${
+                        className={`w-full bg-gray-800 border border-gray-700 px-4 py-3 font-mono text-xs tracking-wider uppercase focus:outline-none focus:border-white flex items-center justify-between gap-3 transition-colors ${
                           selectedDJ !== 'all' ? 'text-white' : 'text-gray-400'
                         }`}
                       >
-                        <span>{getSelectedDJName()}</span>
-                        <i className={`ri-arrow-down-s-line text-base transition-transform ${isDJDropdownOpen ? 'rotate-180' : ''}`}></i>
+                        <span className="break-words">{getSelectedDJName()}</span>
+                        <i className={`ri-arrow-down-s-line text-base transition-transform flex-shrink-0 ${isDJDropdownOpen ? 'rotate-180' : ''}`}></i>
                       </button>
                       
                       {isDJDropdownOpen && (
@@ -298,13 +301,13 @@ function DoorPageContent() {
 
               <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
                 <div className="mb-4">
-                  <h2 className="font-mono text-base sm:text-lg tracking-wider text-white uppercase mb-1">
+                  <h2 className="font-mono text-base sm:text-lg tracking-wider text-white uppercase mb-1 break-words">
                     {selectedDJInfo.name}
                   </h2>
-                  <p className="text-gray-400 font-mono text-xs tracking-wider mb-1">
+                  <p className="text-gray-400 font-mono text-xs tracking-wider mb-1 break-words">
                     {selectedDJInfo.event}
                   </p>
-                  <p className="text-gray-400 font-mono text-xs tracking-wider">
+                  <p className="text-gray-400 font-mono text-xs tracking-wider break-words">
                     {formatDateDisplay(selectedDate)}
                   </p>
                 </div>
@@ -338,9 +341,9 @@ function DoorPageContent() {
               </div>
             </div>
 
-            <div className="lg:col-span-3">
-              <div className="bg-gray-900 border border-gray-700">
-                <div className="border-b border-gray-700 p-4 flex items-center justify-between">
+            <div className="lg:col-span-3 flex flex-col lg:min-h-0">
+              <div className="bg-gray-900 border border-gray-700 flex flex-col lg:min-h-0 lg:max-h-full">
+                <div className="border-b border-gray-700 p-4 flex items-center justify-between flex-shrink-0">
                   <h3 className="font-mono text-xs sm:text-sm tracking-wider text-white uppercase">
                     GUEST LIST ({filteredGuests.length})
                   </h3>
@@ -375,7 +378,7 @@ function DoorPageContent() {
                     </p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-gray-700 lg:[max-height:calc(100vh-320px)] lg:overflow-y-auto">
+                  <div className="divide-y divide-gray-700 lg:overflow-y-auto">
                     {displayGuests.map((guest, index) => {
                       return (
                         <GuestListCard

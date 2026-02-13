@@ -100,7 +100,7 @@ export default function InviteUser() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-gray-900 border border-gray-700 p-6">
+      <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
         <h2 className="font-mono text-lg tracking-wider text-white uppercase mb-4">
           CREATE NEW USER
         </h2>
@@ -111,19 +111,22 @@ export default function InviteUser() {
               <label className="block text-gray-400 font-mono text-xs tracking-wider uppercase mb-2">
                 VENUE
               </label>
-              <select
-                value={formData.venue_id}
-                onChange={(e) => setFormData({ ...formData, venue_id: e.target.value })}
-                className="w-full bg-black border border-gray-700 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
-                required
-              >
-                <option value="">SELECT VENUE</option>
-                {venues.map((venue) => (
-                  <option key={venue.id} value={venue.id}>
-                    {venue.name} ({venue.type})
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={formData.venue_id}
+                  onChange={(e) => setFormData({ ...formData, venue_id: e.target.value })}
+                  className="w-full appearance-none bg-black border border-gray-700 px-4 py-3 pr-10 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
+                  required
+                >
+                  <option value="">SELECT VENUE</option>
+                  {venues.map((venue) => (
+                    <option key={venue.id} value={venue.id}>
+                      {venue.name} ({venue.type})
+                    </option>
+                  ))}
+                </select>
+                <i className="ri-arrow-down-s-line absolute right-3 top-1/2 -translate-y-1/2 text-base text-gray-400 pointer-events-none"></i>
+              </div>
             </div>
           )}
 

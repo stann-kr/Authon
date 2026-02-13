@@ -181,10 +181,10 @@ function ExternalDJGuestPage({ token }: { token: string }) {
     : sortGuestsByCreatedAt(guests);
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="h-screen overflow-hidden flex flex-col bg-black">
       {/* Minimal header for external DJs */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-black border-b border-gray-800">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-white"></div>
             <span className="font-mono text-sm tracking-wider text-white uppercase">Authon</span>
@@ -195,24 +195,24 @@ function ExternalDJGuestPage({ token }: { token: string }) {
         </div>
       </div>
 
-      <div className="pt-16 sm:pt-20 pb-4">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            <div className="lg:col-span-1 space-y-4">
+      <div className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden pt-16 sm:pt-20 pb-6 flex flex-col">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10 w-full lg:flex-1 lg:min-h-0 flex flex-col">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6 lg:flex-1 lg:min-h-0">
+            <div className="lg:col-span-1 space-y-4 lg:overflow-y-auto">
               <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
                 <div className="mb-4">
-                  <h2 className="font-mono text-base sm:text-lg tracking-wider text-white uppercase mb-1">
+                  <h2 className="font-mono text-base sm:text-lg tracking-wider text-white uppercase mb-1 break-words">
                     {linkInfo?.djName}
                   </h2>
-                  <p className="text-gray-400 font-mono text-xs tracking-wider mb-1">
+                  <p className="text-gray-400 font-mono text-xs tracking-wider mb-1 break-words">
                     {linkInfo?.event}
                   </p>
                   {venueInfo && (
-                    <p className="text-gray-500 font-mono text-xs tracking-wider mb-1">
+                    <p className="text-gray-500 font-mono text-xs tracking-wider mb-1 break-words">
                       {venueInfo.name}
                     </p>
                   )}
-                  <p className="text-gray-400 font-mono text-xs tracking-wider">
+                  <p className="text-gray-400 font-mono text-xs tracking-wider break-words">
                     {linkInfo ? formatDateDisplay(linkInfo.date) : ''}
                   </p>
                 </div>
@@ -246,15 +246,15 @@ function ExternalDJGuestPage({ token }: { token: string }) {
               </div>
             </div>
 
-            <div className="lg:col-span-3">
+            <div className="lg:col-span-3 flex flex-col lg:min-h-0">
               {error && (
                 <div className="mb-4 bg-red-900/20 border border-red-600 p-4 text-center">
                   <p className="text-red-400 font-mono text-sm tracking-wider">{error}</p>
                 </div>
               )}
 
-              <div className="bg-gray-900 border border-gray-700">
-                <div className="border-b border-gray-700 p-4 flex items-center justify-between">
+              <div className="bg-gray-900 border border-gray-700 flex flex-col lg:min-h-0 lg:max-h-full">
+                <div className="border-b border-gray-700 p-4 flex items-center justify-between flex-shrink-0">
                   <h3 className="font-mono text-xs sm:text-sm tracking-wider text-white uppercase">
                     GUEST LIST ({guests.length})
                   </h3>
@@ -266,7 +266,17 @@ function ExternalDJGuestPage({ token }: { token: string }) {
                   </button>
                 </div>
 
-                <div className="divide-y divide-gray-700 lg:[max-height:calc(100vh-320px)] lg:overflow-y-auto">
+                {guests.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <div className="w-16 h-16 border border-gray-600 mx-auto mb-4 flex items-center justify-center">
+                      <i className="ri-user-add-line text-gray-400 text-2xl"></i>
+                    </div>
+                    <p className="text-gray-400 font-mono text-sm tracking-wider uppercase">
+                      ADD YOUR GUESTS ABOVE
+                    </p>
+                  </div>
+                ) : (
+                <div className="divide-y divide-gray-700 lg:overflow-y-auto">
                   {displayGuests.map((guest, index) => (
                     <div key={guest.id} className="p-4">
                       <div className="flex items-center justify-between">
@@ -315,6 +325,7 @@ function ExternalDJGuestPage({ token }: { token: string }) {
                     </div>
                   ))}
                 </div>
+                )}
 
                 {!isAtLimit && (
                   <div className="p-4 border-t-2 border-gray-600">
@@ -359,17 +370,6 @@ function ExternalDJGuestPage({ token }: { token: string }) {
                   </div>
                 )}
               </div>
-
-              {guests.length === 0 && (
-                <div className="bg-gray-900 border border-gray-700 text-center py-12 mt-4">
-                  <div className="w-16 h-16 border border-gray-600 mx-auto mb-4 flex items-center justify-center">
-                    <i className="ri-user-add-line text-gray-400 text-2xl"></i>
-                  </div>
-                  <p className="text-gray-400 font-mono text-sm tracking-wider uppercase">
-                    ADD YOUR GUESTS ABOVE
-                  </p>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -531,27 +531,30 @@ function AuthenticatedGuestPage() {
     : sortGuestsByCreatedAt(filteredGuests);
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="h-screen overflow-hidden flex flex-col bg-black">
       <AdminHeader />
 
-      <div className="pt-20 sm:pt-24 pb-4">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mb-6 flex flex-col sm:flex-row gap-4">
+      <div className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden pt-20 sm:pt-24 pb-6 flex flex-col">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10 w-full lg:flex-1 lg:min-h-0 flex flex-col">
+          <div className="mb-4 lg:mb-6 flex-shrink-0 flex flex-col sm:flex-row gap-4">
             {isSuperAdmin && (
               <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5 flex-1">
                 <div className="mb-2">
                   <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase">SELECT VENUE</h3>
                 </div>
-                <select
-                  value={selectedVenueId}
-                  onChange={(e) => setSelectedVenueId(e.target.value)}
-                  className="w-full bg-black border border-gray-600 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
-                >
-                  <option value="">-- Select Venue --</option>
-                  {venues.map((v) => (
-                    <option key={v.id} value={v.id}>{v.name}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    value={selectedVenueId}
+                    onChange={(e) => setSelectedVenueId(e.target.value)}
+                    className="w-full appearance-none bg-black border border-gray-600 px-4 py-3 pr-10 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
+                  >
+                    <option value="">-- Select Venue --</option>
+                    {venues.map((v) => (
+                      <option key={v.id} value={v.id}>{v.name}</option>
+                    ))}
+                  </select>
+                  <i className="ri-arrow-down-s-line absolute right-3 top-1/2 -translate-y-1/2 text-base text-gray-400 pointer-events-none"></i>
+                </div>
               </div>
             )}
             <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5 flex-1">
@@ -579,17 +582,17 @@ function AuthenticatedGuestPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            <div className="lg:col-span-1 space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6 lg:flex-1 lg:min-h-0">
+            <div className="lg:col-span-1 space-y-4 lg:overflow-y-auto">
               <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
                 <div className="mb-4">
-                  <h2 className="font-mono text-base sm:text-lg tracking-wider text-white uppercase mb-1">
+                  <h2 className="font-mono text-base sm:text-lg tracking-wider text-white uppercase mb-1 break-words">
                     GUEST REGISTRATION
                   </h2>
-                  <p className="text-gray-400 font-mono text-xs tracking-wider mb-1">
+                  <p className="text-gray-400 font-mono text-xs tracking-wider mb-1 break-words">
                     SELF SERVICE PORTAL
                   </p>
-                  <p className="text-gray-400 font-mono text-xs tracking-wider">
+                  <p className="text-gray-400 font-mono text-xs tracking-wider break-words">
                     {formatDateDisplay(selectedDate)}
                   </p>
                 </div>
@@ -607,7 +610,7 @@ function AuthenticatedGuestPage() {
                     <div className="text-white font-mono text-lg sm:text-xl tracking-wider">
                       {pendingGuests.length}
                     </div>
-                    <div className="text-gray-400 text-xs font-mono tracking-wider uppercase">
+                    <div className="text-gray-400 text-[10px] sm:text-xs font-mono tracking-wide uppercase leading-tight break-words">
                       WAITING
                     </div>
                   </div>
@@ -615,7 +618,7 @@ function AuthenticatedGuestPage() {
                     <div className="text-white font-mono text-lg sm:text-xl tracking-wider">
                       {checkedGuests.length}
                     </div>
-                    <div className="text-gray-400 text-xs font-mono tracking-wider uppercase">
+                    <div className="text-gray-400 text-[10px] sm:text-xs font-mono tracking-wide uppercase leading-tight break-words">
                       CHECKED
                     </div>
                   </div>
@@ -623,7 +626,7 @@ function AuthenticatedGuestPage() {
                     <div className={`font-mono text-lg sm:text-xl tracking-wider ${isAtLimit ? 'text-red-400' : 'text-green-400'}`}>
                       {guestLimit > 0 ? guestLimit - activeGuests.length : '∞'}
                     </div>
-                    <div className="text-gray-400 text-xs font-mono tracking-wider uppercase">
+                    <div className="text-gray-400 text-[10px] sm:text-xs font-mono tracking-wide uppercase leading-tight break-words">
                       REMAINING
                     </div>
                   </div>
@@ -631,9 +634,9 @@ function AuthenticatedGuestPage() {
               </div>
             </div>
 
-            <div className="lg:col-span-3">
-              <div className="bg-gray-900 border border-gray-700">
-                <div className="border-b border-gray-700 p-4 flex items-center justify-between">
+            <div className="lg:col-span-3 flex flex-col lg:min-h-0">
+              <div className="bg-gray-900 border border-gray-700 flex flex-col lg:min-h-0 lg:max-h-full">
+                <div className="border-b border-gray-700 p-4 flex items-center justify-between flex-shrink-0">
                   <h3 className="font-mono text-xs sm:text-sm tracking-wider text-white uppercase">
                     GUEST LIST ({filteredGuests.length})
                   </h3>
@@ -645,7 +648,17 @@ function AuthenticatedGuestPage() {
                   </button>
                 </div>
 
-                <div className="divide-y divide-gray-700 lg:[max-height:calc(100vh-320px)] lg:overflow-y-auto">
+                {filteredGuests.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <div className="w-16 h-16 border border-gray-600 mx-auto mb-4 flex items-center justify-center">
+                      <i className="ri-user-add-line text-gray-400 text-2xl"></i>
+                    </div>
+                    <p className="text-gray-400 font-mono text-sm tracking-wider uppercase">
+                      No guests registered for this date
+                    </p>
+                  </div>
+                ) : (
+                <div className="divide-y divide-gray-700 lg:overflow-y-auto">
                   {displayGuests.map((guest, index) => (
                     <div key={guest.id} className="p-4">
                       <div className="flex items-center justify-between">
@@ -703,6 +716,7 @@ function AuthenticatedGuestPage() {
                     </div>
                   ))}
                 </div>
+                )}
 
                 {!isAtLimit ? (
                 <div className="p-4 border-t-2 border-gray-600">
@@ -747,17 +761,6 @@ function AuthenticatedGuestPage() {
                 </div>
                 )}
               </div>
-
-              {filteredGuests.length === 0 && (
-                <div className="bg-gray-900 border border-gray-700 text-center py-12 mt-4">
-                  <div className="w-16 h-16 border border-gray-600 mx-auto mb-4 flex items-center justify-center">
-                    <i className="ri-user-add-line text-gray-400 text-2xl"></i>
-                  </div>
-                  <p className="text-gray-400 font-mono text-sm tracking-wider uppercase">
-                    No guests registered for this date
-                  </p>
-                </div>
-              )}
             </div>
           </div>
         </div>
