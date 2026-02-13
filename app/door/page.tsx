@@ -39,6 +39,7 @@ function DoorPageContent() {
   const [isFetching, setIsFetching] = useState(true);
   const [venues, setVenues] = useState<any[]>([]);
   const [selectedVenueId, setSelectedVenueId] = useState<string>('');
+  const [sortMode, setSortMode] = useState<'default' | 'alpha'>('default');
 
   const user = getUser();
   const isSuperAdmin = user?.role === 'super_admin';
@@ -149,6 +150,11 @@ function DoorPageContent() {
 
   const pendingGuests = filteredGuests.filter(guest => guest.status === 'pending');
   const checkedGuests = filteredGuests.filter(guest => guest.status === 'checked');
+  const displayGuests = sortMode === 'alpha'
+    ? [...filteredGuests].sort((a, b) =>
+        (a.name || '').localeCompare(b.name || '', 'ko-KR', { sensitivity: 'base' })
+      )
+    : filteredGuests;
 
   const getSelectedDJInfo = () => {
     if (selectedDJ === 'all') return { name: 'ALL USERS', event: 'TOTAL OVERVIEW' };
@@ -334,12 +340,20 @@ function DoorPageContent() {
                   <h3 className="font-mono text-xs sm:text-sm tracking-wider text-white uppercase">
                     GUEST LIST ({filteredGuests.length})
                   </h3>
-                  <button
-                    onClick={loadData}
-                    className="px-3 py-1 bg-gray-800 text-gray-400 font-mono text-xs tracking-wider uppercase hover:text-white transition-colors border border-gray-700"
-                  >
-                    <i className="ri-refresh-line mr-1"></i>REFRESH
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setSortMode(prev => prev === 'default' ? 'alpha' : 'default')}
+                      className="px-3 py-1 bg-gray-800 text-gray-400 font-mono text-xs tracking-wider uppercase hover:text-white transition-colors border border-gray-700"
+                    >
+                      SORT: {sortMode === 'alpha' ? 'ABC' : 'DEFAULT'}
+                    </button>
+                    <button
+                      onClick={loadData}
+                      className="px-3 py-1 bg-gray-800 text-gray-400 font-mono text-xs tracking-wider uppercase hover:text-white transition-colors border border-gray-700"
+                    >
+                      <i className="ri-refresh-line mr-1"></i>REFRESH
+                    </button>
+                  </div>
                 </div>
 
                 {isFetching ? (
@@ -358,7 +372,7 @@ function DoorPageContent() {
                   </div>
                 ) : (
                   <div className="divide-y divide-gray-700 lg:[max-height:calc(100vh-320px)] lg:overflow-y-auto">
-                    {filteredGuests.map((guest, index) => {
+                    {displayGuests.map((guest, index) => {
                       return (
                         <GuestListCard
                           key={guest.id}

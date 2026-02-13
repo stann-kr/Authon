@@ -30,6 +30,7 @@ export default function GuestList({ selectedDate }: GuestListProps) {
   const [isFetching, setIsFetching] = useState(true);
   const [venues, setVenues] = useState<Venue[]>([]);
   const [selectedVenueId, setSelectedVenueId] = useState<string>('');
+  const [sortMode, setSortMode] = useState<'default' | 'alpha'>('default');
 
   const user = getUser();
   const isSuperAdmin = user?.role === 'super_admin';
@@ -128,6 +129,11 @@ export default function GuestList({ selectedDate }: GuestListProps) {
 
   const pendingGuests = filteredGuests.filter(guest => guest.status === 'pending');
   const checkedGuests = filteredGuests.filter(guest => guest.status === 'checked');
+  const displayGuests = sortMode === 'alpha'
+    ? [...filteredGuests].sort((a, b) =>
+        (a.name || '').localeCompare(b.name || '', 'ko-KR', { sensitivity: 'base' })
+      )
+    : filteredGuests;
 
   const getSelectedDJInfo = () => {
     if (selectedDJ === 'all') return { name: 'ALL USERS', event: 'TOTAL OVERVIEW' };
@@ -246,16 +252,24 @@ export default function GuestList({ selectedDate }: GuestListProps) {
 
       <div className="lg:col-span-3">
         <div className="bg-gray-900 border border-gray-700">
-          <div className="border-b border-gray-700 p-4 flex items-center justify-between">
+                <div className="border-b border-gray-700 p-4 flex items-center justify-between">
             <h3 className="font-mono text-xs sm:text-sm tracking-wider text-white uppercase">
               GUEST LIST ({filteredGuests.length})
             </h3>
-            <button
-              onClick={loadData}
-              className="px-3 py-1 bg-gray-800 text-gray-400 font-mono text-xs tracking-wider uppercase hover:text-white transition-colors border border-gray-700"
-            >
-              <i className="ri-refresh-line mr-1"></i>REFRESH
-            </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setSortMode(prev => prev === 'default' ? 'alpha' : 'default')}
+                      className="px-3 py-1 bg-gray-800 text-gray-400 font-mono text-xs tracking-wider uppercase hover:text-white transition-colors border border-gray-700"
+                    >
+                      SORT: {sortMode === 'alpha' ? 'ABC' : 'DEFAULT'}
+                    </button>
+                    <button
+                      onClick={loadData}
+                      className="px-3 py-1 bg-gray-800 text-gray-400 font-mono text-xs tracking-wider uppercase hover:text-white transition-colors border border-gray-700"
+                    >
+                      <i className="ri-refresh-line mr-1"></i>REFRESH
+                    </button>
+                  </div>
           </div>
           
           {isFetching ? (
@@ -273,8 +287,8 @@ export default function GuestList({ selectedDate }: GuestListProps) {
               </p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-700 lg:[max-height:calc(100vh-320px)] lg:overflow-y-auto">
-              {filteredGuests.map((guest, index) => {
+                  <div className="divide-y divide-gray-700 lg:[max-height:calc(100vh-320px)] lg:overflow-y-auto">
+                    {displayGuests.map((guest, index) => {
                 return (
                   <GuestListCard
                     key={guest.id}

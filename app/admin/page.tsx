@@ -51,7 +51,7 @@ function AdminPageContent() {
       <div className="pt-20 sm:pt-24 pb-6">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-6">
-            <div className={`grid grid-cols-${tabs.length} gap-px bg-gray-700`}>
+            <div className={`grid ${tabs.length === 4 ? 'grid-cols-4' : 'grid-cols-3'} gap-px bg-gray-700`}>
               {tabs.map((tab) => (
                 <button
                   key={tab.id}

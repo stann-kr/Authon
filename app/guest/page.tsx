@@ -19,6 +19,17 @@ import {
 } from '../../lib/api/guests';
 import { getUser } from '../../lib/auth';
 
+const formatTime = (timeStr: string) => {
+  const date = new Date(timeStr);
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+};
+
+const sortGuestsByName = (list: Guest[]) => {
+  return [...list].sort((a, b) =>
+    (a.name || '').localeCompare(b.name || '', 'ko-KR', { sensitivity: 'base' })
+  );
+};
+
 export default function GuestPage() {
   return (
     <Suspense fallback={
@@ -64,6 +75,7 @@ function ExternalDJGuestPage({ token }: { token: string }) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [guests, setGuests] = useState<Guest[]>([]);
+  const [sortMode, setSortMode] = useState<'default' | 'alpha'>('default');
 
   useEffect(() => {
     const validate = async () => {
@@ -156,6 +168,7 @@ function ExternalDJGuestPage({ token }: { token: string }) {
 
   const remaining = linkInfo ? linkInfo.maxGuests - linkInfo.usedGuests : 0;
   const isAtLimit = remaining <= 0;
+  const displayGuests = sortMode === 'alpha' ? sortGuestsByName(guests) : guests;
 
   return (
     <div className="min-h-screen bg-black">
@@ -231,14 +244,20 @@ function ExternalDJGuestPage({ token }: { token: string }) {
               )}
 
               <div className="bg-gray-900 border border-gray-700">
-                <div className="border-b border-gray-700 p-4">
+                <div className="border-b border-gray-700 p-4 flex items-center justify-between">
                   <h3 className="font-mono text-xs sm:text-sm tracking-wider text-white uppercase">
                     GUEST LIST ({guests.length})
                   </h3>
+                  <button
+                    onClick={() => setSortMode(prev => prev === 'default' ? 'alpha' : 'default')}
+                    className="px-3 py-1 bg-gray-800 text-gray-400 font-mono text-xs tracking-wider uppercase hover:text-white transition-colors border border-gray-700"
+                  >
+                    SORT: {sortMode === 'alpha' ? 'ABC' : 'DEFAULT'}
+                  </button>
                 </div>
 
                 <div className="divide-y divide-gray-700 lg:[max-height:calc(100vh-320px)] lg:overflow-y-auto">
-                  {guests.map((guest, index) => (
+                  {displayGuests.map((guest, index) => (
                     <div key={guest.id} className="p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3 sm:gap-4">
@@ -247,14 +266,27 @@ function ExternalDJGuestPage({ token }: { token: string }) {
                               {String(index + 1).padStart(2, '0')}
                             </span>
                           </div>
-                          <span className="font-mono text-sm sm:text-base tracking-wider text-white uppercase">
-                            {guest.name}
-                          </span>
+                          <div>
+                            <span className="font-mono text-sm sm:text-base tracking-wider text-white uppercase">
+                              {guest.name}
+                            </span>
+                            {guest.checkInTime && (
+                              <div className="mt-1">
+                                <span className="text-xs font-mono text-green-400">IN: {formatTime(guest.checkInTime)}</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="px-4 py-2 bg-green-600/20 border border-green-600 text-green-400 font-mono text-xs tracking-wider uppercase">
-                            REGISTERED
-                          </span>
+                          {guest.status === 'checked' ? (
+                            <span className="px-4 py-2 bg-green-600/20 border border-green-600 text-green-400 font-mono text-xs tracking-wider uppercase">
+                              ACTIVE
+                            </span>
+                          ) : (
+                            <span className="px-4 py-2 bg-gray-800 border border-gray-600 text-gray-400 font-mono text-xs tracking-wider uppercase">
+                              REGISTERED
+                            </span>
+                          )}
                           {guest.status === 'pending' && (
                             <button
                               onClick={() => handleDelete(guest.id)}
@@ -349,6 +381,7 @@ function AuthenticatedGuestPage() {
   const [isFetching, setIsFetching] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [guests, setGuests] = useState<Guest[]>([]);
+  const [sortMode, setSortMode] = useState<'default' | 'alpha'>('default');
 
   // super_admin venue selector
   const [venues, setVenues] = useState<Venue[]>([]);
@@ -483,6 +516,7 @@ function AuthenticatedGuestPage() {
   const activeGuests = filteredGuests.filter(guest => guest.status !== 'deleted');
   const guestLimit = user?.guest_limit ?? 0;
   const isAtLimit = guestLimit > 0 && activeGuests.length >= guestLimit;
+  const displayGuests = sortMode === 'alpha' ? sortGuestsByName(filteredGuests) : filteredGuests;
 
   return (
     <div className="min-h-screen bg-black">
@@ -587,14 +621,20 @@ function AuthenticatedGuestPage() {
 
             <div className="lg:col-span-3">
               <div className="bg-gray-900 border border-gray-700">
-                <div className="border-b border-gray-700 p-4">
+                <div className="border-b border-gray-700 p-4 flex items-center justify-between">
                   <h3 className="font-mono text-xs sm:text-sm tracking-wider text-white uppercase">
                     GUEST LIST ({filteredGuests.length})
                   </h3>
+                  <button
+                    onClick={() => setSortMode(prev => prev === 'default' ? 'alpha' : 'default')}
+                    className="px-3 py-1 bg-gray-800 text-gray-400 font-mono text-xs tracking-wider uppercase hover:text-white transition-colors border border-gray-700"
+                  >
+                    SORT: {sortMode === 'alpha' ? 'ABC' : 'DEFAULT'}
+                  </button>
                 </div>
 
                 <div className="divide-y divide-gray-700 lg:[max-height:calc(100vh-320px)] lg:overflow-y-auto">
-                  {filteredGuests.map((guest, index) => (
+                  {displayGuests.map((guest, index) => (
                     <div key={guest.id} className="p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3 sm:gap-4">
@@ -603,9 +643,21 @@ function AuthenticatedGuestPage() {
                               {String(index + 1).padStart(2, '0')}
                             </span>
                           </div>
-                          <span className="font-mono text-sm sm:text-base tracking-wider text-white uppercase">
-                            {guest.name}
-                          </span>
+                          <div>
+                            <span className="font-mono text-sm sm:text-base tracking-wider text-white uppercase">
+                              {guest.name}
+                            </span>
+                            {(guest.createdAt || guest.checkInTime) && (
+                              <div className="flex gap-2 mt-1">
+                                {guest.createdAt && (
+                                  <span className="text-xs font-mono text-gray-500">{formatTime(guest.createdAt)}</span>
+                                )}
+                                {guest.checkInTime && (
+                                  <span className="text-xs font-mono text-green-400">IN: {formatTime(guest.checkInTime)}</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
 
                         <div className="flex items-center gap-2">
