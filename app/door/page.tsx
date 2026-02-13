@@ -154,7 +154,11 @@ function DoorPageContent() {
     ? [...filteredGuests].sort((a, b) =>
         (a.name || '').localeCompare(b.name || '', 'ko-KR', { sensitivity: 'base' })
       )
-    : filteredGuests;
+    : [...filteredGuests].sort((a, b) => {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return timeA - timeB;
+      });
 
   const getSelectedDJInfo = () => {
     if (selectedDJ === 'all') return { name: 'ALL USERS', event: 'TOTAL OVERVIEW' };

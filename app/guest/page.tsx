@@ -30,6 +30,14 @@ const sortGuestsByName = (list: Guest[]) => {
   );
 };
 
+const sortGuestsByCreatedAt = (list: Guest[]) => {
+  return [...list].sort((a, b) => {
+    const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return timeA - timeB;
+  });
+};
+
 export default function GuestPage() {
   return (
     <Suspense fallback={
@@ -168,7 +176,9 @@ function ExternalDJGuestPage({ token }: { token: string }) {
 
   const remaining = linkInfo ? linkInfo.maxGuests - linkInfo.usedGuests : 0;
   const isAtLimit = remaining <= 0;
-  const displayGuests = sortMode === 'alpha' ? sortGuestsByName(guests) : guests;
+  const displayGuests = sortMode === 'alpha'
+    ? sortGuestsByName(guests)
+    : sortGuestsByCreatedAt(guests);
 
   return (
     <div className="min-h-screen bg-black">
@@ -516,7 +526,9 @@ function AuthenticatedGuestPage() {
   const activeGuests = filteredGuests.filter(guest => guest.status !== 'deleted');
   const guestLimit = user?.guest_limit ?? 0;
   const isAtLimit = guestLimit > 0 && activeGuests.length >= guestLimit;
-  const displayGuests = sortMode === 'alpha' ? sortGuestsByName(filteredGuests) : filteredGuests;
+  const displayGuests = sortMode === 'alpha'
+    ? sortGuestsByName(filteredGuests)
+    : sortGuestsByCreatedAt(filteredGuests);
 
   return (
     <div className="min-h-screen bg-black">
