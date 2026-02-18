@@ -38,16 +38,16 @@ const GuestListCard: React.FC<GuestListCardProps> = ({
   isDeleteLoading = false,
 }) => {
   return (
-    <div className="p-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3 sm:gap-4">
+    <div className="p-4 overflow-hidden">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
           <div className="w-8 h-8 sm:w-10 sm:h-10 border border-gray-600 flex items-center justify-center">
             <span className="text-xs sm:text-sm font-mono text-gray-400">
               {String(index + 1).padStart(2, '0')}
             </span>
           </div>
-          <div>
-            <p className="font-mono text-sm sm:text-base tracking-wider text-white uppercase">
+          <div className="min-w-0">
+            <p className="font-mono text-sm sm:text-base tracking-wider text-white uppercase truncate">
               {guest.name}
             </p>
             {(djName || guest.checkInTime || guest.createdAt) && (
@@ -72,7 +72,7 @@ const GuestListCard: React.FC<GuestListCardProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           {guest.status === 'pending' && (
             <>
               {variant === 'admin' && onCheck && (

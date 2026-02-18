@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS public.users (
     venue_id UUID REFERENCES public.venues(id) ON DELETE CASCADE,
     email TEXT NOT NULL,
     name TEXT NOT NULL,
-    role TEXT NOT NULL CHECK (role IN ('super_admin', 'venue_admin', 'door', 'dj')),
+    role TEXT NOT NULL CHECK (role IN ('super_admin', 'venue_admin', 'door_staff', 'staff', 'dj')),
     guest_limit INTEGER DEFAULT 10,
     active BOOLEAN DEFAULT true,
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -243,7 +243,7 @@ CREATE INDEX IF NOT EXISTS idx_external_dj_links_date ON public.external_dj_link
 --   - Edge Functions (create-user) with supabaseAdmin.auth.admin.updateUserById()
 --
 -- Key claims used:
---   (auth.jwt()->'app_metadata'->>'app_role')       — 'super_admin' | 'venue_admin' | 'door' | 'dj'
+--   (auth.jwt()->'app_metadata'->>'app_role')       — 'super_admin' | 'venue_admin' | 'door_staff' | 'staff' | 'dj'
 --   (auth.jwt()->'app_metadata'->>'app_venue_id')   — UUID string or null
 
 ALTER TABLE public.venues ENABLE ROW LEVEL SECURITY;
@@ -334,7 +334,7 @@ CREATE POLICY "Venue staff can view guests" ON public.guests
     FOR SELECT USING (
         (auth.jwt()->'app_metadata'->>'app_role') = 'super_admin'
         OR (
-            (auth.jwt()->'app_metadata'->>'app_role') IN ('venue_admin', 'door', 'dj')
+            (auth.jwt()->'app_metadata'->>'app_role') IN ('venue_admin', 'door_staff', 'staff', 'dj')
             AND (auth.jwt()->'app_metadata'->>'app_venue_id')::uuid = venue_id
         )
     );
@@ -344,7 +344,7 @@ CREATE POLICY "Venue staff and DJs can add guests" ON public.guests
     FOR INSERT WITH CHECK (
         (auth.jwt()->'app_metadata'->>'app_role') = 'super_admin'
         OR (
-            (auth.jwt()->'app_metadata'->>'app_role') IN ('venue_admin', 'dj')
+            (auth.jwt()->'app_metadata'->>'app_role') IN ('venue_admin', 'staff', 'dj')
             AND (auth.jwt()->'app_metadata'->>'app_venue_id')::uuid = venue_id
         )
     );
@@ -354,7 +354,7 @@ CREATE POLICY "Door staff and admins can update guests" ON public.guests
     FOR UPDATE USING (
         (auth.jwt()->'app_metadata'->>'app_role') = 'super_admin'
         OR (
-            (auth.jwt()->'app_metadata'->>'app_role') IN ('venue_admin', 'door')
+            (auth.jwt()->'app_metadata'->>'app_role') IN ('venue_admin', 'door_staff')
             AND (auth.jwt()->'app_metadata'->>'app_venue_id')::uuid = venue_id
         )
     );
@@ -364,7 +364,7 @@ CREATE POLICY "Admins can delete guests" ON public.guests
     FOR DELETE USING (
         (auth.jwt()->'app_metadata'->>'app_role') = 'super_admin'
         OR (
-            (auth.jwt()->'app_metadata'->>'app_role') IN ('venue_admin', 'dj')
+            (auth.jwt()->'app_metadata'->>'app_role') IN ('venue_admin', 'staff', 'dj')
             AND (auth.jwt()->'app_metadata'->>'app_venue_id')::uuid = venue_id
         )
     );

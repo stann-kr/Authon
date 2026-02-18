@@ -168,7 +168,7 @@ function ExternalDJGuestPage({ token }: { token: string }) {
           </div>
           <h1 className="font-mono text-xl tracking-wider text-white uppercase mb-2">INVALID LINK</h1>
           <p className="text-gray-400 font-mono text-xs tracking-wider mb-6">{validationError}</p>
-          <p className="text-gray-600 font-mono text-xs">© 2025 Authon</p>
+          <p className="text-gray-600 font-mono text-xs">© 2025 Authon By Stann</p>
         </div>
       </div>
     );
@@ -195,7 +195,7 @@ function ExternalDJGuestPage({ token }: { token: string }) {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden pt-16 sm:pt-20 pb-6 flex flex-col">
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden lg:overflow-hidden pt-16 sm:pt-20 pb-6 flex flex-col">
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10 w-full lg:flex-1 lg:min-h-0 flex flex-col">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6 lg:flex-1 lg:min-h-0">
             <div className="lg:col-span-1 space-y-4 lg:overflow-y-auto">
@@ -372,6 +372,9 @@ function ExternalDJGuestPage({ token }: { token: string }) {
               </div>
             </div>
           </div>
+          <div className="mt-6 text-center pb-2 flex-shrink-0">
+            <p className="text-gray-600 font-mono text-xs tracking-wider">© 2025 Authon By Stann</p>
+          </div>
         </div>
       </div>
     </div>
@@ -534,7 +537,7 @@ function AuthenticatedGuestPage() {
     <div className="h-screen overflow-hidden flex flex-col bg-black">
       <AdminHeader />
 
-      <div className="flex-1 min-h-0 overflow-y-auto lg:overflow-hidden pt-20 sm:pt-24 pb-6 flex flex-col">
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden lg:overflow-hidden pt-20 sm:pt-24 pb-6 flex flex-col">
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10 w-full lg:flex-1 lg:min-h-0 flex flex-col">
           <div className="mb-4 lg:mb-6 flex-shrink-0 flex flex-col sm:flex-row gap-4">
             {isSuperAdmin && (
@@ -762,6 +765,9 @@ function AuthenticatedGuestPage() {
                 )}
               </div>
             </div>
+          </div>
+          <div className="mt-6 text-center pb-2 flex-shrink-0">
+            <p className="text-gray-600 font-mono text-xs tracking-wider">© 2025 Authon By Stann</p>
           </div>
         </div>
       </div>

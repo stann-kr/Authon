@@ -95,7 +95,8 @@ export default function UserManagement() {
     switch (role) {
       case 'super_admin': return 'SUPER ADMIN';
       case 'venue_admin': return 'VENUE ADMIN';
-      case 'door': return 'DOOR';
+      case 'door_staff': return 'DOOR STAFF';
+      case 'staff': return 'STAFF';
       case 'dj': return 'DJ';
       default: return role.toUpperCase();
     }
@@ -194,7 +195,7 @@ export default function UserManagement() {
           </div>
           
           {activeTab === 'users' && (
-            <div className="grid grid-cols-3 gap-px bg-gray-700">
+            <div className="grid grid-cols-4 gap-px bg-gray-700">
               <div className="bg-gray-800 p-3 text-center">
                 <div className="text-green-400 font-mono text-lg sm:text-xl tracking-wider">
                   {users.filter(u => u.role === 'dj').length}
@@ -204,8 +205,16 @@ export default function UserManagement() {
                 </div>
               </div>
               <div className="bg-gray-800 p-3 text-center">
+                <div className="text-cyan-400 font-mono text-lg sm:text-xl tracking-wider">
+                  {users.filter(u => u.role === 'staff').length}
+                </div>
+                <div className="text-gray-400 text-xs font-mono tracking-wider uppercase">
+                  STAFF
+                </div>
+              </div>
+              <div className="bg-gray-800 p-3 text-center">
                 <div className="text-blue-400 font-mono text-lg sm:text-xl tracking-wider">
-                  {users.filter(u => u.role === 'door').length}
+                  {users.filter(u => u.role === 'door_staff').length}
                 </div>
                 <div className="text-gray-400 text-xs font-mono tracking-wider uppercase">
                   DOOR
@@ -292,16 +301,15 @@ function UserCard({ user, currentUserRole, getRoleLabel, onUpdate, onDelete }: {
     switch (role) {
       case 'super_admin': return 'text-purple-400';
       case 'venue_admin': return 'text-red-400';
-      case 'door': return 'text-blue-400';
+      case 'door_staff': return 'text-blue-400';
+      case 'staff': return 'text-cyan-400';
       case 'dj': return 'text-green-400';
       default: return 'text-gray-400';
     }
   };
 
   // Available roles for editing depend on current user
-  const editableRoles = currentUserRole === 'super_admin'
-    ? ['venue_admin', 'door', 'dj']
-    : ['door', 'dj'];
+  const editableRoles = ['venue_admin', 'door_staff', 'staff', 'dj'];
 
   return (
     <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
@@ -357,7 +365,7 @@ function UserCard({ user, currentUserRole, getRoleLabel, onUpdate, onDelete }: {
             <label className="block text-gray-400 font-mono text-xs tracking-wider uppercase mb-2">
               Role
             </label>
-            <div className={`grid grid-cols-${editableRoles.length} gap-1`}>
+            <div className="grid grid-cols-4 gap-1">
               {editableRoles.map((role) => (
                 <button
                   key={role}

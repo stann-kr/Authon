@@ -28,7 +28,7 @@ export interface User {
   venueId: string | null;  // null for super_admin (platform-wide)
   email: string;
   name: string;
-  role: 'super_admin' | 'venue_admin' | 'door' | 'dj';
+  role: 'super_admin' | 'venue_admin' | 'door_staff' | 'staff' | 'dj';
   guestLimit: number;
   active: boolean;
 }
@@ -247,9 +247,8 @@ export async function updateUserProfile(
  */
 export async function createUserViaEdge(params: {
   email: string;
-  password: string;
   name: string;
-  role: 'super_admin' | 'venue_admin' | 'door' | 'dj';
+  role: 'super_admin' | 'venue_admin' | 'door_staff' | 'staff' | 'dj';
   venueId?: string | null;  // optional for super_admin role
   guestLimit?: number;
 }): Promise<{ data: any; error: any }> {
@@ -262,7 +261,11 @@ export async function createUserViaEdge(params: {
     headers: authHeaders,
   });
 
-  if (error) return { data: null, error };
+  if (error) {
+    // Edge Function non-2xx: actual error body may be in data
+    const errorMessage = data?.error || error.message || '사용자 생성에 실패했습니다.';
+    return { data: null, error: { message: errorMessage } };
+  }
   return { data, error: null };
 }
 

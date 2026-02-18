@@ -6,7 +6,7 @@ export interface User {
   venue_id?: string;
   email: string;
   name: string;
-  role: 'super_admin' | 'venue_admin' | 'door' | 'dj';
+  role: 'super_admin' | 'venue_admin' | 'door_staff' | 'staff' | 'dj';
   guest_limit: number;
 }
 
@@ -60,7 +60,7 @@ export const login = async (email: string, password: string): Promise<{ success:
       venue_id: activeUser.venue_id,
       email: activeUser.email,
       name: activeUser.name,
-      role: activeUser.role as 'super_admin' | 'venue_admin' | 'door' | 'dj',
+      role: activeUser.role as 'super_admin' | 'venue_admin' | 'door_staff' | 'staff' | 'dj',
       guest_limit: activeUser.guest_limit
     };
 
@@ -102,7 +102,8 @@ export const hasAccess = (userRole: string, requiredAccess: string[]): boolean =
   const accessMap: Record<string, string[]> = {
     'super_admin': ['guest', 'door', 'admin', 'venue'],
     'venue_admin': ['guest', 'door', 'admin'],
-    'door': ['guest', 'door'],
+    'door_staff': ['guest', 'door'],
+    'staff': ['guest'],
     'dj': ['guest']
   };
   

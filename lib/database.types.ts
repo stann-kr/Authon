@@ -40,7 +40,7 @@ export interface Database {
           venue_id: string;
           email: string;
           name: string;
-          role: 'super_admin' | 'venue_admin' | 'door' | 'dj';
+          role: 'super_admin' | 'venue_admin' | 'door_staff' | 'staff' | 'dj';
           guest_limit: number;
           active: boolean;
           created_at: string;
@@ -52,7 +52,7 @@ export interface Database {
           venue_id: string;
           email: string;
           name: string;
-          role: 'super_admin' | 'venue_admin' | 'door' | 'dj';
+          role: 'super_admin' | 'venue_admin' | 'door_staff' | 'staff' | 'dj';
           guest_limit?: number;
           active?: boolean;
           created_at?: string;
@@ -64,7 +64,7 @@ export interface Database {
           venue_id?: string;
           email?: string;
           name?: string;
-          role?: 'super_admin' | 'venue_admin' | 'door' | 'dj';
+          role?: 'super_admin' | 'venue_admin' | 'door_staff' | 'staff' | 'dj';
           guest_limit?: number;
           active?: boolean;
           created_at?: string;

@@ -203,12 +203,12 @@ export default function GuestList({ selectedDate }: GuestListProps) {
                   <option value="">SELECT USER</option>
                   {filteredUsers.map((u) => (
                     <option key={u.id} value={u.id} className="bg-gray-900">
-                      {u.name} ({u.role.toUpperCase()})
+                      {u.name}
                     </option>
                   ))}
                   {filteredExtLinks.map((link) => (
                     <option key={`ext:${link.id}`} value={`ext:${link.id}`} className="bg-gray-900">
-                      {link.djName} (EXTERNAL)
+                      {link.djName}
                     </option>
                   ))}
                 </select>

@@ -55,7 +55,7 @@ export default function RegisterPage() {
 
         <div className="mt-6 text-center">
           <p className="text-gray-600 font-mono text-xs tracking-wider">
-            © 2025 Authon
+            © 2025 Authon By Stann
           </p>
         </div>
       </div>

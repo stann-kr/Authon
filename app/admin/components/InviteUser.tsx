@@ -8,8 +8,7 @@ export default function InviteUser() {
   const [formData, setFormData] = useState({
     email: '',
     name: '',
-    password: '',
-    role: 'dj' as 'venue_admin' | 'door' | 'dj',
+    role: 'dj' as 'venue_admin' | 'door_staff' | 'staff' | 'dj',
     guest_limit: 10,
     venue_id: '',
   });
@@ -42,11 +41,14 @@ export default function InviteUser() {
   const roleOptions = isSuperAdmin
     ? [
         { value: 'venue_admin', label: 'VENUE ADMIN' },
-        { value: 'door', label: 'DOOR STAFF' },
+        { value: 'door_staff', label: 'DOOR STAFF' },
+        { value: 'staff', label: 'STAFF' },
         { value: 'dj', label: 'DJ' },
       ]
     : [
-        { value: 'door', label: 'DOOR STAFF' },
+        { value: 'venue_admin', label: 'VENUE ADMIN' },
+        { value: 'door_staff', label: 'DOOR STAFF' },
+        { value: 'staff', label: 'STAFF' },
         { value: 'dj', label: 'DJ' },
       ];
 
@@ -55,12 +57,6 @@ export default function InviteUser() {
     setIsLoading(true);
     setError('');
     setSuccess('');
-
-    if (formData.password.length < 6) {
-      setError('비밀번호는 최소 6자 이상이어야 합니다.');
-      setIsLoading(false);
-      return;
-    }
 
     if (!formData.venue_id) {
       setError('베뉴를 선택해주세요.');
@@ -71,22 +67,20 @@ export default function InviteUser() {
     try {
       const { data, error: createError } = await createUserViaEdge({
         email: formData.email,
-        password: formData.password,
         name: formData.name,
         role: formData.role,
         venueId: formData.venue_id,
-        guestLimit: formData.guest_limit,
+        guestLimit: formData.role === 'venue_admin' ? 999 : formData.guest_limit,
       });
 
       if (createError) {
         setError(createError.message || '사용자 생성에 실패했습니다.');
       } else {
-        setSuccess(`${formData.name} (${formData.email}) 계정이 생성되었습니다.`);
+        setSuccess(`${formData.name} (${formData.email})에게 초대 이메일이 전송되었습니다.`);
         setFormData(prev => ({
           ...prev,
           email: '',
           name: '',
-          password: '',
           role: 'dj',
           guest_limit: 10,
         }));
@@ -102,7 +96,7 @@ export default function InviteUser() {
     <div className="space-y-6">
       <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
         <h2 className="font-mono text-lg tracking-wider text-white uppercase mb-4">
-          CREATE NEW USER
+          INVITE USER
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -160,24 +154,9 @@ export default function InviteUser() {
 
           <div>
             <label className="block text-gray-400 font-mono text-xs tracking-wider uppercase mb-2">
-              PASSWORD
-            </label>
-            <input
-              type="password"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="w-full bg-black border border-gray-700 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
-              placeholder="Minimum 6 characters"
-              minLength={6}
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-gray-400 font-mono text-xs tracking-wider uppercase mb-2">
               ROLE
             </label>
-            <div className={`grid grid-cols-${roleOptions.length} gap-2`}>
+            <div className="grid grid-cols-4 gap-2">
               {roleOptions.map((opt) => (
                 <button
                   key={opt.value}
@@ -195,7 +174,7 @@ export default function InviteUser() {
             </div>
           </div>
 
-          {formData.role === 'dj' && (
+          {formData.role !== 'venue_admin' && (
             <div>
               <label className="block text-gray-400 font-mono text-xs tracking-wider uppercase mb-2">
                 GUEST LIMIT
@@ -220,7 +199,7 @@ export default function InviteUser() {
           {success && (
             <div className="bg-green-900/30 border border-green-700 p-4">
               <p className="text-green-400 font-mono text-xs tracking-wider uppercase mb-1">
-                USER CREATED SUCCESSFULLY
+                INVITATION SENT
               </p>
               <p className="text-green-300 font-mono text-xs tracking-wider">{success}</p>
             </div>
@@ -234,10 +213,10 @@ export default function InviteUser() {
             {isLoading ? (
               <div className="flex items-center justify-center gap-2">
                 <div className="w-4 h-4 border border-black border-t-transparent rounded-full animate-spin"></div>
-                <span>CREATING...</span>
+                <span>SENDING...</span>
               </div>
             ) : (
-              'CREATE USER'
+              'SEND INVITATION'
             )}
           </button>
         </form>

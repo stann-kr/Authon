@@ -45,17 +45,57 @@ serve(async (req) => {
     }
 
     // Get caller's role from public.users
-    const { data: callerProfile, error: profileError } = await supabaseAdmin
+    let { data: callerProfile, error: profileError } = await supabaseAdmin
       .from('users')
       .select('id, role, venue_id')
       .eq('auth_user_id', caller.id)
       .single()
 
+    // FALLBACK: Auto-create missing profile from auth metadata
     if (profileError || !callerProfile) {
-      return new Response(
-        JSON.stringify({ error: '호출자 프로필을 찾을 수 없습니다.' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      // Get full user metadata from admin API (getUser doesn't include app_metadata)
+      const { data: authUserData, error: authError } = await supabaseAdmin.auth.admin.getUserById(caller.id)
+      
+      if (authError || !authUserData?.user) {
+        return new Response(
+          JSON.stringify({ error: '호출자 인증 정보를 가져올 수 없습니다.' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      
+      const authUser = authUserData.user
+      const authRole = authUser.app_metadata?.app_role || authUser.user_metadata?.role
+      const authVenueId = authUser.app_metadata?.app_venue_id || authUser.user_metadata?.venue_id
+      
+      if (!authRole || (authRole !== 'super_admin' && !authVenueId)) {
+        return new Response(
+          JSON.stringify({ error: '호출자 프로필을 찾을 수 없습니다. auth에 role 또는 venue_id가 없습니다. 관리자에게 문의하세요.' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      
+      // Auto-create missing profile
+      const { data: createdProfile, error: createProfileError } = await supabaseAdmin
+        .from('users')
+        .insert({
+          auth_user_id: caller.id,
+          email: authUser.email,
+          name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
+          role: authRole,
+          venue_id: authVenueId || null,
+          guest_limit: authUser.user_metadata?.guest_limit || (authRole === 'venue_admin' ? 999 : 10),
+        })
+        .select('id, role, venue_id')
+        .single()
+      
+      if (createProfileError || !createdProfile) {
+        return new Response(
+          JSON.stringify({ error: '프로필 자동 생성 실패: ' + (createProfileError?.message || '알 수 없는 오류') }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      
+      callerProfile = createdProfile
     }
 
     const body = await req.json()
@@ -106,13 +146,13 @@ serve(async (req) => {
       )
     }
 
-    // ---- CREATE USER ----
-    const { email, password, name, role, venueId, guestLimit } = body
+    // ---- CREATE USER (Invitation-based) ----
+    const { email, name, role, venueId, guestLimit } = body
 
     // Validate required fields (venueId nullable for super_admin)
-    if (!email || !password || !name || !role) {
+    if (!email || !name || !role) {
       return new Response(
-        JSON.stringify({ error: '필수 필드가 누락되었습니다. (email, password, name, role)' }),
+        JSON.stringify({ error: '필수 필드가 누락되었습니다. (email, name, role)' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -140,44 +180,30 @@ serve(async (req) => {
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
-      // Venue admin cannot create super_admin or venue_admin
-      if (role === 'super_admin' || role === 'venue_admin') {
+      // Venue admin cannot create super_admin
+      if (role === 'super_admin') {
         return new Response(
-          JSON.stringify({ error: '베뉴 어드민은 어드민 역할을 생성할 수 없습니다.' }),
+          JSON.stringify({ error: '슈퍼 어드민은 생성할 수 없습니다.' }),
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
     }
 
-    // Only super_admin can create venue_admin
-    if (role === 'venue_admin' && callerProfile.role !== 'super_admin') {
-      return new Response(
-        JSON.stringify({ error: '베뉴 어드민은 슈퍼 어드민만 생성할 수 있습니다.' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // 2. Create Supabase Auth user with metadata
+    // 2. Invite user by email (user sets their own password)
     //    The on_auth_user_created trigger will auto-create public.users row
-    const { data: newAuthUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true, // Skip email verification for admin-created users
-      user_metadata: {
+    const { data: newAuthUser, error: createError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+      data: {
         name,
         role,
         venue_id: venueId ?? null,
         guest_limit: guestLimit ?? 10,
       },
-      app_metadata: {
-        app_role: role,
-        app_venue_id: venueId ?? null,
-      },
+      redirectTo: `${req.headers.get('origin') || Deno.env.get('SITE_URL') || ''}/auth/reset-password`,
     })
 
     if (createError) {
       // Check for duplicate email
-      if (createError.message?.includes('already been registered')) {
+      if (createError.message?.includes('already been registered') || createError.message?.includes('already exists')) {
         return new Response(
           JSON.stringify({ error: '이미 등록된 이메일입니다.' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -185,6 +211,14 @@ serve(async (req) => {
       }
       throw createError
     }
+
+    // Set app_metadata (inviteUserByEmail only sets user_metadata via `data`)
+    await supabaseAdmin.auth.admin.updateUserById(newAuthUser.user.id, {
+      app_metadata: {
+        app_role: role,
+        app_venue_id: venueId ?? null,
+      },
+    })
 
     // 3. Fetch the created public.users profile (created by trigger)
     // Small delay to ensure trigger has fired
@@ -198,7 +232,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        message: '사용자가 생성되었습니다.',
+        message: '초대 이메일이 전송되었습니다.',
         user: newUser,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

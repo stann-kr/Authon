@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getUser, User } from '@/lib/auth';
+import { createClient } from '@/lib/supabase/client';
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -21,6 +22,7 @@ export default function ProfilePage() {
   });
 
   const router = useRouter();
+  const supabase = createClient();
 
   useEffect(() => {
     const currentUser = getUser();
@@ -57,6 +59,33 @@ export default function ProfilePage() {
     }
 
     try {
+      // 1. 비밀번호 변경이 요청된 경우 현재 비밀번호 검증 후 변경
+      if (formData.newPassword) {
+        // 현재 비밀번호로 재인증
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: user!.email,
+          password: formData.currentPassword,
+        });
+
+        if (signInError) {
+          setError('현재 비밀번호가 올바르지 않습니다.');
+          setIsSaving(false);
+          return;
+        }
+
+        // 새 비밀번호로 업데이트
+        const { error: updateError } = await supabase.auth.updateUser({
+          password: formData.newPassword,
+        });
+
+        if (updateError) {
+          setError('비밀번호 변경에 실패했습니다: ' + updateError.message);
+          setIsSaving(false);
+          return;
+        }
+      }
+
+      // 2. 이름 변경
       const updatedUser = {
         ...user,
         name: formData.name
@@ -95,7 +124,7 @@ export default function ProfilePage() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="h-screen overflow-hidden flex flex-col bg-black">
       <div className="fixed top-0 left-0 right-0 z-50 bg-black border-b border-gray-800">
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10">
           <div className="flex items-center justify-between h-16 sm:h-20">
@@ -112,7 +141,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="pt-20 sm:pt-24 pb-6">
+      <div className="flex-1 min-h-0 overflow-y-auto pt-20 sm:pt-24 pb-6">
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             <div className="lg:col-span-1 space-y-4">
@@ -271,6 +300,12 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
+        </div>
+
+        <div className="mt-6 text-center pb-2">
+          <p className="text-gray-600 font-mono text-xs tracking-wider">
+            © 2025 Authon By Stann
+          </p>
         </div>
       </div>
     </div>
