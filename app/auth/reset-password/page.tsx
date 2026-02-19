@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Footer from "@/components/Footer";
 import Spinner from "@/components/Spinner";
@@ -76,7 +76,8 @@ export default function ResetPasswordPage() {
     };
 
     parseUrl();
-  }, [supabase.auth]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,7 +134,7 @@ export default function ResetPasswordPage() {
           data: { user },
         } = await supabase.auth.getUser();
         if (user) {
-          const { error: activeErr } = await supabase
+          const { error: activeErr } = await (supabase as any)
             .from("users")
             .update({ active: true })
             .eq("auth_user_id", user.id);
