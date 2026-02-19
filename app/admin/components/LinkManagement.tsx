@@ -2,16 +2,20 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { getUser } from '../../../lib/auth';
+import VenueSelector, { useVenueSelector } from '../../../components/VenueSelector';
+import StatGrid from '../../../components/StatGrid';
+import PanelHeader from '../../../components/PanelHeader';
+import Spinner from '../../../components/Spinner';
+import EmptyState from '../../../components/EmptyState';
+import Alert from '../../../components/Alert';
 import { formatDateDisplay } from '../../../lib/date';
 import {
   fetchExternalLinksByDate,
   createExternalLink,
   deleteExternalLink,
   deactivateExternalLink,
-  fetchVenues,
+  activateExternalLink,
   type ExternalDJLink,
-  type Venue,
 } from '../../../lib/api/guests';
 
 interface LinkManagementProps {
@@ -34,26 +38,9 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [loadingStates, setLoadingStates] = useState<{[key: string]: boolean}>({});
   const [error, setError] = useState<string | null>(null);
-  const [venues, setVenues] = useState<Venue[]>([]);
-  const [selectedVenueId, setSelectedVenueId] = useState<string>('');
+  const [success, setSuccess] = useState<string | null>(null);
 
-  const user = getUser();
-  const isSuperAdmin = user?.role === 'super_admin';
-  const venueId = isSuperAdmin ? selectedVenueId : user?.venue_id;
-
-  // Load venues for super_admin
-  useEffect(() => {
-    if (isSuperAdmin) {
-      fetchVenues().then(({ data }) => {
-        if (data) {
-          setVenues(data);
-          if (data.length > 0 && !selectedVenueId) {
-            setSelectedVenueId(data[0].id);
-          }
-        }
-      });
-    }
-  }, [isSuperAdmin]);
+  const { venueId, venues, selectedVenueId, setSelectedVenueId, isSuperAdmin, user } = useVenueSelector();
 
   // Update form date when selectedDate prop changes
   useEffect(() => {
@@ -106,7 +93,7 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
 
     if (error) {
       console.error('Failed to create link:', error);
-      setError('링크 생성에 실패했습니다.');
+      setError('Failed to create link.');
     } else if (data) {
       setGeneratedLink(data);
       setFormData({ date: selectedDate, dj: '', event: '', maxGuests: 5 });
@@ -129,7 +116,7 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
         setTimeout(() => setCopiedId(null), 2000);
       }
     } catch (err) {
-      console.error('복사 실패:', err);
+      console.error('Copy failed:', err);
     }
     
     setTimeout(() => {
@@ -142,27 +129,51 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
   };
 
   const handleDeleteLink = async (id: string) => {
+    setSuccess(null);
     if (!confirm('DELETE THIS LINK?')) return;
     setLoadingStates(prev => ({ ...prev, [`delete_${id}`]: true }));
     const { error } = await deleteExternalLink(id);
     if (error) {
       console.error('Failed to delete link:', error);
-      alert('링크 삭제에 실패했습니다.');
+      setError('Failed to delete link.');
     } else {
       setLinks(prev => prev.filter(link => link.id !== id));
+      setSuccess('Link deleted.');
     }
     setLoadingStates(prev => ({ ...prev, [`delete_${id}`]: false }));
   };
 
   const handleDeactivateLink = async (id: string) => {
+    setError(null);
+    setSuccess(null);
+    if (!confirm('Deactivate this link?')) return;
+
     setLoadingStates(prev => ({ ...prev, [`deactivate_${id}`]: true }));
     const { error } = await deactivateExternalLink(id);
     if (error) {
       console.error('Failed to deactivate link:', error);
+      setError('Failed to deactivate link.');
     } else {
       setLinks(prev => prev.map(link => link.id === id ? { ...link, active: false } : link));
+      setSuccess('Link deactivated.');
     }
     setLoadingStates(prev => ({ ...prev, [`deactivate_${id}`]: false }));
+  };
+
+  const handleActivateLink = async (id: string) => {
+    setError(null);
+    setSuccess(null);
+
+    setLoadingStates(prev => ({ ...prev, [`activate_${id}`]: true }));
+    const { error } = await activateExternalLink(id);
+    if (error) {
+      console.error('Failed to activate link:', error);
+      setError('Failed to activate link.');
+    } else {
+      setLinks(prev => prev.map(link => link.id === id ? { ...link, active: true } : link));
+      setSuccess('Link reactivated.');
+    }
+    setLoadingStates(prev => ({ ...prev, [`activate_${id}`]: false }));
   };
 
   const activeLinks = links.filter(l => l.active);
@@ -186,21 +197,11 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
       <div className="lg:col-span-1 space-y-4">
         {/* Venue selector for super_admin */}
         {isSuperAdmin && venues.length > 0 && (
-          <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
-            <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase mb-3">SELECT VENUE</h3>
-            <div className="relative">
-              <select
-                value={selectedVenueId}
-                onChange={(e) => setSelectedVenueId(e.target.value)}
-                className="w-full appearance-none bg-gray-800 border border-gray-700 px-4 py-3 pr-10 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
-              >
-                {venues.map(v => (
-                  <option key={v.id} value={v.id}>{v.name}</option>
-                ))}
-              </select>
-              <i className="ri-arrow-down-s-line absolute right-3 top-1/2 -translate-y-1/2 text-base text-gray-400 pointer-events-none"></i>
-            </div>
-          </div>
+          <VenueSelector
+            venues={venues}
+            selectedVenueId={selectedVenueId}
+            onVenueChange={setSelectedVenueId}
+          />
         )}
         <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
           <div className="mb-4">
@@ -248,29 +249,15 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
             <div className="text-white font-mono text-3xl sm:text-4xl tracking-wider">
               {links.length}
             </div>
-            <div className="text-gray-400 text-xs font-mono tracking-wider uppercase">
+            <div className="text-cyan-300 text-xs font-mono tracking-wider uppercase">
               TOTAL LINKS
             </div>
           </div>
           
-          <div className="grid grid-cols-2 gap-px bg-gray-700">
-            <div className="bg-gray-800 p-3 text-center">
-              <div className="text-green-400 font-mono text-lg sm:text-xl tracking-wider">
-                {activeLinks.length}
-              </div>
-              <div className="text-gray-400 text-xs font-mono tracking-wider uppercase">
-                ACTIVE
-              </div>
-            </div>
-            <div className="bg-gray-800 p-3 text-center">
-              <div className="text-gray-500 font-mono text-lg sm:text-xl tracking-wider">
-                {inactiveLinks.length}
-              </div>
-              <div className="text-gray-400 text-xs font-mono tracking-wider uppercase">
-                EXPIRED
-              </div>
-            </div>
-          </div>
+          <StatGrid items={[
+            { label: 'ACTIVE', value: activeLinks.length, color: 'green' },
+            { label: 'EXPIRED', value: inactiveLinks.length, color: 'red' },
+          ]} />
         </div>
       </div>
 
@@ -284,9 +271,7 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
               </div>
 
               {error && (
-                <div className="mb-4 bg-red-900/30 border border-red-700 p-3">
-                  <p className="text-red-400 font-mono text-xs tracking-wider">{error}</p>
-                </div>
+                <Alert type="error" message={error} className="mb-4" />
               )}
 
               <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
@@ -400,35 +385,23 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
         )}
 
         {activeTab === 'manage' && (
-          <div className="bg-gray-900 border border-gray-700">
-            <div className="border-b border-gray-700 p-4 flex items-center justify-between">
-              <h3 className="font-mono text-xs sm:text-sm tracking-wider text-white uppercase">
-                LINK LIST ({links.length})
-              </h3>
-              <button
-                onClick={loadLinks}
-                className="px-3 py-1 bg-gray-800 text-gray-400 font-mono text-xs tracking-wider uppercase hover:text-white transition-colors border border-gray-700"
-              >
-                <i className="ri-refresh-line mr-1"></i>REFRESH
-              </button>
-            </div>
+          <div className="space-y-4">
+            {error && <Alert type="error" message={error} />}
+            {success && <Alert type="success" message={success} />}
+
+            <div className="bg-gray-900 border border-gray-700">
+            <PanelHeader
+              title="LINK LIST"
+              count={links.length}
+              onRefresh={loadLinks}
+            />
             
             {isFetching ? (
-              <div className="flex items-center justify-center p-8">
-                <div className="w-6 h-6 border border-white border-t-transparent rounded-full animate-spin"></div>
-                <span className="ml-2 text-white font-mono text-sm">LOADING...</span>
-              </div>
+              <Spinner mode="inline" text="LOADING..." />
             ) : (
               <div className="divide-y divide-gray-700 max-h-[500px] lg:max-h-[600px] overflow-y-auto">
                 {links.length === 0 ? (
-                  <div className="p-8 text-center">
-                    <div className="w-16 h-16 border border-gray-600 mx-auto mb-4 flex items-center justify-center">
-                      <i className="ri-link text-gray-400 text-2xl"></i>
-                    </div>
-                    <p className="text-gray-400 font-mono text-sm tracking-wider uppercase">
-                      NO LINKS FOUND FOR THIS DATE
-                    </p>
-                  </div>
+                  <EmptyState icon="ri-link" message="NO LINKS FOUND FOR THIS DATE" />
                 ) : (
                   links.map((link, index) => (
                     <div key={link.id} className={`p-4 ${!link.active ? 'opacity-50' : ''}`}>
@@ -493,13 +466,21 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
                             'COPY'
                           )}
                         </button>
-                        {link.active && (
+                        {link.active ? (
                           <button
                             onClick={() => handleDeactivateLink(link.id)}
                             disabled={loadingStates[`deactivate_${link.id}`]}
                             className="bg-gray-900 border border-gray-600 text-yellow-400 py-2 font-mono text-xs tracking-wider uppercase hover:bg-gray-800 transition-colors disabled:opacity-50"
                           >
-                            DEACTIVATE
+                            {loadingStates[`deactivate_${link.id}`] ? '...' : 'DEACTIVATE'}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleActivateLink(link.id)}
+                            disabled={loadingStates[`activate_${link.id}`]}
+                            className="bg-gray-900 border border-gray-600 text-green-400 py-2 font-mono text-xs tracking-wider uppercase hover:bg-gray-800 transition-colors disabled:opacity-50"
+                          >
+                            {loadingStates[`activate_${link.id}`] ? '...' : 'ACTIVATE'}
                           </button>
                         )}
                         <button
@@ -521,6 +502,7 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
                 )}
               </div>
             )}
+            </div>
           </div>
         )}
       </div>

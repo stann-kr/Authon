@@ -31,7 +31,7 @@ serve(async (req) => {
 
     if (error || !user) {
       return new Response(
-        JSON.stringify({ message: '이메일 또는 비밀번호가 잘못되었습니다.' }),
+        JSON.stringify({ message: 'Invalid email or password.' }),
         { 
           status: 401, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -44,7 +44,7 @@ serve(async (req) => {
     
     if (!isValidPassword) {
       return new Response(
-        JSON.stringify({ message: '이메일 또는 비밀번호가 잘못되었습니다.' }),
+        JSON.stringify({ message: 'Invalid email or password.' }),
         { 
           status: 401, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -63,7 +63,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ 
-        message: '로그인 성공',
+        message: 'Login successful',
         user: userInfo
       }),
       { 
@@ -74,7 +74,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Login error:', error)
     return new Response(
-      JSON.stringify({ message: '로그인 처리 중 오류가 발생했습니다.' }),
+      JSON.stringify({ message: 'An error occurred while processing login.' }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

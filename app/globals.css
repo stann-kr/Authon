@@ -9,11 +9,11 @@
 
 @layer components {
 	.page-shell {
-		@apply h-screen flex flex-col bg-black;
+		@apply min-h-screen flex flex-col bg-black;
 	}
 
 	.page-scroll {
-		@apply flex-1 min-h-0 overflow-y-auto overflow-x-hidden pt-20 sm:pt-24 pb-6 flex flex-col;
+		@apply flex-1 overflow-x-hidden pt-20 sm:pt-24 flex flex-col;
 	}
 
 	.page-container {
@@ -21,6 +21,6 @@
 	}
 
 	.main-content-panel {
-		@apply bg-gray-900 border border-gray-700 flex flex-col min-h-[460px] lg:min-h-[520px];
+		@apply bg-gray-900 border border-gray-700 flex flex-col min-h-0 lg:min-h-[520px];
 	}
 }

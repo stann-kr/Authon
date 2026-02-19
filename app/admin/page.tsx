@@ -8,7 +8,7 @@ import LinkManagement from './components/LinkManagement';
 import UserManagement from './components/UserManagement';
 import VenueManagement from './components/VenueManagement';
 import AuthGuard from '../../components/AuthGuard';
-import PageLayout from '../../components/PageLayout';
+import Footer from '../../components/Footer';
 import { getBusinessDate, formatDateDisplay } from '../../lib/date';
 import { getUser } from '../../lib/auth';
 
@@ -42,7 +42,10 @@ function AdminPageContent() {
   ];
 
   return (
-    <PageLayout header={<AdminHeader />}>
+    <div className="min-h-screen bg-black flex flex-col">
+      <AdminHeader />
+      <div className="flex-1 overflow-x-hidden pt-20 sm:pt-24 flex flex-col">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 w-full lg:flex-1 lg:min-h-0 flex flex-col">
           <div className="mb-4 lg:mb-6 flex-shrink-0">
             <div className={`grid ${tabs.length === 4 ? 'grid-cols-4' : 'grid-cols-3'} gap-px bg-gray-700`}>
               {tabs.map((tab) => (
@@ -86,6 +89,9 @@ function AdminPageContent() {
             {activeTab === 'users' && <UserManagement />}
             {activeTab === 'venues' && <VenueManagement />}
           </div>
-    </PageLayout>
+        </div>
+        <Footer />
+      </div>
+    </div>
   );
 }

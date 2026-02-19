@@ -21,11 +21,11 @@ export const login = async (email: string, password: string): Promise<{ success:
 
     if (signInError) {
       console.error('Sign in error:', signInError);
-      return { success: false, message: '이메일 또는 비밀번호가 잘못되었습니다.' };
+      return { success: false, message: 'Invalid email or password.' };
     }
 
     if (!user) {
-      return { success: false, message: '로그인 실패: 사용자 정보를 가져올 수 없습니다.' };
+      return { success: false, message: 'Login failed: unable to load user information.' };
     }
 
     // 사용자 상세 정보 조회 (public.users 테이블)
@@ -39,7 +39,7 @@ export const login = async (email: string, password: string): Promise<{ success:
       console.error('User data fetch error:', userError);
       // Auth에는 있지만 public.users에 없는 경우 로그아웃 처리
       await supabase.auth.signOut();
-      return { success: false, message: '사용자 프로필 정보를 찾을 수 없습니다.' };
+      return { success: false, message: 'User profile could not be found.' };
     }
 
     // 타입 단언 사용 (userData가 any로 추론되지 않도록)
@@ -47,7 +47,7 @@ export const login = async (email: string, password: string): Promise<{ success:
 
     if (!activeUser.active) {
       await supabase.auth.signOut();
-      return { success: false, message: '비활성화된 계정입니다.' };
+      return { success: false, message: 'This account is inactive.' };
     }
 
     // [호환성 유지] 기존 앱 로직이 localStorage 'user' 키를 동기적으로 참조하는 경우가 많으므로
@@ -69,7 +69,7 @@ export const login = async (email: string, password: string): Promise<{ success:
     return { success: true };
   } catch (error) {
     console.error('Login error:', error);
-    return { success: false, message: '로그인 중 오류가 발생했습니다.' };
+    return { success: false, message: 'An error occurred during login.' };
   }
 };
 

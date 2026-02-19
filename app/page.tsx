@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getUser, logout, hasAccess, User } from '../lib/auth';
 import Footer from '@/components/Footer';
+import Spinner from '@/components/Spinner';
+import RoleLabel from '@/components/RoleLabel';
 import { BRAND_NAME, BRAND_TAGLINE } from '@/lib/brand';
 
 export default function Home() {
@@ -26,16 +28,7 @@ export default function Home() {
   }, [router]);
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white font-mono text-sm tracking-wider uppercase">
-            LOADING...
-          </p>
-        </div>
-      </div>
-    );
+    return <Spinner mode="fullscreen" text="LOADING..." />;
   }
 
   if (!user) {
@@ -81,7 +74,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-black flex flex-col">
-      <div className="w-full max-w-4xl mx-auto flex flex-col flex-1">
+      <div className="w-full max-w-6xl mx-auto flex flex-col flex-1">
         <div className="px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between mb-6 lg:mb-8">
             <div className="text-left flex-1">
@@ -109,7 +102,7 @@ export default function Home() {
                   {user.name}
                 </p>
                 <p className="text-xs sm:text-sm text-gray-400 font-mono tracking-wider">
-                  ROLE: {user.role} • LIMIT: {user.guest_limit}
+                  ROLE: <RoleLabel role={user.role} /> • LIMIT: {user.guest_limit}
                 </p>
               </div>
               <Link 
@@ -122,7 +115,7 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="flex-1 px-4 sm:px-6 lg:px-8 pb-6 flex flex-col">
+        <div className="flex-1 px-4 sm:px-6 lg:px-8 flex flex-col">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 flex-1 content-start">
             {accessibleMenus.map((item, index) => (
               <Link key={item.id} href={item.href} className="block">

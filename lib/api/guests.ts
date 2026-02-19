@@ -9,6 +9,31 @@ const getAuthHeaders = async (): Promise<{ Authorization: string } | null> => {
   return { Authorization: `Bearer ${data.session.access_token}` };
 };
 
+const normalizeEdgeFunctionErrorMessage = (
+  error: any,
+  data: any,
+  fallbackMessage: string
+): string => {
+  const dataError = typeof data?.error === 'string' ? data.error : null;
+  const dataMessage = typeof data?.message === 'string' ? data.message : null;
+  const rawMessage = dataError || dataMessage || error?.message || '';
+
+  if (!rawMessage) return fallbackMessage;
+
+  const lower = rawMessage.toLowerCase();
+  const isTechnicalEdgeError =
+    lower.includes('edge function returned a non-2xx') ||
+    lower.includes('non-2xx') ||
+    lower.includes('functionshttperror') ||
+    lower.includes('failed to fetch');
+
+  if (isTechnicalEdgeError) {
+    return fallbackMessage;
+  }
+
+  return rawMessage;
+};
+
 // ============================================================
 // Types
 // ============================================================
@@ -255,7 +280,7 @@ export async function createUserViaEdge(params: {
 }): Promise<{ data: any; error: any }> {
   const authHeaders = await getAuthHeaders();
   if (!authHeaders) {
-    return { data: null, error: { message: '로그인이 필요합니다.' } };
+    return { data: null, error: { message: 'Login is required.' } };
   }
   const { data, error } = await supabase.functions.invoke('create-user', {
     body: params,
@@ -263,10 +288,25 @@ export async function createUserViaEdge(params: {
   });
 
   if (error) {
-    // Edge Function non-2xx: actual error body may be in data
-    const errorMessage = data?.error || error.message || '사용자 생성에 실패했습니다.';
+    const fallbackMessage = params.password
+      ? 'Failed to create account. Please try again.'
+      : 'Failed to send invitation email. Please try again.';
+    const errorMessage = normalizeEdgeFunctionErrorMessage(error, data, fallbackMessage);
     return { data: null, error: { message: errorMessage } };
   }
+
+  if (data?.error) {
+    const fallbackMessage = params.password
+      ? 'Failed to create account. Please try again.'
+      : 'Failed to send invitation email. Please try again.';
+    return {
+      data: null,
+      error: {
+        message: normalizeEdgeFunctionErrorMessage(null, data, fallbackMessage),
+      },
+    };
+  }
+
   return { data, error: null };
 }
 
@@ -276,13 +316,26 @@ export async function createUserViaEdge(params: {
 export async function deleteUserViaEdge(userId: string): Promise<{ error: any }> {
   const authHeaders = await getAuthHeaders();
   if (!authHeaders) {
-    return { error: { message: '로그인이 필요합니다.' } };
+    return { error: { message: 'Login is required.' } };
   }
-  const { error } = await supabase.functions.invoke('create-user', {
+  const { data, error } = await supabase.functions.invoke('create-user', {
     body: { action: 'delete', userId },
     headers: authHeaders,
   });
-  return { error };
+
+  if (error || data?.error) {
+    return {
+      error: {
+        message: normalizeEdgeFunctionErrorMessage(
+          error,
+          data,
+          'Failed to delete user. Please try again.'
+        ),
+      },
+    };
+  }
+
+  return { error: null };
 }
 
 // ============================================================
@@ -550,6 +603,14 @@ export async function deactivateExternalLink(linkId: string): Promise<{ error: a
   return { error };
 }
 
+export async function activateExternalLink(linkId: string): Promise<{ error: any }> {
+  const { error } = await supabase
+    .from('external_dj_links')
+    .update({ active: true })
+    .eq('id', linkId);
+  return { error };
+}
+
 /**
  * Validate an external DJ link token via Edge Function
  * (no auth required — public endpoint)
@@ -562,8 +623,18 @@ export async function validateExternalToken(token: string): Promise<{
     body: { action: 'validate', token },
   });
 
-  if (error) return { data: null, error };
-  if (data?.error) return { data: null, error: data.error };
+  if (error || data?.error) {
+    return {
+      data: null,
+      error: {
+        message: normalizeEdgeFunctionErrorMessage(
+          error,
+          data,
+          'Unable to verify this link. Please try again later.'
+        ),
+      },
+    };
+  }
 
   // Edge Function returns snake_case → transform to camelCase
   return {
@@ -588,8 +659,19 @@ export async function createGuestViaExternalLink(params: {
     body: { action: 'create-guest', ...params },
   });
 
-  if (error) return { data: null, error };
-  if (data?.error) return { data: null, error: data.error };
+  if (error || data?.error) {
+    return {
+      data: null,
+      error: {
+        message: normalizeEdgeFunctionErrorMessage(
+          error,
+          data,
+          'Failed to register guest. Please try again.'
+        ),
+      },
+    };
+  }
+
   return { data: data?.guest ? transformGuest(data.guest) : null, error: null };
 }
 
@@ -604,7 +686,17 @@ export async function deleteGuestViaExternalLink(params: {
     body: { action: 'delete-guest', ...params },
   });
 
-  if (error) return { error };
-  if (data?.error) return { error: data.error };
+  if (error || data?.error) {
+    return {
+      error: {
+        message: normalizeEdgeFunctionErrorMessage(
+          error,
+          data,
+          'Failed to delete guest. Please try again.'
+        ),
+      },
+    };
+  }
+
   return { error: null };
 }

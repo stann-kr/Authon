@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Footer from '@/components/Footer';
+import Alert from '@/components/Alert';
 import { login } from '@/lib/auth';
 import { BRAND_NAME } from '@/lib/brand';
 import { createClient } from '@/lib/supabase/client';
@@ -33,10 +34,10 @@ export default function LoginPage() {
       if (result.success) {
         router.push('/');
       } else {
-        setError(result.message || '로그인에 실패했습니다.');
+        setError(result.message || 'Login failed.');
       }
     } catch (error) {
-      setError('로그인 중 오류가 발생했습니다.');
+      setError('An error occurred during login.');
     } finally {
       setIsLoading(false);
     }
@@ -60,10 +61,10 @@ export default function LoginPage() {
       if (resetError) {
         setError(resetError.message);
       } else {
-        setResetMessage('비밀번호 재설정 링크가 이메일로 전송되었습니다. 이메일을 확인해주세요.');
+        setResetMessage('Password reset link sent. Please check your email.');
       }
     } catch (err) {
-      setError('비밀번호 재설정 요청 중 오류가 발생했습니다.');
+      setError('An error occurred while requesting password reset.');
     } finally {
       setResetLoading(false);
     }
@@ -102,15 +103,11 @@ export default function LoginPage() {
               </div>
 
               {error && (
-                <div className="bg-red-900/30 border border-red-700 p-3 sm:p-4">
-                  <p className="text-red-400 font-mono text-xs sm:text-sm tracking-wider">{error}</p>
-                </div>
+                <Alert type="error" message={error} />
               )}
 
               {resetMessage && (
-                <div className="bg-green-900/30 border border-green-700 p-3 sm:p-4">
-                  <p className="text-green-400 font-mono text-xs sm:text-sm tracking-wider">{resetMessage}</p>
-                </div>
+                <Alert type="success" message={resetMessage} />
               )}
 
               <button
@@ -169,11 +166,7 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <div className="bg-red-900/30 border border-red-700 p-3 sm:p-4">
-                <p className="text-red-400 font-mono text-xs sm:text-sm tracking-wider">
-                  {error}
-                </p>
-              </div>
+              <Alert type="error" message={error} />
             )}
 
             <button

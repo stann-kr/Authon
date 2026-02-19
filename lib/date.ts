@@ -13,6 +13,13 @@
 /** 영업일 전환 시각 (24시 기준). 이 시각 이전은 전날 영업일에 해당 */
 const DAY_CHANGE_HOUR = 6;
 
+function formatLocalYmd(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 /**
  * 현재 시각의 영업일(business date)을 YYYY-MM-DD 형식으로 반환
  * - 06:00 이후 → 오늘 날짜
@@ -24,13 +31,23 @@ export function getBusinessDate(): string {
     // 자정~05:59 → 전날 날짜
     now.setDate(now.getDate() - 1);
   }
-  return now.toISOString().split('T')[0];
+  return formatLocalYmd(now);
 }
 
 /**
  * 날짜를 표시용 포맷으로 변환 (YYYY.MM.DD)
  */
 export function formatDateDisplay(dateString: string): string {
+  const ymdMatch = dateString.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (ymdMatch) {
+    const [, year, month, day] = ymdMatch;
+    return `${year}.${month}.${day}`;
+  }
+
   const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) {
+    return dateString;
+  }
+
   return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
 }

@@ -6,7 +6,13 @@ import { useSearchParams } from 'next/navigation';
 import AdminHeader from '../admin/components/AdminHeader';
 import AuthGuard from '../../components/AuthGuard';
 import Footer from '@/components/Footer';
-import PageLayout from '@/components/PageLayout';
+import StatGrid from '@/components/StatGrid';
+import PanelHeader from '@/components/PanelHeader';
+import Spinner from '@/components/Spinner';
+import EmptyState from '@/components/EmptyState';
+import Alert from '@/components/Alert';
+import VenueSelector, { useVenueSelector } from '@/components/VenueSelector';
+import DatePicker from '@/components/DatePicker';
 import { BRAND_NAME } from '@/lib/brand';
 import { getBusinessDate, formatDateDisplay } from '@/lib/date';
 import {
@@ -16,12 +22,10 @@ import {
   validateExternalToken,
   createGuestViaExternalLink,
   deleteGuestViaExternalLink,
-  fetchVenues,
   type Guest,
   type ExternalDJLink,
   type Venue,
 } from '../../lib/api/guests';
-import { getUser } from '../../lib/auth';
 
 const formatTime = (timeStr: string) => {
   const date = new Date(timeStr);
@@ -94,7 +98,7 @@ function ExternalDJGuestPage({ token }: { token: string }) {
       setIsValidating(true);
       const { data, error } = await validateExternalToken(token);
       if (error) {
-        setValidationError(typeof error === 'string' ? error : error.message || '유효하지 않은 링크입니다.');
+        setValidationError(typeof error === 'string' ? error : error.message || 'Invalid link.');
       } else if (data) {
         setLinkInfo(data.link);
         setVenueInfo(data.venue);
@@ -119,7 +123,7 @@ function ExternalDJGuestPage({ token }: { token: string }) {
     });
 
     if (createError) {
-      setError(typeof createError === 'string' ? createError : createError.message || '게스트 등록에 실패했습니다.');
+      setError(typeof createError === 'string' ? createError : createError.message || 'Failed to register guest.');
     } else if (data) {
       setGuests(prev => [...prev, data]);
       setGuestName('');
@@ -139,7 +143,7 @@ function ExternalDJGuestPage({ token }: { token: string }) {
     });
 
     if (deleteError) {
-      setError(typeof deleteError === 'string' ? deleteError : deleteError.message || '게스트 삭제에 실패했습니다.');
+      setError(typeof deleteError === 'string' ? deleteError : deleteError.message || 'Failed to delete guest.');
     } else {
       setGuests(prev => prev.filter(g => g.id !== guestId));
       setLinkInfo(prev => prev ? { ...prev, usedGuests: Math.max(0, prev.usedGuests - 1) } : prev);
@@ -148,14 +152,7 @@ function ExternalDJGuestPage({ token }: { token: string }) {
   };
 
   if (isValidating) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white font-mono text-sm tracking-wider">VALIDATING LINK...</p>
-        </div>
-      </div>
-    );
+    return <Spinner mode="fullscreen" text="VALIDATING LINK..." />;
   }
 
   if (validationError) {
@@ -181,7 +178,7 @@ function ExternalDJGuestPage({ token }: { token: string }) {
 
   const externalHeader = (
     <div className="fixed top-0 left-0 right-0 z-50 bg-black border-b border-gray-800">
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10 py-3 flex items-center justify-between">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 bg-white"></div>
           <span className="font-mono text-sm tracking-wider text-white uppercase">{BRAND_NAME}</span>
@@ -194,10 +191,10 @@ function ExternalDJGuestPage({ token }: { token: string }) {
   );
 
   return (
-    <PageLayout
-      header={externalHeader}
-      scrollClassName="flex-1 min-h-0 overflow-y-auto overflow-x-hidden lg:overflow-hidden pt-16 sm:pt-20 pb-6 flex flex-col"
-    >
+    <div className="min-h-screen bg-black flex flex-col">
+      {externalHeader}
+      <div className="flex-1 overflow-x-hidden pt-16 sm:pt-20 flex flex-col">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 w-full lg:flex-1 lg:min-h-0 flex flex-col">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6 lg:flex-1 lg:min-h-0">
             <div className="lg:col-span-1 space-y-4 lg:overflow-y-auto">
               <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
@@ -221,61 +218,33 @@ function ExternalDJGuestPage({ token }: { token: string }) {
                   <div className="text-white font-mono text-3xl sm:text-4xl tracking-wider">
                     {guests.length}
                   </div>
-                  <div className="text-gray-400 text-xs font-mono tracking-wider uppercase">
+                  <div className="text-cyan-300 text-xs font-mono tracking-wider uppercase">
                     REGISTERED
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-px bg-gray-700">
-                  <div className="bg-gray-800 p-3 text-center">
-                    <div className="text-green-400 font-mono text-lg sm:text-xl tracking-wider">
-                      {remaining}
-                    </div>
-                    <div className="text-gray-400 text-xs font-mono tracking-wider uppercase">
-                      REMAINING
-                    </div>
-                  </div>
-                  <div className="bg-gray-800 p-3 text-center">
-                    <div className="text-white font-mono text-lg sm:text-xl tracking-wider">
-                      {linkInfo?.maxGuests}
-                    </div>
-                    <div className="text-gray-400 text-xs font-mono tracking-wider uppercase">
-                      MAX
-                    </div>
-                  </div>
-                </div>
+                <StatGrid items={[
+                  { label: 'REMAINING', value: remaining, color: 'cyan' },
+                  { label: 'MAX', value: linkInfo?.maxGuests ?? 0, color: 'blue' },
+                ]} />
               </div>
             </div>
 
             <div className="lg:col-span-3 flex flex-col lg:min-h-0">
               {error && (
-                <div className="mb-4 bg-red-900/20 border border-red-600 p-4 text-center">
-                  <p className="text-red-400 font-mono text-sm tracking-wider">{error}</p>
-                </div>
+                <Alert type="error" message={error} className="mb-4" />
               )}
 
               <div className="main-content-panel lg:min-h-0 lg:max-h-full">
-                <div className="border-b border-gray-700 p-4 flex items-center justify-between flex-shrink-0">
-                  <h3 className="font-mono text-xs sm:text-sm tracking-wider text-white uppercase">
-                    GUEST LIST ({guests.length})
-                  </h3>
-                  <button
-                    onClick={() => setSortMode(prev => prev === 'default' ? 'alpha' : 'default')}
-                    className="px-3 py-1 bg-gray-800 text-gray-400 font-mono text-xs tracking-wider uppercase hover:text-white transition-colors border border-gray-700"
-                  >
-                    SORT: {sortMode === 'alpha' ? 'ABC' : 'DEFAULT'}
-                  </button>
-                </div>
+                <PanelHeader
+                  title="GUEST LIST"
+                  count={guests.length}
+                  sortMode={sortMode}
+                  onSortToggle={() => setSortMode(prev => prev === 'default' ? 'alpha' : 'default')}
+                />
 
                 {guests.length === 0 ? (
-                  <div className="p-8 text-center">
-                    <div className="w-16 h-16 border border-gray-600 mx-auto mb-4 flex items-center justify-center">
-                      <i className="ri-user-add-line text-gray-400 text-2xl"></i>
-                    </div>
-                    <p className="text-gray-400 font-mono text-sm tracking-wider uppercase">
-                      ADD YOUR GUESTS ABOVE
-                    </p>
-                  </div>
+                  <EmptyState icon="ri-user-add-line" message="ADD YOUR GUESTS ABOVE" />
                 ) : (
                 <div className="divide-y divide-gray-700 lg:overflow-y-auto">
                   {displayGuests.map((guest, index) => (
@@ -330,7 +299,7 @@ function ExternalDJGuestPage({ token }: { token: string }) {
 
                 {!isAtLimit && (
                   <div className="p-4 border-t-2 border-gray-600">
-                    <div className="flex items-center gap-3 sm:gap-4">
+                    <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                       <div className="w-8 h-8 sm:w-10 sm:h-10 border border-gray-600 flex items-center justify-center">
                         <span className="text-xs sm:text-sm font-mono text-gray-400">
                           {String(guests.length + 1).padStart(2, '0')}
@@ -342,7 +311,7 @@ function ExternalDJGuestPage({ token }: { token: string }) {
                         value={guestName}
                         onChange={(e) => setGuestName(e.target.value)}
                         placeholder="Enter guest full name"
-                        className="flex-1 bg-transparent border-none outline-none text-white font-mono text-sm tracking-wider placeholder-gray-400"
+                        className="flex-1 min-w-0 bg-transparent border-none outline-none text-white font-mono text-sm tracking-wider placeholder-gray-400"
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') handleSave();
                         }}
@@ -351,7 +320,7 @@ function ExternalDJGuestPage({ token }: { token: string }) {
                       <button
                         onClick={handleSave}
                         disabled={!guestName.trim() || isLoading}
-                        className="px-4 sm:px-6 py-2 sm:py-3 bg-white text-black font-mono text-xs tracking-wider uppercase hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="shrink-0 px-3 sm:px-6 py-2 sm:py-3 bg-white text-black font-mono text-xs tracking-wider uppercase hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {isLoading ? (
                           <div className="w-3 h-3 border border-black border-t-transparent rounded-full animate-spin"></div>
@@ -373,7 +342,10 @@ function ExternalDJGuestPage({ token }: { token: string }) {
               </div>
             </div>
           </div>
-    </PageLayout>
+        </div>
+        <Footer />
+      </div>
+    </div>
   );
 }
 
@@ -393,22 +365,8 @@ function AuthenticatedGuestPage() {
   const [sortMode, setSortMode] = useState<'default' | 'alpha'>('default');
 
   // super_admin venue selector
-  const [venues, setVenues] = useState<Venue[]>([]);
-  const [selectedVenueId, setSelectedVenueId] = useState<string>('');
-  const user = getUser();
-  const isSuperAdmin = user?.role === 'super_admin';
+  const { venueId, venues, selectedVenueId, setSelectedVenueId, isSuperAdmin, user } = useVenueSelector();
   const effectiveVenueId = isSuperAdmin ? selectedVenueId : (user?.venue_id ?? '');
-
-  useEffect(() => {
-    if (isSuperAdmin) {
-      fetchVenues().then(({ data }) => {
-        if (data) {
-          setVenues(data);
-          if (data.length > 0) setSelectedVenueId(data[0].id);
-        }
-      });
-    }
-  }, [isSuperAdmin]);
 
   useEffect(() => {
     if (!effectiveVenueId) {
@@ -423,7 +381,7 @@ function AuthenticatedGuestPage() {
       
       if (fetchError) {
         console.error('Failed to fetch guests:', fetchError);
-        setError('게스트 정보를 불러오는데 실패했습니다.');
+        setError('Failed to load guest data.');
       } else if (data) {
         setGuests(data);
       }
@@ -453,7 +411,7 @@ function AuthenticatedGuestPage() {
 
     if (!effectiveVenueId) {
         console.error('No venue ID available');
-        setError('Venue를 선택해주세요.');
+        setError('Please select a venue.');
         return;
     }
 
@@ -464,7 +422,7 @@ function AuthenticatedGuestPage() {
     const activeGuests = filteredGuests.filter(g => g.status !== 'deleted');
     const limit = user?.guest_limit ?? 0;
     if (limit > 0 && activeGuests.length >= limit) {
-      setError(`게스트 등록 한도에 도달했습니다. (${limit}명/일)`);
+      setError(`Guest limit reached. (${limit}/day)`);
       setIsLoading(false);
       return;
     }
@@ -479,7 +437,7 @@ function AuthenticatedGuestPage() {
 
     if (createError) {
       console.error('Failed to create guest:', createError);
-      setError('게스트 등록에 실패했습니다.');
+      setError('Failed to register guest.');
       setIsLoading(false);
       return;
     }
@@ -500,7 +458,7 @@ function AuthenticatedGuestPage() {
 
     if (deleteError) {
       console.error('Failed to delete guest:', deleteError);
-      setError('게스트 삭제에 실패했습니다.');
+      setError('Failed to delete guest.');
       setIsLoading(false);
       return;
     }
@@ -525,50 +483,33 @@ function AuthenticatedGuestPage() {
     : sortGuestsByCreatedAt(filteredGuests);
 
   return (
-    <PageLayout header={<AdminHeader />}>
+    <div className="min-h-screen bg-black flex flex-col">
+      <AdminHeader />
+      <div className="flex-1 overflow-x-hidden pt-20 sm:pt-24 flex flex-col">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 w-full lg:flex-1 lg:min-h-0 flex flex-col">
           <div className="mb-4 lg:mb-6 flex-shrink-0 flex flex-col sm:flex-row gap-4">
             {isSuperAdmin && (
-              <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5 flex-1">
-                <div className="mb-2">
-                  <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase">SELECT VENUE</h3>
-                </div>
-                <div className="relative">
-                  <select
-                    value={selectedVenueId}
-                    onChange={(e) => setSelectedVenueId(e.target.value)}
-                    className="w-full appearance-none bg-black border border-gray-600 px-4 py-3 pr-10 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
-                  >
-                    <option value="">-- Select Venue --</option>
-                    {venues.map((v) => (
-                      <option key={v.id} value={v.id}>{v.name}</option>
-                    ))}
-                  </select>
-                  <i className="ri-arrow-down-s-line absolute right-3 top-1/2 -translate-y-1/2 text-base text-gray-400 pointer-events-none"></i>
-                </div>
-              </div>
-            )}
-            <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5 flex-1">
-              <div className="mb-2">
-                <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase">SELECT DATE</h3>
-              </div>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full sm:w-auto sm:min-w-[250px] bg-black border border-gray-600 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
+              <VenueSelector
+                venues={venues}
+                selectedVenueId={selectedVenueId}
+                onVenueChange={setSelectedVenueId}
+                className="flex-1"
               />
-            </div>
+            )}
+            <DatePicker
+              value={selectedDate}
+              onChange={setSelectedDate}
+              className="flex-1"
+            />
           </div>
 
           {error && (
-            <div className="mb-6 bg-red-900/20 border border-red-600 p-4 text-center">
-              <p className="text-red-400 font-mono text-sm tracking-wider">{error}</p>
-            </div>
+            <Alert type="error" message={error} className="mb-6" />
           )}
 
           {isFetching && (
             <div className="mb-6 text-center">
-              <div className="inline-block w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              <Spinner mode="button" color="white" />
             </div>
           )}
 
@@ -590,63 +531,30 @@ function AuthenticatedGuestPage() {
                   <div className="text-white font-mono text-3xl sm:text-4xl tracking-wider">
                     {activeGuests.length}
                   </div>
-                  <div className="text-gray-400 text-xs font-mono tracking-wider uppercase">
+                  <div className="text-cyan-300 text-xs font-mono tracking-wider uppercase">
                     TOTAL GUESTS
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-px bg-gray-700">
-                  <div className="bg-gray-800 p-3 text-center">
-                    <div className="text-white font-mono text-lg sm:text-xl tracking-wider">
-                      {pendingGuests.length}
-                    </div>
-                    <div className="text-gray-400 text-[10px] sm:text-xs font-mono tracking-wide uppercase leading-tight break-words">
-                      WAITING
-                    </div>
-                  </div>
-                  <div className="bg-gray-800 p-3 text-center">
-                    <div className="text-white font-mono text-lg sm:text-xl tracking-wider">
-                      {checkedGuests.length}
-                    </div>
-                    <div className="text-gray-400 text-[10px] sm:text-xs font-mono tracking-wide uppercase leading-tight break-words">
-                      CHECKED
-                    </div>
-                  </div>
-                  <div className="bg-gray-800 p-3 text-center">
-                    <div className={`font-mono text-lg sm:text-xl tracking-wider ${isAtLimit ? 'text-red-400' : 'text-green-400'}`}>
-                      {guestLimit > 0 ? guestLimit - activeGuests.length : '∞'}
-                    </div>
-                    <div className="text-gray-400 text-[10px] sm:text-xs font-mono tracking-wide uppercase leading-tight break-words">
-                      REMAINING
-                    </div>
-                  </div>
-                </div>
+                <StatGrid items={[
+                  { label: 'WAITING', value: pendingGuests.length, color: 'yellow' },
+                  { label: 'CHECKED', value: checkedGuests.length, color: 'green' },
+                  { label: 'REMAINING', value: guestLimit > 0 ? guestLimit - activeGuests.length : '∞', color: isAtLimit ? 'red' : 'cyan' },
+                ]} labelClassName="text-[10px] sm:text-xs" />
               </div>
             </div>
 
             <div className="lg:col-span-3 flex flex-col lg:min-h-0">
               <div className="main-content-panel lg:min-h-0 lg:max-h-full">
-                <div className="border-b border-gray-700 p-4 flex items-center justify-between flex-shrink-0">
-                  <h3 className="font-mono text-xs sm:text-sm tracking-wider text-white uppercase">
-                    GUEST LIST ({filteredGuests.length})
-                  </h3>
-                  <button
-                    onClick={() => setSortMode(prev => prev === 'default' ? 'alpha' : 'default')}
-                    className="px-3 py-1 bg-gray-800 text-gray-400 font-mono text-xs tracking-wider uppercase hover:text-white transition-colors border border-gray-700"
-                  >
-                    SORT: {sortMode === 'alpha' ? 'ABC' : 'DEFAULT'}
-                  </button>
-                </div>
+                <PanelHeader
+                  title="GUEST LIST"
+                  count={filteredGuests.length}
+                  sortMode={sortMode}
+                  onSortToggle={() => setSortMode(prev => prev === 'default' ? 'alpha' : 'default')}
+                />
 
                 {filteredGuests.length === 0 ? (
-                  <div className="p-8 text-center">
-                    <div className="w-16 h-16 border border-gray-600 mx-auto mb-4 flex items-center justify-center">
-                      <i className="ri-user-add-line text-gray-400 text-2xl"></i>
-                    </div>
-                    <p className="text-gray-400 font-mono text-sm tracking-wider uppercase">
-                      No guests registered for this date
-                    </p>
-                  </div>
+                  <EmptyState icon="ri-user-add-line" message="No guests registered for this date" />
                 ) : (
                 <div className="divide-y divide-gray-700 lg:overflow-y-auto">
                   {displayGuests.map((guest, index) => (
@@ -710,7 +618,7 @@ function AuthenticatedGuestPage() {
 
                 {!isAtLimit ? (
                 <div className="p-4 border-t-2 border-gray-600">
-                  <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                     <div className="w-8 h-8 sm:w-10 sm:h-10 border border-gray-600 flex items-center justify-center">
                       <span className="text-xs sm:text-sm font-mono text-gray-400">
                         {String(activeGuests.length + 1).padStart(2, '0')}
@@ -722,7 +630,7 @@ function AuthenticatedGuestPage() {
                       value={guestName}
                       onChange={(e) => setGuestName(e.target.value)}
                       placeholder="Enter guest full name"
-                      className="flex-1 bg-transparent border-none outline-none text-white font-mono text-sm tracking-wider placeholder-gray-400"
+                      className="flex-1 min-w-0 bg-transparent border-none outline-none text-white font-mono text-sm tracking-wider placeholder-gray-400"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           handleSave();
@@ -733,7 +641,7 @@ function AuthenticatedGuestPage() {
                     <button
                       onClick={handleSave}
                       disabled={!guestName.trim() || isLoading}
-                      className="px-4 sm:px-6 py-2 sm:py-3 bg-white text-black font-mono text-xs tracking-wider uppercase hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="shrink-0 px-3 sm:px-6 py-2 sm:py-3 bg-white text-black font-mono text-xs tracking-wider uppercase hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isLoading ? (
                         <div className="w-3 h-3 border border-black border-t-transparent rounded-full animate-spin"></div>
@@ -754,6 +662,9 @@ function AuthenticatedGuestPage() {
             </div>
           </div>
 
-    </PageLayout>
+        </div>
+        <Footer />
+      </div>
+    </div>
   );
 }

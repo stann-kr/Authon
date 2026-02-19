@@ -37,6 +37,12 @@ const GuestListCard: React.FC<GuestListCardProps> = ({
   isCheckLoading = false,
   isDeleteLoading = false,
 }) => {
+  const handleCheck = () => {
+    if (!onCheck) return;
+    if (!confirm('Mark this guest as checked in?')) return;
+    onCheck();
+  };
+
   return (
     <div className="p-4 overflow-hidden">
       <div className="flex items-center justify-between gap-2">
@@ -77,7 +83,7 @@ const GuestListCard: React.FC<GuestListCardProps> = ({
             <>
               {variant === 'admin' && onCheck && (
                 <button
-                  onClick={onCheck}
+                  onClick={handleCheck}
                   disabled={isCheckLoading}
                   className="px-4 sm:px-6 py-2 sm:py-3 bg-white text-black font-mono text-xs tracking-wider uppercase hover:bg-gray-200 transition-colors disabled:opacity-50"
                 >
