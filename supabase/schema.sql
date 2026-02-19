@@ -345,12 +345,12 @@ SELECT USING (
         ) = 'super_admin'
     );
 
--- Venue admin: see users in same venue
-DROP POLICY IF EXISTS "Venue admins can view venue users" ON public.users;
+-- Venue staff can view users in same venue (needed to show "By User" in guest lists)
+DROP POLICY IF EXISTS "Venue staff can view venue users" ON public.users;
 
-CREATE POLICY "Venue admins can view venue users" ON public.users
+CREATE POLICY "Venue staff can view venue users" ON public.users
     FOR SELECT USING (
-        (auth.jwt()->'app_metadata'->>'app_role') = 'venue_admin'
+        (auth.jwt()->'app_metadata'->>'app_role') IN ('venue_admin', 'door_staff', 'staff', 'dj')
         AND (auth.jwt()->'app_metadata'->>'app_venue_id')::uuid = venue_id
     );
 

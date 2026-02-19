@@ -13,6 +13,7 @@ import {
   fetchUsersByVenue,
   updateUserProfile,
   deleteUserViaEdge,
+  resendInvitationViaEdge,
   type User,
 } from "../../../lib/api/guests";
 
@@ -268,6 +269,23 @@ function UserCard({
     guestLimit: user.guestLimit,
     active: user.active,
   });
+  const [isResending, setIsResending] = useState(false);
+
+  const handleResend = async () => {
+    setIsResending(true);
+    try {
+      const { error } = await resendInvitationViaEdge(user.id);
+      if (error) {
+        alert(error.message || "Failed to resend invitation.");
+      } else {
+        alert("Invitation resent successfully!");
+      }
+    } catch (e: any) {
+      alert(e?.message || "Failed to resend invitation.");
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   const handleSave = () => {
     onUpdate(user.id, editData);
@@ -350,6 +368,17 @@ function UserCard({
               DELETE
             </button>
           </div>
+          {!user.active && (
+            <div className="mt-2">
+              <button
+                onClick={handleResend}
+                disabled={isResending}
+                className="w-full bg-blue-900/30 hover:bg-blue-900/50 text-blue-400 border border-blue-700 font-mono text-xs tracking-wider uppercase py-2 sm:py-3 transition-colors disabled:opacity-50"
+              >
+                {isResending ? "SENDING..." : "RESEND INVITE"}
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="space-y-3">

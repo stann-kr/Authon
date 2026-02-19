@@ -1,2 +1,6 @@
+[auth.email]
+# 1 day = 86400 seconds
+invite_confirm_expire = 86400
+
 [functions.create-user]
 verify_jwt = false

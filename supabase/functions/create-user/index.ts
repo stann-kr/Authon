@@ -266,6 +266,84 @@ serve(async (req) => {
       });
     }
 
+    // ---- RESEND INVITE ----
+    if (body.action === "resend-invite") {
+      const { userId } = body;
+
+      if (!userId) {
+        return new Response(JSON.stringify({ error: "userId is required." }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (
+        callerProfile.role !== "super_admin" &&
+        callerProfile.role !== "venue_admin"
+      ) {
+        return new Response(JSON.stringify({ error: "Permission denied." }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: targetUser, error: fetchError } = await supabaseAdmin
+        .from("users")
+        .select("email, venue_id, name, role, guest_limit")
+        .eq("id", userId)
+        .single();
+
+      if (fetchError || !targetUser) {
+        console.error("Failed to fetch target user:", fetchError);
+        return new Response(JSON.stringify({ error: "User not found." }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (
+        callerProfile.role === "venue_admin" &&
+        targetUser.venue_id !== callerProfile.venue_id
+      ) {
+        return new Response(
+          JSON.stringify({ error: "Cannot invite users from another venue." }),
+          {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      const userData = {
+        name: targetUser.name,
+        role: targetUser.role,
+        venue_id: targetUser.venue_id,
+        guest_limit: targetUser.guest_limit,
+      };
+
+      const result = await supabaseAdmin.auth.admin.inviteUserByEmail(
+        targetUser.email,
+        {
+          data: userData,
+          redirectTo: `${req.headers.get("origin") || Deno.env.get("SITE_URL") || ""}/auth/reset-password`,
+        },
+      );
+
+      if (result.error) {
+        return new Response(JSON.stringify({ error: result.error.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(
+        JSON.stringify({ message: "Invitation resent successfully." }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
     // ---- CREATE USER ----
     const { email, name, role, venueId, guestLimit, password } = body;
 
