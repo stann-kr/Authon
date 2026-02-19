@@ -8,7 +8,7 @@
  * ]} />
  */
 
-type StatColor = 'white' | 'green' | 'red' | 'cyan' | 'blue' | 'yellow';
+type StatColor = "white" | "green" | "red" | "cyan" | "blue" | "yellow";
 
 interface StatItem {
   label: string;
@@ -23,40 +23,46 @@ interface StatGridProps {
 }
 
 const colorMap: Record<StatColor, string> = {
-  white: 'text-white',
-  green: 'text-green-400',
-  red: 'text-red-400',
-  cyan: 'text-cyan-400',
-  blue: 'text-blue-400',
-  yellow: 'text-yellow-400',
+  white: "text-white",
+  green: "text-green-400",
+  red: "text-red-400",
+  cyan: "text-cyan-400",
+  blue: "text-blue-400",
+  yellow: "text-yellow-400",
 };
 
 const labelColorMap: Record<StatColor, string> = {
-  white: 'text-gray-400',
-  green: 'text-green-300',
-  red: 'text-red-300',
-  cyan: 'text-cyan-300',
-  blue: 'text-blue-300',
-  yellow: 'text-yellow-300',
+  white: "text-gray-400",
+  green: "text-green-300",
+  red: "text-red-300",
+  cyan: "text-cyan-300",
+  blue: "text-blue-300",
+  yellow: "text-yellow-300",
 };
 
 export default function StatGrid({ items, labelClassName }: StatGridProps) {
-  const colsClass = items.length <= 1 ? 'grid-cols-1' : 'grid-cols-2';
+  const colsClass = items.length <= 1 ? "grid-cols-1" : "grid-cols-2";
 
   return (
     <div className={`grid ${colsClass} gap-px bg-gray-700`}>
       {items.map((item, index) => {
-        const isLastOddItem = items.length > 1 && items.length % 2 === 1 && index === items.length - 1;
+        const isLastOddItem =
+          items.length > 1 &&
+          items.length % 2 === 1 &&
+          index === items.length - 1;
 
         return (
-          <div key={item.label} className={`bg-gray-800 p-3 text-center min-w-0 ${isLastOddItem ? 'col-span-2' : ''}`}>
+          <div
+            key={item.label}
+            className={`bg-gray-800 p-3 text-center min-w-0 ${isLastOddItem ? "col-span-2" : ""}`}
+          >
             <div
-              className={`font-mono text-lg sm:text-xl tracking-wider ${colorMap[item.color ?? 'white']}`}
+              className={`font-mono text-sm sm:text-xl tracking-wider ${colorMap[item.color ?? "white"]}`}
             >
               {item.value}
             </div>
             <div
-              className={`${labelColorMap[item.color ?? 'white']} font-mono tracking-wide uppercase leading-tight whitespace-normal break-words px-1 ${labelClassName ?? 'text-[10px] sm:text-xs'}`}
+              className={`${labelColorMap[item.color ?? "white"]} font-mono tracking-wide uppercase leading-tight whitespace-normal break-words px-1 ${labelClassName ?? "text-[10px] sm:text-xs"}`}
             >
               {item.label}
             </div>
