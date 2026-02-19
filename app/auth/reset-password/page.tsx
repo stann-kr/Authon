@@ -1,68 +1,85 @@
+"use client";
 
-'use client';
-
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import Footer from '@/components/Footer';
-import Spinner from '@/components/Spinner';
-import Alert from '@/components/Alert';
-import { BRAND_NAME } from '@/lib/brand';
-import { createClient } from '@/lib/supabase/client';
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import Footer from "@/components/Footer";
+import Spinner from "@/components/Spinner";
+import Alert from "@/components/Alert";
+import { BRAND_NAME } from "@/lib/brand";
+import { createClient } from "@/lib/supabase/client";
 
 export default function ResetPasswordPage() {
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isValidating, setIsValidating] = useState(true);
   const [isValid, setIsValid] = useState(false);
   const [isInvite, setIsInvite] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+  const processedCode = useRef<string | null>(null);
 
   useEffect(() => {
     const checkSession = async () => {
-      setError('');
+      setError("");
 
       try {
-        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+        const hashParams = new URLSearchParams(
+          window.location.hash.replace(/^#/, ""),
+        );
         const queryParams = new URLSearchParams(window.location.search);
-        const flowType = hashParams.get('type') || queryParams.get('type');
-        setIsInvite(flowType === 'invite');
+        const flowType = hashParams.get("type") || queryParams.get("type");
+        setIsInvite(flowType === "invite");
 
         // Check if Supabase redirected with an error (e.g., expired token)
-        const hashError = hashParams.get('error_description') || hashParams.get('error');
+        const hashError =
+          hashParams.get("error_description") ||
+          hashParams.get("error") ||
+          queryParams.get("error_description") ||
+          queryParams.get("error");
+
         if (hashError) {
-          console.warn('Supabase auth redirect error:', hashError);
+          console.warn("Supabase auth redirect error:", hashError);
           setIsValid(false);
-          setError(hashError);
+          setError(decodeURIComponent(hashError));
           return;
         }
 
         // 1. PKCE flow: exchange authorization code for session
         //    @supabase/ssr uses PKCE by default — email links redirect with ?code=...
         //    ⚠️ MUST run BEFORE signOut — signOut clears the code-verifier cookie
-        const code = queryParams.get('code');
+        const code = queryParams.get("code");
         if (code) {
-          const { data: codeData, error: codeError } = await supabase.auth.exchangeCodeForSession(code);
-          if (!codeError) {
-            // Detect invite flow from user metadata when type param is absent
-            if (!flowType && codeData?.user?.app_metadata?.invite_type) {
-              setIsInvite(true);
-            }
-            setIsValid(true);
+          // Prevent double processing of the same code
+          if (processedCode.current === code) return;
+          processedCode.current = code;
+
+          const { data: codeData, error: codeError } =
+            await supabase.auth.exchangeCodeForSession(code);
+
+          if (codeError) {
+            console.warn("PKCE code exchange failed:", codeError.message);
+            setIsValid(false);
+            setError(codeError.message); // Surface the specific error (e.g., "Email link is invalid or has expired")
             return;
           }
-          console.warn('PKCE code exchange failed:', codeError.message);
+
+          // Detect invite flow from user metadata when type param is absent
+          if (!flowType && codeData?.user?.app_metadata?.invite_type) {
+            setIsInvite(true);
+          }
+          setIsValid(true);
+          return;
         }
 
         // Clear any stale local session before trying non-PKCE flows
-        await supabase.auth.signOut({ scope: 'local' });
+        await supabase.auth.signOut({ scope: "local" });
 
         // 2. Implicit flow: tokens in hash fragment
-        const accessToken = hashParams.get('access_token');
-        const refreshToken = hashParams.get('refresh_token');
+        const accessToken = hashParams.get("access_token");
+        const refreshToken = hashParams.get("refresh_token");
 
         if (accessToken && refreshToken) {
           const { error: setSessionError } = await supabase.auth.setSession({
@@ -77,8 +94,9 @@ export default function ResetPasswordPage() {
         }
 
         // 3. Magic-link / OTP flow: token_hash in hash or query
-        const tokenHash = hashParams.get('token_hash') || queryParams.get('token_hash');
-        if (tokenHash && (flowType === 'invite' || flowType === 'recovery')) {
+        const tokenHash =
+          hashParams.get("token_hash") || queryParams.get("token_hash");
+        if (tokenHash && (flowType === "invite" || flowType === "recovery")) {
           const { error: verifyError } = await supabase.auth.verifyOtp({
             type: flowType,
             token_hash: tokenHash,
@@ -91,12 +109,16 @@ export default function ResetPasswordPage() {
         }
 
         // 4. Fallback: check if a session already exists
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         setIsValid(!!session);
       } catch (err) {
-        console.error('Failed to validate reset-password session:', err);
+        console.error("Failed to validate reset-password session:", err);
         setIsValid(false);
-        setError('Failed to verify this link. Please request password reset again.');
+        setError(
+          "Failed to verify this link. Please request password reset again.",
+        );
       } finally {
         setIsValidating(false);
       }
@@ -107,15 +129,15 @@ export default function ResetPasswordPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     if (newPassword.length < 6) {
-      setError('Password must be at least 6 characters.');
+      setError("Password must be at least 6 characters.");
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError('Passwords do not match.');
+      setError("Passwords do not match.");
       return;
     }
 
@@ -127,26 +149,28 @@ export default function ResetPasswordPage() {
       });
 
       if (updateError) {
-        setError('Failed to change password: ' + updateError.message);
+        setError("Failed to change password: " + updateError.message);
       } else {
         // Activate user account after successful password setup (for invited users)
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (user) {
           await (supabase as any)
-            .from('users')
+            .from("users")
             .update({ active: true })
-            .eq('auth_user_id', user.id);
+            .eq("auth_user_id", user.id);
         }
 
         // Sign out after password change
         await supabase.auth.signOut();
         setSuccess(true);
         setTimeout(() => {
-          router.push('/auth/login');
+          router.push("/auth/login");
         }, 3000);
       }
     } catch (err) {
-      setError('An error occurred while changing password.');
+      setError("An error occurred while changing password.");
     } finally {
       setIsLoading(false);
     }
@@ -185,10 +209,11 @@ export default function ResetPasswordPage() {
             INVALID LINK
           </h2>
           <p className="text-gray-400 font-mono text-xs tracking-wider mb-6">
-            {error || 'This link is invalid or expired. Please request password reset again.'}
+            {error ||
+              "This link is invalid or expired. Please request password reset again."}
           </p>
           <button
-            onClick={() => router.push('/auth/login')}
+            onClick={() => router.push("/auth/login")}
             className="bg-white text-black px-6 py-3 font-mono text-xs tracking-wider uppercase hover:bg-gray-200 transition-colors"
           >
             GO TO LOGIN
@@ -208,9 +233,11 @@ export default function ResetPasswordPage() {
               <div className="w-2 h-2 bg-white"></div>
               <div className="w-2 h-2 bg-white"></div>
             </div>
-            <h1 className="font-mono text-xl sm:text-2xl lg:text-3xl tracking-wider text-white uppercase mb-2">{BRAND_NAME}</h1>
+            <h1 className="font-mono text-xl sm:text-2xl lg:text-3xl tracking-wider text-white uppercase mb-2">
+              {BRAND_NAME}
+            </h1>
             <p className="text-xs sm:text-sm text-gray-400 tracking-widest font-mono uppercase">
-              {isInvite ? 'SET YOUR PASSWORD' : 'SET NEW PASSWORD'}
+              {isInvite ? "SET YOUR PASSWORD" : "SET NEW PASSWORD"}
             </p>
           </div>
 
@@ -245,9 +272,7 @@ export default function ResetPasswordPage() {
               />
             </div>
 
-            {error && (
-              <Alert type="error" message={error} />
-            )}
+            {error && <Alert type="error" message={error} />}
 
             <button
               type="submit"
@@ -260,7 +285,7 @@ export default function ResetPasswordPage() {
                   <span>CHANGING...</span>
                 </div>
               ) : (
-                'CHANGE PASSWORD'
+                "CHANGE PASSWORD"
               )}
             </button>
           </form>
