@@ -1,31 +1,25 @@
-import { createClient } from '../supabase/client';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from "../supabase/client";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 const supabase = createClient() as SupabaseClient<any, "public", any>;
-
-const getAuthHeaders = async (): Promise<{ Authorization: string } | null> => {
-  const { data, error } = await supabase.auth.getSession();
-  if (error || !data.session?.access_token) return null;
-  return { Authorization: `Bearer ${data.session.access_token}` };
-};
 
 const normalizeEdgeFunctionErrorMessage = (
   error: any,
   data: any,
-  fallbackMessage: string
+  fallbackMessage: string,
 ): string => {
-  const dataError = typeof data?.error === 'string' ? data.error : null;
-  const dataMessage = typeof data?.message === 'string' ? data.message : null;
-  const rawMessage = dataError || dataMessage || error?.message || '';
+  const dataError = typeof data?.error === "string" ? data.error : null;
+  const dataMessage = typeof data?.message === "string" ? data.message : null;
+  const rawMessage = dataError || dataMessage || error?.message || "";
 
   if (!rawMessage) return fallbackMessage;
 
   const lower = rawMessage.toLowerCase();
   const isTechnicalEdgeError =
-    lower.includes('edge function returned a non-2xx') ||
-    lower.includes('non-2xx') ||
-    lower.includes('functionshttperror') ||
-    lower.includes('failed to fetch');
+    lower.includes("edge function returned a non-2xx") ||
+    lower.includes("non-2xx") ||
+    lower.includes("functionshttperror") ||
+    lower.includes("failed to fetch");
 
   if (isTechnicalEdgeError) {
     return fallbackMessage;
@@ -41,7 +35,7 @@ const normalizeEdgeFunctionErrorMessage = (
 export interface Venue {
   id: string;
   name: string;
-  type: 'club' | 'bar' | 'lounge' | 'festival' | 'private';
+  type: "club" | "bar" | "lounge" | "festival" | "private";
   address?: string | null;
   description?: string | null;
   active: boolean;
@@ -50,10 +44,10 @@ export interface Venue {
 export interface User {
   id: string;
   authUserId: string | null;
-  venueId: string | null;  // null for super_admin (platform-wide)
+  venueId: string | null; // null for super_admin (platform-wide)
   email: string;
   name: string;
-  role: 'super_admin' | 'venue_admin' | 'door_staff' | 'staff' | 'dj';
+  role: "super_admin" | "venue_admin" | "door_staff" | "staff" | "dj";
   guestLimit: number;
   active: boolean;
 }
@@ -65,7 +59,7 @@ export interface Guest {
   djId?: string | null;
   externalLinkId?: string | null;
   createdByUserId?: string | null;
-  status: 'pending' | 'checked' | 'deleted';
+  status: "pending" | "checked" | "deleted";
   checkInTime?: string | null;
   date: string;
   createdAt?: string;
@@ -164,14 +158,16 @@ const transformExternalLink = (row: any): ExternalDJLink => ({
 // Venue APIs
 // ============================================================
 
-export async function fetchVenues(includeInactive = false): Promise<{ data: Venue[] | null; error: any }> {
+export async function fetchVenues(
+  includeInactive = false,
+): Promise<{ data: Venue[] | null; error: any }> {
   let query = supabase
-    .from('venues')
-    .select('*')
-    .order('name', { ascending: true });
+    .from("venues")
+    .select("*")
+    .order("name", { ascending: true });
 
   if (!includeInactive) {
-    query = query.eq('active', true);
+    query = query.eq("active", true);
   }
 
   const { data, error } = await query;
@@ -181,12 +177,12 @@ export async function fetchVenues(includeInactive = false): Promise<{ data: Venu
 
 export async function createVenue(venue: {
   name: string;
-  type: Venue['type'];
+  type: Venue["type"];
   address?: string;
   description?: string;
 }): Promise<{ data: Venue | null; error: any }> {
   const { data, error } = await supabase
-    .from('venues')
+    .from("venues")
     .insert({
       name: venue.name,
       type: venue.type,
@@ -202,19 +198,22 @@ export async function createVenue(venue: {
 
 export async function updateVenue(
   id: string,
-  updates: Partial<Pick<Venue, 'name' | 'type' | 'address' | 'description' | 'active'>>
+  updates: Partial<
+    Pick<Venue, "name" | "type" | "address" | "description" | "active">
+  >,
 ): Promise<{ data: Venue | null; error: any }> {
   const dbUpdates: any = {};
   if (updates.name !== undefined) dbUpdates.name = updates.name;
   if (updates.type !== undefined) dbUpdates.type = updates.type;
   if (updates.address !== undefined) dbUpdates.address = updates.address;
-  if (updates.description !== undefined) dbUpdates.description = updates.description;
+  if (updates.description !== undefined)
+    dbUpdates.description = updates.description;
   if (updates.active !== undefined) dbUpdates.active = updates.active;
 
   const { data, error } = await supabase
-    .from('venues')
+    .from("venues")
     .update(dbUpdates)
-    .eq('id', id)
+    .eq("id", id)
     .select()
     .single();
 
@@ -230,16 +229,16 @@ export async function updateVenue(
  * Fetch users. If venueId is provided, filter by venue.
  * If venueId is omitted (super_admin view), fetch all users.
  */
-export async function fetchUsersByVenue(venueId?: string | null): Promise<{ data: User[] | null; error: any }> {
-  let query = supabase
-    .from('users')
-    .select('*');
+export async function fetchUsersByVenue(
+  venueId?: string | null,
+): Promise<{ data: User[] | null; error: any }> {
+  let query = supabase.from("users").select("*");
 
   if (venueId) {
-    query = query.eq('venue_id', venueId);
+    query = query.eq("venue_id", venueId);
   }
 
-  const { data, error } = await query.order('name', { ascending: true });
+  const { data, error } = await query.order("name", { ascending: true });
 
   if (error) return { data: null, error };
   return { data: data.map(transformUser), error: null };
@@ -247,18 +246,24 @@ export async function fetchUsersByVenue(venueId?: string | null): Promise<{ data
 
 export async function updateUserProfile(
   userId: string,
-  updates: { name?: string; guestLimit?: number; active?: boolean; role?: string }
+  updates: {
+    name?: string;
+    guestLimit?: number;
+    active?: boolean;
+    role?: string;
+  },
 ): Promise<{ data: User | null; error: any }> {
   const updateData: any = {};
   if (updates.name !== undefined) updateData.name = updates.name;
-  if (updates.guestLimit !== undefined) updateData.guest_limit = updates.guestLimit;
+  if (updates.guestLimit !== undefined)
+    updateData.guest_limit = updates.guestLimit;
   if (updates.active !== undefined) updateData.active = updates.active;
   if (updates.role !== undefined) updateData.role = updates.role;
 
   const { data, error } = await supabase
-    .from('users')
+    .from("users")
     .update(updateData)
-    .eq('id', userId)
+    .eq("id", userId)
     .select()
     .single();
 
@@ -273,32 +278,37 @@ export async function updateUserProfile(
 export async function createUserViaEdge(params: {
   email: string;
   name: string;
-  role: 'super_admin' | 'venue_admin' | 'door_staff' | 'staff' | 'dj';
-  venueId?: string | null;  // optional for super_admin role
+  role: "super_admin" | "venue_admin" | "door_staff" | "staff" | "dj";
+  venueId?: string | null; // optional for super_admin role
   guestLimit?: number;
-  password?: string;  // if provided, creates with temp password instead of email invite
+  password?: string; // if provided, creates with temp password instead of email invite
 }): Promise<{ data: any; error: any }> {
-  const authHeaders = await getAuthHeaders();
-  if (!authHeaders) {
-    return { data: null, error: { message: 'Login is required.' } };
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session) {
+    return { data: null, error: { message: "Login is required." } };
   }
-  const { data, error } = await supabase.functions.invoke('create-user', {
+  const { data, error } = await supabase.functions.invoke("create-user", {
     body: params,
-    headers: authHeaders,
   });
 
   if (error) {
     const fallbackMessage = params.password
-      ? 'Failed to create account. Please try again.'
-      : 'Failed to send invitation email. Please try again.';
-    const errorMessage = normalizeEdgeFunctionErrorMessage(error, data, fallbackMessage);
+      ? "Failed to create account. Please try again."
+      : "Failed to send invitation email. Please try again.";
+    const errorMessage = normalizeEdgeFunctionErrorMessage(
+      error,
+      data,
+      fallbackMessage,
+    );
     return { data: null, error: { message: errorMessage } };
   }
 
   if (data?.error) {
     const fallbackMessage = params.password
-      ? 'Failed to create account. Please try again.'
-      : 'Failed to send invitation email. Please try again.';
+      ? "Failed to create account. Please try again."
+      : "Failed to send invitation email. Please try again.";
     return {
       data: null,
       error: {
@@ -313,14 +323,17 @@ export async function createUserViaEdge(params: {
 /**
  * Delete/deactivate a user via Edge Function
  */
-export async function deleteUserViaEdge(userId: string): Promise<{ error: any }> {
-  const authHeaders = await getAuthHeaders();
-  if (!authHeaders) {
-    return { error: { message: 'Login is required.' } };
+export async function deleteUserViaEdge(
+  userId: string,
+): Promise<{ error: any }> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session) {
+    return { error: { message: "Login is required." } };
   }
-  const { data, error } = await supabase.functions.invoke('create-user', {
-    body: { action: 'delete', userId },
-    headers: authHeaders,
+  const { data, error } = await supabase.functions.invoke("create-user", {
+    body: { action: "delete", userId },
   });
 
   if (error || data?.error) {
@@ -329,7 +342,7 @@ export async function deleteUserViaEdge(userId: string): Promise<{ error: any }>
         message: normalizeEdgeFunctionErrorMessage(
           error,
           data,
-          'Failed to delete user. Please try again.'
+          "Failed to delete user. Please try again.",
         ),
       },
     };
@@ -342,13 +355,15 @@ export async function deleteUserViaEdge(userId: string): Promise<{ error: any }>
 // DJ APIs
 // ============================================================
 
-export async function fetchDJsByVenue(venueId: string): Promise<{ data: DJ[] | null; error: any }> {
+export async function fetchDJsByVenue(
+  venueId: string,
+): Promise<{ data: DJ[] | null; error: any }> {
   const { data, error } = await supabase
-    .from('djs')
-    .select('*')
-    .eq('venue_id', venueId)
-    .eq('active', true)
-    .order('name', { ascending: true });
+    .from("djs")
+    .select("*")
+    .eq("venue_id", venueId)
+    .eq("active", true)
+    .order("name", { ascending: true });
 
   if (error) return { data: null, error };
   return { data: data.map(transformDJ), error: null };
@@ -361,7 +376,7 @@ export async function createDJ(dj: {
   userId?: string;
 }): Promise<{ data: DJ | null; error: any }> {
   const { data, error } = await supabase
-    .from('djs')
+    .from("djs")
     .insert({
       venue_id: dj.venueId,
       name: dj.name,
@@ -379,50 +394,58 @@ export async function createDJ(dj: {
 // Guest APIs
 // ============================================================
 
-export async function fetchGuestsByDate(date: string, venueId?: string): Promise<{ data: Guest[] | null; error: any }> {
+export async function fetchGuestsByDate(
+  date: string,
+  venueId?: string,
+): Promise<{ data: Guest[] | null; error: any }> {
   let query = supabase
-    .from('guests')
-    .select('*')
-    .eq('date', date)
-    .neq('status', 'deleted');
+    .from("guests")
+    .select("*")
+    .eq("date", date)
+    .neq("status", "deleted");
 
   if (venueId) {
-    query = query.eq('venue_id', venueId);
+    query = query.eq("venue_id", venueId);
   }
 
-  const { data, error } = await query.order('created_at', { ascending: false });
+  const { data, error } = await query.order("created_at", { ascending: false });
 
   if (error) return { data: null, error };
   return { data: data.map(transformGuest), error: null };
 }
 
-export async function fetchAllGuests(venueId?: string): Promise<{ data: Guest[] | null; error: any }> {
-  let query = supabase.from('guests').select('*');
+export async function fetchAllGuests(
+  venueId?: string,
+): Promise<{ data: Guest[] | null; error: any }> {
+  let query = supabase.from("guests").select("*");
 
   if (venueId) {
-    query = query.eq('venue_id', venueId);
+    query = query.eq("venue_id", venueId);
   }
 
   const { data, error } = await query
-    .order('date', { ascending: false })
-    .order('created_at', { ascending: false });
+    .order("date", { ascending: false })
+    .order("created_at", { ascending: false });
 
   if (error) return { data: null, error };
   return { data: data.map(transformGuest), error: null };
 }
 
-export async function fetchGuestsByDJ(djId: string, date?: string): Promise<{ data: Guest[] | null; error: any }> {
+export async function fetchGuestsByDJ(
+  djId: string,
+  date?: string,
+): Promise<{ data: Guest[] | null; error: any }> {
   let query = supabase
-    .from('guests')
-    .select('*')
-    .eq('dj_id', djId)
-    .neq('status', 'deleted');
+    .from("guests")
+    .select("*")
+    .eq("dj_id", djId)
+    .neq("status", "deleted");
 
   if (date) {
-    query = query.eq('date', date);
+    query = query.eq("date", date);
   }
 
-  const { data, error } = await query.order('created_at', { ascending: false });
+  const { data, error } = await query.order("created_at", { ascending: false });
 
   if (error) return { data: null, error };
   return { data: data.map(transformGuest), error: null };
@@ -435,10 +458,10 @@ export async function createGuest(guest: {
   externalLinkId?: string | null;
   createdByUserId?: string | null;
   date: string;
-  status?: 'pending' | 'checked' | 'deleted';
+  status?: "pending" | "checked" | "deleted";
 }): Promise<{ data: Guest | null; error: any }> {
   const { data, error } = await supabase
-    .from('guests')
+    .from("guests")
     .insert({
       venue_id: guest.venueId,
       name: guest.name,
@@ -446,7 +469,7 @@ export async function createGuest(guest: {
       external_link_id: guest.externalLinkId || null,
       created_by_user_id: guest.createdByUserId || null,
       date: guest.date,
-      status: guest.status || 'pending',
+      status: guest.status || "pending",
     })
     .select()
     .single();
@@ -457,20 +480,20 @@ export async function createGuest(guest: {
 
 export async function updateGuestStatus(
   guestId: string,
-  status: 'pending' | 'checked' | 'deleted'
+  status: "pending" | "checked" | "deleted",
 ): Promise<{ data: Guest | null; error: any }> {
   const updateData: any = { status };
 
-  if (status === 'checked') {
+  if (status === "checked") {
     updateData.check_in_time = new Date().toISOString();
-  } else if (status === 'pending') {
+  } else if (status === "pending") {
     updateData.check_in_time = null;
   }
 
   const { data, error } = await supabase
-    .from('guests')
+    .from("guests")
     .update(updateData)
-    .eq('id', guestId)
+    .eq("id", guestId)
     .select()
     .single();
 
@@ -478,45 +501,51 @@ export async function updateGuestStatus(
   return { data: transformGuest(data), error: null };
 }
 
-export async function deleteGuest(guestId: string): Promise<{ data: Guest | null; error: any }> {
+export async function deleteGuest(
+  guestId: string,
+): Promise<{ data: Guest | null; error: any }> {
   // First, fetch the guest to check if it belongs to an external link
   const { data: guestRow } = await supabase
-    .from('guests')
-    .select('external_link_id')
-    .eq('id', guestId)
+    .from("guests")
+    .select("external_link_id")
+    .eq("id", guestId)
     .single();
 
-  const result = await updateGuestStatus(guestId, 'deleted');
+  const result = await updateGuestStatus(guestId, "deleted");
 
   // If the guest was from an external link, decrement used_guests
   if (!result.error && guestRow?.external_link_id) {
     const { data: linkRow } = await supabase
-      .from('external_dj_links')
-      .select('used_guests')
-      .eq('id', guestRow.external_link_id)
+      .from("external_dj_links")
+      .select("used_guests")
+      .eq("id", guestRow.external_link_id)
       .single();
     if (linkRow) {
       await supabase
-        .from('external_dj_links')
+        .from("external_dj_links")
         .update({ used_guests: Math.max(0, (linkRow.used_guests || 0) - 1) })
-        .eq('id', guestRow.external_link_id);
+        .eq("id", guestRow.external_link_id);
     }
   }
 
   return result;
 }
 
-export async function permanentlyDeleteGuest(guestId: string): Promise<{ error: any }> {
-  const { error } = await supabase
-    .from('guests')
-    .delete()
-    .eq('id', guestId);
+export async function permanentlyDeleteGuest(
+  guestId: string,
+): Promise<{ error: any }> {
+  const { error } = await supabase.from("guests").delete().eq("id", guestId);
   return { error };
 }
 
 export async function updateGuest(
   guestId: string,
-  updates: { name?: string; djId?: string | null; date?: string; venueId?: string }
+  updates: {
+    name?: string;
+    djId?: string | null;
+    date?: string;
+    venueId?: string;
+  },
 ): Promise<{ data: Guest | null; error: any }> {
   const updateData: any = {};
   if (updates.name !== undefined) updateData.name = updates.name;
@@ -525,9 +554,9 @@ export async function updateGuest(
   if (updates.venueId !== undefined) updateData.venue_id = updates.venueId;
 
   const { data, error } = await supabase
-    .from('guests')
+    .from("guests")
     .update(updateData)
-    .eq('id', guestId)
+    .eq("id", guestId)
     .select()
     .single();
 
@@ -539,24 +568,29 @@ export async function updateGuest(
 // External DJ Link APIs
 // ============================================================
 
-export async function fetchExternalLinks(venueId: string): Promise<{ data: ExternalDJLink[] | null; error: any }> {
+export async function fetchExternalLinks(
+  venueId: string,
+): Promise<{ data: ExternalDJLink[] | null; error: any }> {
   const { data, error } = await supabase
-    .from('external_dj_links')
-    .select('*')
-    .eq('venue_id', venueId)
-    .order('date', { ascending: false });
+    .from("external_dj_links")
+    .select("*")
+    .eq("venue_id", venueId)
+    .order("date", { ascending: false });
 
   if (error) return { data: null, error };
   return { data: data.map(transformExternalLink), error: null };
 }
 
-export async function fetchExternalLinksByDate(venueId: string, date: string): Promise<{ data: ExternalDJLink[] | null; error: any }> {
+export async function fetchExternalLinksByDate(
+  venueId: string,
+  date: string,
+): Promise<{ data: ExternalDJLink[] | null; error: any }> {
   const { data, error } = await supabase
-    .from('external_dj_links')
-    .select('*')
-    .eq('venue_id', venueId)
-    .eq('date', date)
-    .order('created_at', { ascending: false });
+    .from("external_dj_links")
+    .select("*")
+    .eq("venue_id", venueId)
+    .eq("date", date)
+    .order("created_at", { ascending: false });
 
   if (error) return { data: null, error };
   return { data: data.map(transformExternalLink), error: null };
@@ -571,7 +605,7 @@ export async function createExternalLink(link: {
   createdBy?: string;
 }): Promise<{ data: ExternalDJLink | null; error: any }> {
   const { data, error } = await supabase
-    .from('external_dj_links')
+    .from("external_dj_links")
     .insert({
       venue_id: link.venueId,
       dj_name: link.djName,
@@ -587,27 +621,33 @@ export async function createExternalLink(link: {
   return { data: transformExternalLink(data), error: null };
 }
 
-export async function deleteExternalLink(linkId: string): Promise<{ error: any }> {
+export async function deleteExternalLink(
+  linkId: string,
+): Promise<{ error: any }> {
   const { error } = await supabase
-    .from('external_dj_links')
+    .from("external_dj_links")
     .delete()
-    .eq('id', linkId);
+    .eq("id", linkId);
   return { error };
 }
 
-export async function deactivateExternalLink(linkId: string): Promise<{ error: any }> {
+export async function deactivateExternalLink(
+  linkId: string,
+): Promise<{ error: any }> {
   const { error } = await supabase
-    .from('external_dj_links')
+    .from("external_dj_links")
     .update({ active: false })
-    .eq('id', linkId);
+    .eq("id", linkId);
   return { error };
 }
 
-export async function activateExternalLink(linkId: string): Promise<{ error: any }> {
+export async function activateExternalLink(
+  linkId: string,
+): Promise<{ error: any }> {
   const { error } = await supabase
-    .from('external_dj_links')
+    .from("external_dj_links")
     .update({ active: true })
-    .eq('id', linkId);
+    .eq("id", linkId);
   return { error };
 }
 
@@ -619,8 +659,8 @@ export async function validateExternalToken(token: string): Promise<{
   data: { link: ExternalDJLink; venue: Venue; guests: Guest[] } | null;
   error: any;
 }> {
-  const { data, error } = await supabase.functions.invoke('external-dj-links', {
-    body: { action: 'validate', token },
+  const { data, error } = await supabase.functions.invoke("external-dj-links", {
+    body: { action: "validate", token },
   });
 
   if (error || data?.error) {
@@ -630,7 +670,7 @@ export async function validateExternalToken(token: string): Promise<{
         message: normalizeEdgeFunctionErrorMessage(
           error,
           data,
-          'Unable to verify this link. Please try again later.'
+          "Unable to verify this link. Please try again later.",
         ),
       },
     };
@@ -655,8 +695,8 @@ export async function createGuestViaExternalLink(params: {
   guestName: string;
   date: string;
 }): Promise<{ data: Guest | null; error: any }> {
-  const { data, error } = await supabase.functions.invoke('external-dj-links', {
-    body: { action: 'create-guest', ...params },
+  const { data, error } = await supabase.functions.invoke("external-dj-links", {
+    body: { action: "create-guest", ...params },
   });
 
   if (error || data?.error) {
@@ -666,7 +706,7 @@ export async function createGuestViaExternalLink(params: {
         message: normalizeEdgeFunctionErrorMessage(
           error,
           data,
-          'Failed to register guest. Please try again.'
+          "Failed to register guest. Please try again.",
         ),
       },
     };
@@ -682,8 +722,8 @@ export async function deleteGuestViaExternalLink(params: {
   token: string;
   guestId: string;
 }): Promise<{ error: any }> {
-  const { data, error } = await supabase.functions.invoke('external-dj-links', {
-    body: { action: 'delete-guest', ...params },
+  const { data, error } = await supabase.functions.invoke("external-dj-links", {
+    body: { action: "delete-guest", ...params },
   });
 
   if (error || data?.error) {
@@ -692,7 +732,7 @@ export async function deleteGuestViaExternalLink(params: {
         message: normalizeEdgeFunctionErrorMessage(
           error,
           data,
-          'Failed to delete guest. Please try again.'
+          "Failed to delete guest. Please try again.",
         ),
       },
     };
