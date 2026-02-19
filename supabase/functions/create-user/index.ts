@@ -277,7 +277,7 @@ serve(async (req) => {
       createError = result.error
       successMessage = `계정이 생성되었습니다. 임시 비밀번호: ${password}`
     } else {
-      // ---- MODE B: Invite by email (user sets own password) ----
+      // ---- MODE B: Invite by email (classic flow) ----
       const result = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
         data: userData,
         redirectTo: `${req.headers.get('origin') || Deno.env.get('SITE_URL') || ''}/auth/reset-password`,

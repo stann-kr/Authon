@@ -122,8 +122,8 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="flex-1 px-4 sm:px-6 lg:px-8 pb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+        <div className="flex-1 px-4 sm:px-6 lg:px-8 pb-6 flex flex-col">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 flex-1 content-start">
             {accessibleMenus.map((item, index) => (
               <Link key={item.id} href={item.href} className="block">
                 <div className={`bg-gradient-to-br ${item.bgColor} border border-gray-700 p-5 sm:p-6 hover:border-white transition-all duration-300 group h-full flex flex-col justify-between min-h-[180px] lg:min-h-[200px]`}>
@@ -176,9 +176,10 @@ export default function Home() {
             ))}
           </div>
 
-          <Footer />
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 }

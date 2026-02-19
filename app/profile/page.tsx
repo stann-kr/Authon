@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Footer from '@/components/Footer';
+import PageLayout from '@/components/PageLayout';
 import { getUser, User } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/client';
 import { updateUserProfile } from '@/lib/api/guests';
@@ -135,26 +135,26 @@ export default function ProfilePage() {
 
   if (!user) return null;
 
-  return (
-    <div className="h-screen overflow-hidden flex flex-col bg-black">
-      <div className="fixed top-0 left-0 right-0 z-50 bg-black border-b border-gray-800">
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10">
-          <div className="flex items-center justify-between h-16 sm:h-20">
-            <div className="flex items-center gap-4">
-              <Link href="/" className="w-8 h-8 sm:w-10 sm:h-10 border border-gray-600 bg-black hover:bg-gray-900 transition-colors flex items-center justify-center">
-                <i className="ri-arrow-left-line text-gray-400 text-sm sm:text-base"></i>
-              </Link>
-              <div>
-                <h1 className="font-mono text-base sm:text-lg tracking-wider text-white uppercase">PROFILE</h1>
-                <p className="text-xs text-gray-500 font-mono tracking-wider uppercase hidden sm:block">EDIT YOUR INFORMATION</p>
-              </div>
+  const profileHeader = (
+    <div className="fixed top-0 left-0 right-0 z-50 bg-black border-b border-gray-800">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10">
+        <div className="flex items-center justify-between h-16 sm:h-20">
+          <div className="flex items-center gap-4">
+            <Link href="/" className="w-8 h-8 sm:w-10 sm:h-10 border border-gray-600 bg-black hover:bg-gray-900 transition-colors flex items-center justify-center">
+              <i className="ri-arrow-left-line text-gray-400 text-sm sm:text-base"></i>
+            </Link>
+            <div>
+              <h1 className="font-mono text-base sm:text-lg tracking-wider text-white uppercase">PROFILE</h1>
+              <p className="text-xs text-gray-500 font-mono tracking-wider uppercase hidden sm:block">EDIT YOUR INFORMATION</p>
             </div>
           </div>
         </div>
       </div>
+    </div>
+  );
 
-      <div className="flex-1 min-h-0 overflow-y-auto pt-20 sm:pt-24 pb-6">
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10">
+  return (
+    <PageLayout header={profileHeader}>
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             <div className="lg:col-span-1 space-y-4">
               <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
@@ -312,10 +312,6 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
-        </div>
-
-        <Footer />
-      </div>
-    </div>
+    </PageLayout>
   );
 }

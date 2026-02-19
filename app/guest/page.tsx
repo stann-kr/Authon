@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import AdminHeader from '../admin/components/AdminHeader';
 import AuthGuard from '../../components/AuthGuard';
 import Footer from '@/components/Footer';
+import PageLayout from '@/components/PageLayout';
 import { BRAND_NAME } from '@/lib/brand';
 import { getBusinessDate, formatDateDisplay } from '@/lib/date';
 import {
@@ -166,7 +167,7 @@ function ExternalDJGuestPage({ token }: { token: string }) {
           </div>
           <h1 className="font-mono text-xl tracking-wider text-white uppercase mb-2">INVALID LINK</h1>
           <p className="text-gray-400 font-mono text-xs tracking-wider mb-6">{validationError}</p>
-          <Footer />
+          <Footer compact />
         </div>
       </div>
     );
@@ -178,23 +179,25 @@ function ExternalDJGuestPage({ token }: { token: string }) {
     ? sortGuestsByName(guests)
     : sortGuestsByCreatedAt(guests);
 
-  return (
-    <div className="h-screen overflow-hidden flex flex-col bg-black">
-      {/* Minimal header for external DJs */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-black border-b border-gray-800">
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-white"></div>
-            <span className="font-mono text-sm tracking-wider text-white uppercase">{BRAND_NAME}</span>
-          </div>
-          <span className="font-mono text-xs tracking-wider text-gray-400 uppercase">
-            GUEST ACCESS
-          </span>
+  const externalHeader = (
+    <div className="fixed top-0 left-0 right-0 z-50 bg-black border-b border-gray-800">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 bg-white"></div>
+          <span className="font-mono text-sm tracking-wider text-white uppercase">{BRAND_NAME}</span>
         </div>
+        <span className="font-mono text-xs tracking-wider text-gray-400 uppercase">
+          GUEST ACCESS
+        </span>
       </div>
+    </div>
+  );
 
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden lg:overflow-hidden pt-16 sm:pt-20 pb-6 flex flex-col">
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10 w-full lg:flex-1 lg:min-h-0 flex flex-col">
+  return (
+    <PageLayout
+      header={externalHeader}
+      scrollClassName="flex-1 min-h-0 overflow-y-auto overflow-x-hidden lg:overflow-hidden pt-16 sm:pt-20 pb-6 flex flex-col"
+    >
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6 lg:flex-1 lg:min-h-0">
             <div className="lg:col-span-1 space-y-4 lg:overflow-y-auto">
               <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
@@ -251,7 +254,7 @@ function ExternalDJGuestPage({ token }: { token: string }) {
                 </div>
               )}
 
-              <div className="bg-gray-900 border border-gray-700 flex flex-col lg:min-h-0 lg:max-h-full">
+              <div className="main-content-panel lg:min-h-0 lg:max-h-full">
                 <div className="border-b border-gray-700 p-4 flex items-center justify-between flex-shrink-0">
                   <h3 className="font-mono text-xs sm:text-sm tracking-wider text-white uppercase">
                     GUEST LIST ({guests.length})
@@ -370,11 +373,7 @@ function ExternalDJGuestPage({ token }: { token: string }) {
               </div>
             </div>
           </div>
-        </div>
-
-        <Footer />
-      </div>
-    </div>
+    </PageLayout>
   );
 }
 
@@ -526,11 +525,7 @@ function AuthenticatedGuestPage() {
     : sortGuestsByCreatedAt(filteredGuests);
 
   return (
-    <div className="h-screen overflow-hidden flex flex-col bg-black">
-      <AdminHeader />
-
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden lg:overflow-hidden pt-20 sm:pt-24 pb-6 flex flex-col">
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10 w-full lg:flex-1 lg:min-h-0 flex flex-col">
+    <PageLayout header={<AdminHeader />}>
           <div className="mb-4 lg:mb-6 flex-shrink-0 flex flex-col sm:flex-row gap-4">
             {isSuperAdmin && (
               <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5 flex-1">
@@ -630,7 +625,7 @@ function AuthenticatedGuestPage() {
             </div>
 
             <div className="lg:col-span-3 flex flex-col lg:min-h-0">
-              <div className="bg-gray-900 border border-gray-700 flex flex-col lg:min-h-0 lg:max-h-full">
+              <div className="main-content-panel lg:min-h-0 lg:max-h-full">
                 <div className="border-b border-gray-700 p-4 flex items-center justify-between flex-shrink-0">
                   <h3 className="font-mono text-xs sm:text-sm tracking-wider text-white uppercase">
                     GUEST LIST ({filteredGuests.length})
@@ -758,10 +753,7 @@ function AuthenticatedGuestPage() {
               </div>
             </div>
           </div>
-        </div>
 
-        <Footer />
-      </div>
-    </div>
+    </PageLayout>
   );
 }

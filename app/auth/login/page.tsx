@@ -203,7 +203,7 @@ export default function LoginPage() {
           </form>
           )}
 
-          <Footer />
+          <Footer compact />
         </div>
       </div>
     </div>

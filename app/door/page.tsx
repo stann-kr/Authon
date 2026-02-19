@@ -4,8 +4,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import AdminHeader from '../admin/components/AdminHeader';
 import AuthGuard from '../../components/AuthGuard';
+import PageLayout from '../../components/PageLayout';
 import GuestListCard from '../../components/GuestListCard';
-import Footer from '../../components/Footer';
 import { getBusinessDate, formatDateDisplay } from '../../lib/date';
 import { getUser } from '../../lib/auth';
 import {
@@ -185,11 +185,7 @@ function DoorPageContent() {
   const filteredExtLinks = externalLinks.filter(l => activeExtLinkIds.has(l.id));
 
   return (
-    <div className="h-screen overflow-hidden flex flex-col bg-black">
-      <AdminHeader />
-
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden lg:overflow-hidden pt-20 sm:pt-24 pb-6 flex flex-col">
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10 w-full lg:flex-1 lg:min-h-0 flex flex-col">
+    <PageLayout header={<AdminHeader />}>
           <div className="mb-4 lg:mb-6 flex-shrink-0 flex flex-col sm:flex-row gap-4">
             {isSuperAdmin && (
               <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5 flex-1">
@@ -336,7 +332,7 @@ function DoorPageContent() {
             </div>
 
             <div className="lg:col-span-3 flex flex-col lg:min-h-0">
-              <div className="bg-gray-900 border border-gray-700 flex flex-col lg:min-h-0 lg:max-h-full">
+              <div className="main-content-panel lg:min-h-0 lg:max-h-full">
                 <div className="border-b border-gray-700 p-4 flex items-center justify-between flex-shrink-0">
                   <h3 className="font-mono text-xs sm:text-sm tracking-wider text-white uppercase">
                     GUEST LIST ({filteredGuests.length})
@@ -400,10 +396,6 @@ function DoorPageContent() {
               </div>
             </div>
           </div>
-        </div>
-
-        <Footer />
-      </div>
-    </div>
+    </PageLayout>
   );
 }
