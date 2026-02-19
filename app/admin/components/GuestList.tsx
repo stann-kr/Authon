@@ -3,18 +3,20 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import GuestListCard from '../../../components/GuestListCard';
-import { getUser } from '../../../lib/auth';
+import StatGrid from '../../../components/StatGrid';
+import PanelHeader from '../../../components/PanelHeader';
+import Spinner from '../../../components/Spinner';
+import EmptyState from '../../../components/EmptyState';
+import VenueSelector, { useVenueSelector } from '../../../components/VenueSelector';
 import { formatDateDisplay } from '../../../lib/date';
 import {
   fetchGuestsByDate,
   fetchUsersByVenue,
   fetchExternalLinksByDate,
-  fetchVenues,
   updateGuestStatus,
   deleteGuest,
   type Guest,
   type User,
-  type Venue,
   type ExternalDJLink,
 } from '../../../lib/api/guests';
 
@@ -29,27 +31,9 @@ export default function GuestList({ selectedDate }: GuestListProps) {
   const [externalLinks, setExternalLinks] = useState<ExternalDJLink[]>([]);
   const [guests, setGuests] = useState<Guest[]>([]);
   const [isFetching, setIsFetching] = useState(true);
-  const [venues, setVenues] = useState<Venue[]>([]);
-  const [selectedVenueId, setSelectedVenueId] = useState<string>('');
   const [sortMode, setSortMode] = useState<'default' | 'alpha'>('default');
 
-  const user = getUser();
-  const isSuperAdmin = user?.role === 'super_admin';
-  const venueId = isSuperAdmin ? selectedVenueId : user?.venue_id;
-
-  // Load venues for super_admin
-  useEffect(() => {
-    if (isSuperAdmin) {
-      fetchVenues().then(({ data }) => {
-        if (data) {
-          setVenues(data);
-          if (data.length > 0 && !selectedVenueId) {
-            setSelectedVenueId(data[0].id);
-          }
-        }
-      });
-    }
-  }, [isSuperAdmin]);
+  const { venueId, venues, selectedVenueId, setSelectedVenueId, isSuperAdmin } = useVenueSelector();
 
   const loadData = useCallback(async () => {
     if (!venueId) return;
@@ -159,24 +143,11 @@ export default function GuestList({ selectedDate }: GuestListProps) {
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6 lg:flex-1 lg:min-h-0">
       <div className="lg:col-span-1 space-y-4 lg:overflow-y-auto">
         {isSuperAdmin && (
-          <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
-            <div className="mb-2">
-              <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase">SELECT VENUE</h3>
-            </div>
-            <div className="relative">
-              <select
-                value={selectedVenueId}
-                onChange={(e) => setSelectedVenueId(e.target.value)}
-                className="w-full appearance-none bg-black border border-gray-600 px-4 py-3 pr-10 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
-              >
-                <option value="">-- Select Venue --</option>
-                {venues.map((v) => (
-                  <option key={v.id} value={v.id}>{v.name}</option>
-                ))}
-              </select>
-              <i className="ri-arrow-down-s-line absolute right-3 top-1/2 -translate-y-1/2 text-base text-gray-400 pointer-events-none"></i>
-            </div>
-          </div>
+          <VenueSelector
+            venues={venues}
+            selectedVenueId={selectedVenueId}
+            onVenueChange={setSelectedVenueId}
+          />
         )}
         <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
           <div className="mb-4">
@@ -232,68 +203,32 @@ export default function GuestList({ selectedDate }: GuestListProps) {
             <div className="text-white font-mono text-3xl sm:text-4xl tracking-wider">
               {isFetching ? '...' : pendingGuests.length + checkedGuests.length}
             </div>
-            <div className="text-gray-400 text-xs font-mono tracking-wider uppercase">
+            <div className="text-cyan-300 text-xs font-mono tracking-wider uppercase">
               TOTAL GUESTS
             </div>
           </div>
           
-          <div className="grid grid-cols-2 gap-px bg-gray-700">
-            <div className="bg-gray-800 p-3 text-center">
-              <div className="text-white font-mono text-lg sm:text-xl tracking-wider">
-                {pendingGuests.length}
-              </div>
-              <div className="text-gray-400 text-xs font-mono tracking-wider uppercase">
-                WAITING
-              </div>
-            </div>
-            <div className="bg-gray-800 p-3 text-center">
-              <div className="text-white font-mono text-lg sm:text-xl tracking-wider">
-                {checkedGuests.length}
-              </div>
-              <div className="text-gray-400 text-xs font-mono tracking-wider uppercase">
-                CHECKED
-              </div>
-            </div>
-          </div>
+          <StatGrid items={[
+            { label: 'WAITING', value: pendingGuests.length, color: 'yellow' },
+            { label: 'CHECKED', value: checkedGuests.length, color: 'green' },
+          ]} />
         </div>
       </div>
 
       <div className="lg:col-span-3 flex flex-col lg:min-h-0">
         <div className="main-content-panel lg:min-h-0 lg:max-h-full">
-                <div className="border-b border-gray-700 p-4 flex items-center justify-between flex-shrink-0">
-            <h3 className="font-mono text-xs sm:text-sm tracking-wider text-white uppercase">
-              GUEST LIST ({filteredGuests.length})
-            </h3>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setSortMode(prev => prev === 'default' ? 'alpha' : 'default')}
-                      className="px-3 py-1 bg-gray-800 text-gray-400 font-mono text-xs tracking-wider uppercase hover:text-white transition-colors border border-gray-700"
-                    >
-                      SORT: {sortMode === 'alpha' ? 'ABC' : 'DEFAULT'}
-                    </button>
-                    <button
-                      onClick={loadData}
-                      className="px-3 py-1 bg-gray-800 text-gray-400 font-mono text-xs tracking-wider uppercase hover:text-white transition-colors border border-gray-700"
-                    >
-                      <i className="ri-refresh-line mr-1"></i>REFRESH
-                    </button>
-                  </div>
-          </div>
+          <PanelHeader
+            title="GUEST LIST"
+            count={filteredGuests.length}
+            sortMode={sortMode}
+            onSortToggle={() => setSortMode(prev => prev === 'default' ? 'alpha' : 'default')}
+            onRefresh={loadData}
+          />
           
           {isFetching ? (
-            <div className="flex items-center justify-center p-8">
-              <div className="w-6 h-6 border border-white border-t-transparent rounded-full animate-spin"></div>
-              <span className="ml-2 text-white font-mono text-sm">LOADING...</span>
-            </div>
+            <Spinner mode="inline" text="LOADING..." />
           ) : filteredGuests.length === 0 ? (
-            <div className="p-8 text-center">
-              <div className="w-16 h-16 border border-gray-600 mx-auto mb-4 flex items-center justify-center">
-                <i className="ri-user-line text-gray-400 text-2xl"></i>
-              </div>
-              <p className="text-gray-400 font-mono text-sm tracking-wider uppercase">
-                NO GUESTS FOR THIS DATE
-              </p>
-            </div>
+            <EmptyState icon="ri-user-line" message="NO GUESTS FOR THIS DATE" />
           ) : (
                   <div className="divide-y divide-gray-700 lg:overflow-y-auto">
                     {displayGuests.map((guest, index) => {

@@ -4,7 +4,10 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import PageLayout from '@/components/PageLayout';
+import Footer from '@/components/Footer';
+import Spinner from '@/components/Spinner';
+import Alert from '@/components/Alert';
+import RoleLabel from '@/components/RoleLabel';
 import { getUser, User } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/client';
 import { updateUserProfile } from '@/lib/api/guests';
@@ -44,17 +47,17 @@ export default function ProfilePage() {
 
     if (formData.newPassword) {
       if (formData.newPassword.length < 6) {
-        setError('새 비밀번호는 최소 6자 이상이어야 합니다.');
+        setError('New password must be at least 6 characters.');
         setIsSaving(false);
         return;
       }
       if (formData.newPassword !== formData.confirmPassword) {
-        setError('새 비밀번호가 일치하지 않습니다.');
+        setError('New passwords do not match.');
         setIsSaving(false);
         return;
       }
       if (!formData.currentPassword) {
-        setError('현재 비밀번호를 입력해주세요.');
+        setError('Please enter your current password.');
         setIsSaving(false);
         return;
       }
@@ -70,7 +73,7 @@ export default function ProfilePage() {
         });
 
         if (signInError) {
-          setError('현재 비밀번호가 올바르지 않습니다.');
+          setError('Current password is incorrect.');
           setIsSaving(false);
           return;
         }
@@ -81,7 +84,7 @@ export default function ProfilePage() {
         });
 
         if (updateError) {
-          setError('비밀번호 변경에 실패했습니다: ' + updateError.message);
+          setError('Failed to change password: ' + updateError.message);
           setIsSaving(false);
           return;
         }
@@ -92,7 +95,7 @@ export default function ProfilePage() {
         const { error: nameError } = await updateUserProfile(user.id, { name: formData.name });
 
         if (nameError) {
-          setError('이름 변경에 실패했습니다: ' + nameError.message);
+          setError('Failed to update name: ' + nameError.message);
           setIsSaving(false);
           return;
         }
@@ -116,28 +119,21 @@ export default function ProfilePage() {
       
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (err) {
-      setError('저장 중 오류가 발생했습니다.');
+      setError('An error occurred while saving.');
     } finally {
       setIsSaving(false);
     }
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white font-mono text-sm tracking-wider uppercase">LOADING...</p>
-        </div>
-      </div>
-    );
+    return <Spinner mode="fullscreen" text="LOADING..." />;
   }
 
   if (!user) return null;
 
   const profileHeader = (
     <div className="fixed top-0 left-0 right-0 z-50 bg-black border-b border-gray-800">
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-10">
         <div className="flex items-center justify-between h-16 sm:h-20">
           <div className="flex items-center gap-4">
             <Link href="/" className="w-8 h-8 sm:w-10 sm:h-10 border border-gray-600 bg-black hover:bg-gray-900 transition-colors flex items-center justify-center">
@@ -154,7 +150,10 @@ export default function ProfilePage() {
   );
 
   return (
-    <PageLayout header={profileHeader}>
+    <div className="min-h-screen bg-black flex flex-col">
+      {profileHeader}
+      <div className="flex-1 overflow-x-hidden pt-20 sm:pt-24 flex flex-col">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 w-full lg:flex-1 lg:min-h-0 flex flex-col">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             <div className="lg:col-span-1 space-y-4">
               <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
@@ -170,7 +169,7 @@ export default function ProfilePage() {
                   </p>
                   <div className="flex items-center gap-2">
                     <span className="px-2 py-1 bg-black border border-gray-600 text-xs font-mono text-gray-300 uppercase">
-                      {user.role}
+                      <RoleLabel role={user.role} />
                     </span>
                     <span className="px-2 py-1 bg-black border border-gray-600 text-xs font-mono text-gray-300">
                       LIMIT: {user.guest_limit}
@@ -184,7 +183,7 @@ export default function ProfilePage() {
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-500 font-mono text-xs uppercase">Role</span>
-                    <span className="text-white font-mono text-xs uppercase">{user.role}</span>
+                    <span className="text-white font-mono text-xs uppercase"><RoleLabel role={user.role} /></span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-500 font-mono text-xs uppercase">Guest Limit</span>
@@ -200,25 +199,11 @@ export default function ProfilePage() {
 
             <div className="lg:col-span-3">
               {showSuccess && (
-                <div className="bg-green-900/30 border border-green-600 p-4 mb-6">
-                  <div className="flex items-center gap-3">
-                    <i className="ri-check-line text-green-500"></i>
-                    <p className="text-green-400 font-mono text-sm tracking-wider uppercase">
-                      프로필이 저장되었습니다.
-                    </p>
-                  </div>
-                </div>
+                <Alert type="success" message="Profile saved successfully." className="mb-6" />
               )}
 
               {error && (
-                <div className="bg-red-900/30 border border-red-600 p-4 mb-6">
-                  <div className="flex items-center gap-3">
-                    <i className="ri-error-warning-line text-red-500"></i>
-                    <p className="text-red-400 font-mono text-sm tracking-wider">
-                      {error}
-                    </p>
-                  </div>
-                </div>
+                <Alert type="error" message={error} className="mb-6" />
               )}
 
               <div className="bg-gray-900 border border-gray-700">
@@ -312,6 +297,9 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
-    </PageLayout>
+        </div>
+        <Footer />
+      </div>
+    </div>
   );
 }

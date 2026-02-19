@@ -30,7 +30,7 @@ serve(async (req) => {
 
     if (existingUser) {
       return new Response(
-        JSON.stringify({ message: '이미 등록된 이메일입니다.' }),
+        JSON.stringify({ message: 'Email is already registered.' }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -46,7 +46,7 @@ serve(async (req) => {
 
     if (existingApplication) {
       return new Response(
-        JSON.stringify({ message: '이미 신청된 이메일입니다.' }),
+        JSON.stringify({ message: 'An application with this email already exists.' }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -75,7 +75,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ 
-        message: '회원가입 신청이 완료되었습니다. 관리자 승인을 기다려주세요.'
+        message: 'Registration request submitted. Please wait for admin approval.'
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -85,7 +85,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Registration error:', error)
     return new Response(
-      JSON.stringify({ message: '회원가입 처리 중 오류가 발생했습니다.' }),
+      JSON.stringify({ message: 'An error occurred while processing registration.' }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

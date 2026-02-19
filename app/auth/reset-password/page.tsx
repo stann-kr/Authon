@@ -4,6 +4,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Footer from '@/components/Footer';
+import Spinner from '@/components/Spinner';
+import Alert from '@/components/Alert';
 import { BRAND_NAME } from '@/lib/brand';
 import { createClient } from '@/lib/supabase/client';
 
@@ -21,47 +23,54 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     const checkSession = async () => {
-      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-      const queryParams = new URLSearchParams(window.location.search);
-      const flowType = hashParams.get('type') || queryParams.get('type');
-      setIsInvite(flowType === 'invite');
+      setError('');
 
-      // Prevent collision with existing local session (e.g., admin already logged in).
-      await supabase.auth.signOut({ scope: 'local' });
+      try {
+        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+        const queryParams = new URLSearchParams(window.location.search);
+        const flowType = hashParams.get('type') || queryParams.get('type');
+        setIsInvite(flowType === 'invite');
 
-      const accessToken = hashParams.get('access_token');
-      const refreshToken = hashParams.get('refresh_token');
+        // Prevent collision with existing local session (e.g., admin already logged in).
+        await supabase.auth.signOut({ scope: 'local' });
 
-      if (accessToken && refreshToken) {
-        const { error: setSessionError } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        });
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
 
-        if (!setSessionError) {
-          setIsValid(true);
-          setIsValidating(false);
-          return;
+        if (accessToken && refreshToken) {
+          const { error: setSessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+
+          if (!setSessionError) {
+            setIsValid(true);
+            return;
+          }
         }
-      }
 
-      const tokenHash = hashParams.get('token_hash') || queryParams.get('token_hash');
-      if (tokenHash && (flowType === 'invite' || flowType === 'recovery')) {
-        const { error: verifyError } = await supabase.auth.verifyOtp({
-          type: flowType,
-          token_hash: tokenHash,
-        });
+        const tokenHash = hashParams.get('token_hash') || queryParams.get('token_hash');
+        if (tokenHash && (flowType === 'invite' || flowType === 'recovery')) {
+          const { error: verifyError } = await supabase.auth.verifyOtp({
+            type: flowType,
+            token_hash: tokenHash,
+          });
 
-        if (!verifyError) {
-          setIsValid(true);
-          setIsValidating(false);
-          return;
+          if (!verifyError) {
+            setIsValid(true);
+            return;
+          }
         }
-      }
 
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsValid(!!session);
-      setIsValidating(false);
+        const { data: { session } } = await supabase.auth.getSession();
+        setIsValid(!!session);
+      } catch (err) {
+        console.error('Failed to validate reset-password session:', err);
+        setIsValid(false);
+        setError('Failed to verify this link. Please request password reset again.');
+      } finally {
+        setIsValidating(false);
+      }
     };
 
     checkSession();
@@ -72,12 +81,12 @@ export default function ResetPasswordPage() {
     setError('');
 
     if (newPassword.length < 6) {
-      setError('비밀번호는 최소 6자 이상이어야 합니다.');
+      setError('Password must be at least 6 characters.');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError('비밀번호가 일치하지 않습니다.');
+      setError('Passwords do not match.');
       return;
     }
 
@@ -89,7 +98,7 @@ export default function ResetPasswordPage() {
       });
 
       if (updateError) {
-        setError('비밀번호 변경에 실패했습니다: ' + updateError.message);
+        setError('Failed to change password: ' + updateError.message);
       } else {
         // Activate user account after successful password setup (for invited users)
         const { data: { user } } = await supabase.auth.getUser();
@@ -108,21 +117,14 @@ export default function ResetPasswordPage() {
         }, 3000);
       }
     } catch (err) {
-      setError('비밀번호 변경 중 오류가 발생했습니다.');
+      setError('An error occurred while changing password.');
     } finally {
       setIsLoading(false);
     }
   };
 
   if (isValidating) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white font-mono text-sm tracking-wider uppercase">VERIFYING...</p>
-        </div>
-      </div>
-    );
+    return <Spinner mode="fullscreen" text="VERIFYING..." />;
   }
 
   if (success) {
@@ -136,7 +138,7 @@ export default function ResetPasswordPage() {
             PASSWORD CHANGED
           </h2>
           <p className="text-gray-400 font-mono text-xs tracking-wider mb-6">
-            비밀번호가 변경되었습니다. 로그인 페이지로 이동합니다...
+            Your password has been changed. Redirecting to login...
           </p>
         </div>
       </div>
@@ -154,7 +156,7 @@ export default function ResetPasswordPage() {
             INVALID LINK
           </h2>
           <p className="text-gray-400 font-mono text-xs tracking-wider mb-6">
-            유효하지 않거나 만료된 링크입니다. 비밀번호 찾기를 다시 시도해주세요.
+            {error || 'This link is invalid or expired. Please request password reset again.'}
           </p>
           <button
             onClick={() => router.push('/auth/login')}
@@ -215,9 +217,7 @@ export default function ResetPasswordPage() {
             </div>
 
             {error && (
-              <div className="bg-red-900/30 border border-red-700 p-3 sm:p-4">
-                <p className="text-red-400 font-mono text-xs sm:text-sm tracking-wider">{error}</p>
-              </div>
+              <Alert type="error" message={error} />
             )}
 
             <button

@@ -61,7 +61,7 @@ export default function InviteUser() {
     setSuccess('');
 
     if (!formData.venue_id) {
-      setError('베뉴를 선택해주세요.');
+      setError('Please select a venue.');
       setIsLoading(false);
       return;
     }
@@ -77,11 +77,11 @@ export default function InviteUser() {
       });
 
       if (createError) {
-        setError(createError.message || '사용자 생성에 실패했습니다.');
+        setError(createError.message || 'Failed to create user.');
       } else {
         const msg = createMode === 'password'
-          ? `${formData.name} (${formData.email}) 계정이 생성되었습니다. 임시 비밀번호: ${formData.password}`
-          : `${formData.name} (${formData.email})에게 초대 이메일이 전송되었습니다.`;
+          ? `Account created for ${formData.name} (${formData.email}). Temporary password: ${formData.password}`
+          : `Invitation email sent to ${formData.name} (${formData.email}).`;
         setSuccess(msg);
         setFormData(prev => ({
           ...prev,
@@ -93,7 +93,7 @@ export default function InviteUser() {
         }));
       }
     } catch (err: any) {
-      setError(err.message || '사용자 생성 중 오류가 발생했습니다.');
+      setError(err.message || 'An error occurred while creating the user.');
     } finally {
       setIsLoading(false);
     }
@@ -237,7 +237,7 @@ export default function InviteUser() {
                 required
               />
               <p className="text-gray-500 font-mono text-xs mt-1 tracking-wider">
-                사용자에게 전달 후 로그인 시 변경 안내
+                Share this with the user and ask them to change it after first login
               </p>
             </div>
           )}
