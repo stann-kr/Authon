@@ -13,38 +13,54 @@ export default function ResetPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isValidating, setIsValidating] = useState(true);
   const [isValid, setIsValid] = useState(false);
+  const [isInvite, setIsInvite] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
   useEffect(() => {
-    // Supabase redirects with hash fragment containing access_token
-    // The Supabase client auto-detects this and establishes the session
     const checkSession = async () => {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      const queryParams = new URLSearchParams(window.location.search);
+      const flowType = hashParams.get('type') || queryParams.get('type');
+      setIsInvite(flowType === 'invite');
 
-      if (session) {
-        setIsValid(true);
-      } else {
-        // Listen for auth state change (Supabase processes the URL hash)
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-          if (event === 'PASSWORD_RECOVERY' && session) {
-            setIsValid(true);
-            setIsValidating(false);
-          }
+      // Prevent collision with existing local session (e.g., admin already logged in).
+      await supabase.auth.signOut({ scope: 'local' });
+
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+
+      if (accessToken && refreshToken) {
+        const { error: setSessionError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
         });
 
-        // Give Supabase a moment to process the hash
-        setTimeout(() => {
+        if (!setSessionError) {
+          setIsValid(true);
           setIsValidating(false);
-        }, 3000);
-
-        return () => {
-          subscription.unsubscribe();
-        };
+          return;
+        }
       }
 
+      const tokenHash = hashParams.get('token_hash') || queryParams.get('token_hash');
+      if (tokenHash && (flowType === 'invite' || flowType === 'recovery')) {
+        const { error: verifyError } = await supabase.auth.verifyOtp({
+          type: flowType,
+          token_hash: tokenHash,
+        });
+
+        if (!verifyError) {
+          setIsValid(true);
+          setIsValidating(false);
+          return;
+        }
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsValid(!!session);
       setIsValidating(false);
     };
 
@@ -162,7 +178,9 @@ export default function ResetPasswordPage() {
               <div className="w-2 h-2 bg-white"></div>
             </div>
             <h1 className="font-mono text-xl sm:text-2xl lg:text-3xl tracking-wider text-white uppercase mb-2">{BRAND_NAME}</h1>
-            <p className="text-xs sm:text-sm text-gray-400 tracking-widest font-mono uppercase">SET NEW PASSWORD</p>
+            <p className="text-xs sm:text-sm text-gray-400 tracking-widest font-mono uppercase">
+              {isInvite ? 'SET YOUR PASSWORD' : 'SET NEW PASSWORD'}
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
@@ -218,7 +236,7 @@ export default function ResetPasswordPage() {
             </button>
           </form>
 
-          <Footer />
+          <Footer compact />
         </div>
       </div>
     </div>

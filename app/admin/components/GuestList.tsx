@@ -259,7 +259,7 @@ export default function GuestList({ selectedDate }: GuestListProps) {
       </div>
 
       <div className="lg:col-span-3 flex flex-col lg:min-h-0">
-        <div className="bg-gray-900 border border-gray-700 flex flex-col lg:min-h-0 lg:max-h-full">
+        <div className="main-content-panel lg:min-h-0 lg:max-h-full">
                 <div className="border-b border-gray-700 p-4 flex items-center justify-between flex-shrink-0">
             <h3 className="font-mono text-xs sm:text-sm tracking-wider text-white uppercase">
               GUEST LIST ({filteredGuests.length})
