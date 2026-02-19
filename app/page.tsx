@@ -1,14 +1,13 @@
+"use client";
 
-'use client';
-
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { getUser, logout, hasAccess, User } from '../lib/auth';
-import Footer from '@/components/Footer';
-import Spinner from '@/components/Spinner';
-import RoleLabel from '@/components/RoleLabel';
-import { BRAND_NAME, BRAND_TAGLINE } from '@/lib/brand';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { getUser, logout, hasAccess, User } from "../lib/auth";
+import Footer from "@/components/Footer";
+import Spinner from "@/components/Spinner";
+import RoleLabel from "@/components/RoleLabel";
+import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/brand";
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null);
@@ -17,9 +16,9 @@ export default function Home() {
 
   useEffect(() => {
     const currentUser = getUser();
-    
+
     if (!currentUser) {
-      router.push('/auth/login');
+      router.push("/auth/login");
       return;
     }
 
@@ -37,39 +36,39 @@ export default function Home() {
 
   const menuItems = [
     {
-      id: 'guest',
-      title: 'GUEST',
-      subtitle: 'ACCESS REGISTRATION',
-      description: 'REGISTER FOR EVENT ACCESS',
-      icon: 'ri-user-line',
-      href: '/guest',
-      bgColor: 'from-blue-900 to-blue-800',
-      requiredAccess: ['guest']
+      id: "guest",
+      title: "GUEST",
+      subtitle: "ACCESS REGISTRATION",
+      description: "REGISTER FOR EVENT ACCESS",
+      icon: "ri-user-line",
+      href: "/guest",
+      bgColor: "from-blue-900 to-blue-800",
+      requiredAccess: ["guest"],
     },
     {
-      id: 'door',
-      title: 'DOOR',
-      subtitle: 'ENTRANCE CONTROL',
-      description: 'CHECK GUEST VERIFICATION', 
-      icon: 'ri-door-open-line',
-      href: '/door',
-      bgColor: 'from-purple-900 to-purple-800',
-      requiredAccess: ['door']
+      id: "door",
+      title: "DOOR",
+      subtitle: "ENTRANCE CONTROL",
+      description: "CHECK GUEST VERIFICATION",
+      icon: "ri-door-open-line",
+      href: "/door",
+      bgColor: "from-purple-900 to-purple-800",
+      requiredAccess: ["door"],
     },
     {
-      id: 'admin',
-      title: 'ADMIN',
-      subtitle: 'SYSTEM MANAGEMENT',
-      description: 'GUEST CONTROL SYSTEM',
-      icon: 'ri-settings-line',
-      href: '/admin',
-      bgColor: 'from-gray-900 to-black',
-      requiredAccess: ['admin']
-    }
+      id: "admin",
+      title: "ADMIN",
+      subtitle: "SYSTEM MANAGEMENT",
+      description: "GUEST CONTROL SYSTEM",
+      icon: "ri-settings-line",
+      href: "/admin",
+      bgColor: "from-gray-900 to-black",
+      requiredAccess: ["admin"],
+    },
   ];
 
-  const accessibleMenus = menuItems.filter(item => 
-    hasAccess(user.role, item.requiredAccess)
+  const accessibleMenus = menuItems.filter((item) =>
+    hasAccess(user.role, item.requiredAccess),
   );
 
   return (
@@ -83,11 +82,15 @@ export default function Home() {
                 <div className="w-2 h-2 bg-white"></div>
                 <div className="w-2 h-2 bg-white"></div>
               </div>
-              <h1 className="font-mono text-xl sm:text-2xl lg:text-3xl tracking-wider text-white uppercase mb-1">{BRAND_NAME}</h1>
-              <p className="text-xs sm:text-sm text-gray-400 tracking-widest font-mono uppercase">{BRAND_TAGLINE}</p>
+              <h1 className="font-mono text-xl sm:text-2xl lg:text-3xl tracking-wider text-white uppercase mb-1">
+                {BRAND_NAME}
+              </h1>
+              <p className="text-xs sm:text-sm text-gray-400 tracking-widest font-mono uppercase">
+                {BRAND_TAGLINE}
+              </p>
             </div>
-            
-            <button 
+
+            <button
               onClick={logout}
               className="w-8 h-8 sm:w-10 sm:h-10 border border-gray-600 bg-black hover:bg-gray-900 transition-colors flex items-center justify-center ml-4"
             >
@@ -95,17 +98,18 @@ export default function Home() {
             </button>
           </div>
 
-          <div className="bg-gray-900 border border-gray-700 p-4 lg:p-6 mb-6">
+          <div className="bg-gray-900 border border-gray-700 p-4 lg:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-mono text-sm sm:text-base lg:text-lg tracking-wider text-white uppercase">
                   {user.name}
                 </p>
                 <p className="text-xs sm:text-sm text-gray-400 font-mono tracking-wider">
-                  ROLE: <RoleLabel role={user.role} /> • LIMIT: {user.guest_limit}
+                  ROLE: <RoleLabel role={user.role} /> • LIMIT:{" "}
+                  {user.guest_limit}
                 </p>
               </div>
-              <Link 
+              <Link
                 href="/profile"
                 className="w-8 h-8 sm:w-10 sm:h-10 border border-gray-600 bg-black hover:bg-gray-900 hover:border-white transition-colors flex items-center justify-center"
               >
@@ -119,11 +123,15 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 flex-1 content-start">
             {accessibleMenus.map((item, index) => (
               <Link key={item.id} href={item.href} className="block">
-                <div className={`bg-gradient-to-br ${item.bgColor} border border-gray-700 p-5 sm:p-6 hover:border-white transition-all duration-300 group h-full flex flex-col justify-between min-h-[180px] lg:min-h-[200px]`}>
+                <div
+                  className={`bg-gradient-to-br ${item.bgColor} border border-gray-700 p-5 sm:p-6 hover:border-white transition-all duration-300 group h-full flex flex-col justify-between min-h-[180px] lg:min-h-[200px]`}
+                >
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 sm:w-12 sm:h-12 border border-gray-600 bg-black/50 flex items-center justify-center group-hover:border-white transition-colors">
-                        <i className={`${item.icon} text-white text-base sm:text-lg`}></i>
+                        <i
+                          className={`${item.icon} text-white text-base sm:text-lg`}
+                        ></i>
                       </div>
                       <div>
                         <h2 className="font-mono text-base sm:text-lg tracking-wider text-white uppercase mb-1">
@@ -134,29 +142,29 @@ export default function Home() {
                         </p>
                       </div>
                     </div>
-                    
+
                     <div className="text-right">
                       <div className="w-6 h-6 border border-gray-600 flex items-center justify-center group-hover:border-white transition-colors">
                         <span className="text-xs font-mono text-gray-400 group-hover:text-white">
-                          {String(index + 1).padStart(2, '0')}
+                          {String(index + 1).padStart(2, "0")}
                         </span>
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="mb-4">
                     <p className="text-gray-400 font-mono text-xs sm:text-sm tracking-wider uppercase">
                       {item.description}
                     </p>
                   </div>
-                  
+
                   <div className="flex items-center justify-between">
                     <div className="flex gap-2">
                       <div className="w-1 h-1 bg-gray-600 group-hover:bg-white transition-colors"></div>
                       <div className="w-1 h-1 bg-gray-600 group-hover:bg-white transition-colors"></div>
                       <div className="w-1 h-1 bg-gray-600 group-hover:bg-white transition-colors"></div>
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-xs tracking-wider text-gray-400 uppercase group-hover:text-white transition-colors">
                         ACCESS
@@ -168,7 +176,6 @@ export default function Home() {
               </Link>
             ))}
           </div>
-
         </div>
       </div>
 

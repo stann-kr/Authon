@@ -4,7 +4,13 @@
 @tailwind utilities;
 
 :root {
-  font-size: 14px;
+  font-size: 16px; /* 모바일: 기존 14px에서 1단계 상향 */
+}
+
+@media (min-width: 640px) {
+  :root {
+    font-size: 15px; /* 데스크탑: 기존 14px에서 1단계 상향 */
+  }
 }
 
 html,
