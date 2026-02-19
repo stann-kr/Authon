@@ -96,25 +96,33 @@ export default function ResetPasswordPage() {
     setIsLoading(true);
 
     try {
-      // 1. Perform verification if not already logged in
-      const {
-        data: { session: existingSession },
-      } = await supabase.auth.getSession();
+      // 1. URL 토큰(초대/재설정 링크)을 기존 세션보다 우선 처리
+      // 기존 로그인된 관리자가 초대 링크를 눌렀을 때 관리자 비번이 바뀌는 충돌 방지
+      if (authCode) {
+        // PKCE Flow
+        const { error: codeError } =
+          await supabase.auth.exchangeCodeForSession(authCode);
+        if (codeError) throw codeError;
 
-      if (!existingSession) {
-        if (authCode) {
-          // PKCE Flow
-          const { error: codeError } =
-            await supabase.auth.exchangeCodeForSession(authCode);
-          if (codeError) throw codeError;
-        } else if (tokenHash && flowType) {
-          // OTP / Magic Link Flow
-          const { error: otpError } = await supabase.auth.verifyOtp({
-            token_hash: tokenHash,
-            type: flowType as any,
-          });
-          if (otpError) throw otpError;
-        } else {
+        // 중복 교환 시도 방지
+        setAuthCode(null);
+      } else if (tokenHash && flowType) {
+        // OTP / Magic Link Flow
+        const { error: otpError } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: flowType as any,
+        });
+        if (otpError) throw otpError;
+
+        // 중복 교환 시도 방지
+        setTokenHash(null);
+      } else {
+        // URL에 토큰이 없다면 기존 세션 유무만 확인
+        const {
+          data: { session: existingSession },
+        } = await supabase.auth.getSession();
+
+        if (!existingSession) {
           throw new Error(
             "No active session or valid token found. Please use the original link from your email.",
           );
@@ -127,30 +135,30 @@ export default function ResetPasswordPage() {
       });
 
       if (updateError) {
-        setError("Failed to change password: " + updateError.message);
-      } else {
-        // Activate user account after successful password setup
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (user) {
-          const { error: activeErr } = await (supabase as any)
-            .from("users")
-            .update({ active: true })
-            .eq("auth_user_id", user.id);
-
-          if (activeErr) {
-            console.error("Activation error:", activeErr);
-          }
-        }
-
-        // Sign out after password change for clean state
-        await supabase.auth.signOut();
-        setSuccess(true);
-        setTimeout(() => {
-          router.push("/auth/login");
-        }, 3000);
+        throw updateError;
       }
+
+      // Activate user account after successful password setup
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        const { error: activeErr } = await (supabase as any)
+          .from("users")
+          .update({ active: true })
+          .eq("auth_user_id", user.id);
+
+        if (activeErr) {
+          console.error("Activation error:", activeErr);
+        }
+      }
+
+      // Sign out after password change for clean state
+      await supabase.auth.signOut();
+      setSuccess(true);
+      setTimeout(() => {
+        router.push("/auth/login");
+      }, 3000);
     } catch (err: any) {
       console.error("Password update error:", err);
       setError(err.message || "An unexpected error occurred.");
