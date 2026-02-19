@@ -31,11 +31,18 @@ export default function ResetPasswordPage() {
         const flowType = hashParams.get('type') || queryParams.get('type');
         setIsInvite(flowType === 'invite');
 
-        // Prevent collision with existing local session (e.g., admin already logged in).
-        await supabase.auth.signOut({ scope: 'local' });
+        // Check if Supabase redirected with an error (e.g., expired token)
+        const hashError = hashParams.get('error_description') || hashParams.get('error');
+        if (hashError) {
+          console.warn('Supabase auth redirect error:', hashError);
+          setIsValid(false);
+          setError(hashError);
+          return;
+        }
 
         // 1. PKCE flow: exchange authorization code for session
         //    @supabase/ssr uses PKCE by default — email links redirect with ?code=...
+        //    ⚠️ MUST run BEFORE signOut — signOut clears the code-verifier cookie
         const code = queryParams.get('code');
         if (code) {
           const { data: codeData, error: codeError } = await supabase.auth.exchangeCodeForSession(code);
@@ -49,6 +56,9 @@ export default function ResetPasswordPage() {
           }
           console.warn('PKCE code exchange failed:', codeError.message);
         }
+
+        // Clear any stale local session before trying non-PKCE flows
+        await supabase.auth.signOut({ scope: 'local' });
 
         // 2. Implicit flow: tokens in hash fragment
         const accessToken = hashParams.get('access_token');
