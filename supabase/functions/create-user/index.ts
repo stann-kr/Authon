@@ -146,8 +146,8 @@ serve(async (req) => {
       )
     }
 
-    // ---- CREATE USER (Invitation-based) ----
-    const { email, name, role, venueId, guestLimit } = body
+    // ---- CREATE USER ----
+    const { email, name, role, venueId, guestLimit, password } = body
 
     // Validate required fields (venueId nullable for super_admin)
     if (!email || !name || !role) {
@@ -189,17 +189,52 @@ serve(async (req) => {
       }
     }
 
-    // 2. Invite user by email (user sets their own password)
-    //    The on_auth_user_created trigger will auto-create public.users row
-    const { data: newAuthUser, error: createError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-      data: {
-        name,
-        role,
-        venue_id: venueId ?? null,
-        guest_limit: guestLimit ?? 10,
-      },
-      redirectTo: `${req.headers.get('origin') || Deno.env.get('SITE_URL') || ''}/auth/reset-password`,
-    })
+    const userData = {
+      name,
+      role,
+      venue_id: venueId ?? null,
+      guest_limit: guestLimit ?? 10,
+    }
+
+    let newAuthUser
+    let createError
+    let successMessage: string
+
+    if (password) {
+      // ---- MODE A: Create with temporary password (instant activation) ----
+      const result = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: userData,
+        app_metadata: {
+          app_role: role,
+          app_venue_id: venueId ?? null,
+        },
+      })
+      newAuthUser = result.data
+      createError = result.error
+      successMessage = `계정이 생성되었습니다. 임시 비밀번호: ${password}`
+    } else {
+      // ---- MODE B: Invite by email (user sets own password) ----
+      const result = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+        data: userData,
+        redirectTo: `${req.headers.get('origin') || Deno.env.get('SITE_URL') || ''}/auth/reset-password`,
+      })
+      newAuthUser = result.data
+      createError = result.error
+      successMessage = '초대 이메일이 전송되었습니다.'
+
+      // inviteUserByEmail doesn't set app_metadata via `data`, so set it separately
+      if (!createError && newAuthUser?.user) {
+        await supabaseAdmin.auth.admin.updateUserById(newAuthUser.user.id, {
+          app_metadata: {
+            app_role: role,
+            app_venue_id: venueId ?? null,
+          },
+        })
+      }
+    }
 
     if (createError) {
       // Check for duplicate email
@@ -211,14 +246,6 @@ serve(async (req) => {
       }
       throw createError
     }
-
-    // Set app_metadata (inviteUserByEmail only sets user_metadata via `data`)
-    await supabaseAdmin.auth.admin.updateUserById(newAuthUser.user.id, {
-      app_metadata: {
-        app_role: role,
-        app_venue_id: venueId ?? null,
-      },
-    })
 
     // 3. Fetch the created public.users profile (created by trigger)
     // Small delay to ensure trigger has fired
@@ -232,8 +259,9 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        message: '초대 이메일이 전송되었습니다.',
+        message: successMessage,
         user: newUser,
+        tempPassword: password || undefined,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

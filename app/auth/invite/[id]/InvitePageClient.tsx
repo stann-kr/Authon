@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { BRAND_FOOTER, BRAND_NAME } from '@/lib/brand';
 
 interface InviteData {
   email: string;
@@ -193,7 +194,7 @@ export default function InvitePageClient({ inviteId }: InvitePageClientProps) {
             <div className="w-2 h-2 bg-white"></div>
             <div className="w-2 h-2 bg-white"></div>
           </div>
-          <h1 className="font-mono text-2xl tracking-wider text-white uppercase mb-2">Authon</h1>
+          <h1 className="font-mono text-2xl tracking-wider text-white uppercase mb-2">{BRAND_NAME}</h1>
           <p className="text-xs text-gray-400 tracking-widest font-mono uppercase">ACCOUNT SETUP</p>
         </div>
 
@@ -280,7 +281,7 @@ export default function InvitePageClient({ inviteId }: InvitePageClientProps) {
 
         <div className="mt-6 text-center">
           <p className="text-gray-600 font-mono text-xs tracking-wider">
-            © 2025 Authon
+            {BRAND_FOOTER}
           </p>
         </div>
       </div>

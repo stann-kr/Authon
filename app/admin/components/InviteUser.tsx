@@ -5,12 +5,14 @@ import { getUser } from '../../../lib/auth';
 import { createUserViaEdge, fetchVenues, type Venue } from '../../../lib/api/guests';
 
 export default function InviteUser() {
+  const [createMode, setCreateMode] = useState<'invite' | 'password'>('invite');
   const [formData, setFormData] = useState({
     email: '',
     name: '',
     role: 'dj' as 'venue_admin' | 'door_staff' | 'staff' | 'dj',
     guest_limit: 10,
     venue_id: '',
+    password: '',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -71,18 +73,23 @@ export default function InviteUser() {
         role: formData.role,
         venueId: formData.venue_id,
         guestLimit: formData.role === 'venue_admin' ? 999 : formData.guest_limit,
+        ...(createMode === 'password' && formData.password ? { password: formData.password } : {}),
       });
 
       if (createError) {
         setError(createError.message || '사용자 생성에 실패했습니다.');
       } else {
-        setSuccess(`${formData.name} (${formData.email})에게 초대 이메일이 전송되었습니다.`);
+        const msg = createMode === 'password'
+          ? `${formData.name} (${formData.email}) 계정이 생성되었습니다. 임시 비밀번호: ${formData.password}`
+          : `${formData.name} (${formData.email})에게 초대 이메일이 전송되었습니다.`;
+        setSuccess(msg);
         setFormData(prev => ({
           ...prev,
           email: '',
           name: '',
           role: 'dj',
           guest_limit: 10,
+          password: '',
         }));
       }
     } catch (err: any) {
@@ -96,8 +103,33 @@ export default function InviteUser() {
     <div className="space-y-6">
       <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
         <h2 className="font-mono text-lg tracking-wider text-white uppercase mb-4">
-          INVITE USER
+          CREATE USER
         </h2>
+
+        <div className="grid grid-cols-2 gap-px bg-gray-700 mb-4">
+          <button
+            type="button"
+            onClick={() => setCreateMode('invite')}
+            className={`p-3 font-mono text-xs tracking-wider uppercase transition-colors ${
+              createMode === 'invite'
+                ? 'bg-white text-black'
+                : 'bg-black text-gray-400 hover:text-white'
+            }`}
+          >
+            <i className="ri-mail-send-line mr-1"></i> EMAIL INVITE
+          </button>
+          <button
+            type="button"
+            onClick={() => setCreateMode('password')}
+            className={`p-3 font-mono text-xs tracking-wider uppercase transition-colors ${
+              createMode === 'password'
+                ? 'bg-white text-black'
+                : 'bg-black text-gray-400 hover:text-white'
+            }`}
+          >
+            <i className="ri-key-line mr-1"></i> TEMP PASSWORD
+          </button>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {isSuperAdmin && venues.length > 0 && (
@@ -190,6 +222,26 @@ export default function InviteUser() {
             </div>
           )}
 
+          {createMode === 'password' && (
+            <div>
+              <label className="block text-gray-400 font-mono text-xs tracking-wider uppercase mb-2">
+                TEMPORARY PASSWORD
+              </label>
+              <input
+                type="text"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                className="w-full bg-black border border-gray-700 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
+                placeholder="Min 6 characters"
+                minLength={6}
+                required
+              />
+              <p className="text-gray-500 font-mono text-xs mt-1 tracking-wider">
+                사용자에게 전달 후 로그인 시 변경 안내
+              </p>
+            </div>
+          )}
+
           {error && (
             <div className="bg-red-900/30 border border-red-700 p-3">
               <p className="text-red-400 font-mono text-xs tracking-wider">{error}</p>
@@ -199,7 +251,7 @@ export default function InviteUser() {
           {success && (
             <div className="bg-green-900/30 border border-green-700 p-4">
               <p className="text-green-400 font-mono text-xs tracking-wider uppercase mb-1">
-                INVITATION SENT
+                {createMode === 'password' ? 'ACCOUNT CREATED' : 'INVITATION SENT'}
               </p>
               <p className="text-green-300 font-mono text-xs tracking-wider">{success}</p>
             </div>
@@ -213,10 +265,10 @@ export default function InviteUser() {
             {isLoading ? (
               <div className="flex items-center justify-center gap-2">
                 <div className="w-4 h-4 border border-black border-t-transparent rounded-full animate-spin"></div>
-                <span>SENDING...</span>
+                <span>{createMode === 'password' ? 'CREATING...' : 'SENDING...'}</span>
               </div>
             ) : (
-              'SEND INVITATION'
+              createMode === 'password' ? 'CREATE ACCOUNT' : 'SEND INVITATION'
             )}
           </button>
         </form>

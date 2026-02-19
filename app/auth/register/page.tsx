@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Footer from '@/components/Footer';
 import Link from 'next/link';
 
 /**
@@ -53,11 +54,7 @@ export default function RegisterPage() {
           로그인 페이지로 이동
         </Link>
 
-        <div className="mt-6 text-center">
-          <p className="text-gray-600 font-mono text-xs tracking-wider">
-            © 2025 Authon By Stann
-          </p>
-        </div>
+        <Footer />
       </div>
     </div>
   );

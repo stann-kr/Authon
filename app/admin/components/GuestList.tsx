@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import GuestListCard from '../../../components/GuestListCard';
 import { getUser } from '../../../lib/auth';
+import { formatDateDisplay } from '../../../lib/date';
 import {
   fetchGuestsByDate,
   fetchUsersByVenue,
@@ -103,10 +104,7 @@ export default function GuestList({ selectedDate }: GuestListProps) {
     setLoadingStates(prev => ({ ...prev, [`${id}_${action}`]: false }));
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
-  };
+
 
   // Helper: get contributor name for a guest (user or external DJ)
   const getContributorName = (guest: Guest): string | undefined => {
@@ -227,7 +225,7 @@ export default function GuestList({ selectedDate }: GuestListProps) {
               {selectedDJInfo.event}
             </p>
             <p className="text-gray-400 font-mono text-xs tracking-wider">
-              {formatDate(selectedDate)}
+              {formatDateDisplay(selectedDate)}
             </p>
           </div>
           <div className="text-center mb-4">

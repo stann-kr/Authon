@@ -5,6 +5,8 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import AdminHeader from '../admin/components/AdminHeader';
 import AuthGuard from '../../components/AuthGuard';
 import GuestListCard from '../../components/GuestListCard';
+import Footer from '../../components/Footer';
+import { getBusinessDate, formatDateDisplay } from '../../lib/date';
 import { getUser } from '../../lib/auth';
 import {
   fetchGuestsByDate,
@@ -27,7 +29,7 @@ export default function DoorPage() {
 
 function DoorPageContent() {
   const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split('T')[0]
+    getBusinessDate()
   );
   const [selectedDJ, setSelectedDJ] = useState<string>('all');
   const [loadingStates, setLoadingStates] = useState<{ [key: string]: boolean }>({});
@@ -107,11 +109,6 @@ function DoorPageContent() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  const formatDateDisplay = (dateString: string) => {
-    const date = new Date(dateString);
-    return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
-  };
 
   const handleStatusChange = async (id: string, newStatus: Guest['status'], action: string) => {
     setLoadingStates(prev => ({ ...prev, [`${id}_${action}`]: true }));
@@ -404,13 +401,9 @@ function DoorPageContent() {
               </div>
             </div>
           </div>
-
-          <div className="mt-6 text-center pb-2 flex-shrink-0">
-            <p className="text-gray-600 font-mono text-xs tracking-wider">
-              © 2025 Authon By Stann
-            </p>
-          </div>
         </div>
+
+        <Footer />
       </div>
     </div>
   );

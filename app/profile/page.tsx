@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Footer from '@/components/Footer';
 import { getUser, User } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/client';
 
@@ -302,11 +303,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <div className="mt-6 text-center pb-2">
-          <p className="text-gray-600 font-mono text-xs tracking-wider">
-            © 2025 Authon By Stann
-          </p>
-        </div>
+        <Footer />
       </div>
     </div>
   );

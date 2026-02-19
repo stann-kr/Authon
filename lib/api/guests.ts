@@ -251,6 +251,7 @@ export async function createUserViaEdge(params: {
   role: 'super_admin' | 'venue_admin' | 'door_staff' | 'staff' | 'dj';
   venueId?: string | null;  // optional for super_admin role
   guestLimit?: number;
+  password?: string;  // if provided, creates with temp password instead of email invite
 }): Promise<{ data: any; error: any }> {
   const authHeaders = await getAuthHeaders();
   if (!authHeaders) {

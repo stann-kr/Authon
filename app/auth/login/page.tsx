@@ -3,7 +3,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Footer from '@/components/Footer';
 import { login } from '@/lib/auth';
+import { BRAND_NAME } from '@/lib/brand';
 import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
@@ -77,7 +79,7 @@ export default function LoginPage() {
               <div className="w-2 h-2 bg-white"></div>
               <div className="w-2 h-2 bg-white"></div>
             </div>
-            <h1 className="font-mono text-xl sm:text-2xl lg:text-3xl tracking-wider text-white uppercase mb-2">Authon</h1>
+            <h1 className="font-mono text-xl sm:text-2xl lg:text-3xl tracking-wider text-white uppercase mb-2">{BRAND_NAME}</h1>
             <p className="text-xs sm:text-sm text-gray-400 tracking-widest font-mono uppercase">
               {showForgotPassword ? 'PASSWORD RESET' : 'USER ACCESS'}
             </p>
@@ -201,11 +203,7 @@ export default function LoginPage() {
           </form>
           )}
 
-          <div className="mt-6 sm:mt-8 text-center">
-            <p className="text-gray-600 font-mono text-xs tracking-wider">
-              © 2025 Authon By Stann
-            </p>
-          </div>
+          <Footer />
         </div>
       </div>
     </div>

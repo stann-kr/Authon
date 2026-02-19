@@ -5,6 +5,9 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import AdminHeader from '../admin/components/AdminHeader';
 import AuthGuard from '../../components/AuthGuard';
+import Footer from '@/components/Footer';
+import { BRAND_NAME } from '@/lib/brand';
+import { getBusinessDate, formatDateDisplay } from '@/lib/date';
 import {
   fetchGuestsByDate,
   createGuest,
@@ -143,11 +146,6 @@ function ExternalDJGuestPage({ token }: { token: string }) {
     setDeletingId(null);
   };
 
-  const formatDateDisplay = (dateString: string) => {
-    const date = new Date(dateString);
-    return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
-  };
-
   if (isValidating) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -168,7 +166,7 @@ function ExternalDJGuestPage({ token }: { token: string }) {
           </div>
           <h1 className="font-mono text-xl tracking-wider text-white uppercase mb-2">INVALID LINK</h1>
           <p className="text-gray-400 font-mono text-xs tracking-wider mb-6">{validationError}</p>
-          <p className="text-gray-600 font-mono text-xs">© 2025 Authon By Stann</p>
+          <Footer />
         </div>
       </div>
     );
@@ -187,7 +185,7 @@ function ExternalDJGuestPage({ token }: { token: string }) {
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-white"></div>
-            <span className="font-mono text-sm tracking-wider text-white uppercase">Authon</span>
+            <span className="font-mono text-sm tracking-wider text-white uppercase">{BRAND_NAME}</span>
           </div>
           <span className="font-mono text-xs tracking-wider text-gray-400 uppercase">
             GUEST ACCESS
@@ -372,10 +370,9 @@ function ExternalDJGuestPage({ token }: { token: string }) {
               </div>
             </div>
           </div>
-          <div className="mt-6 text-center pb-2 flex-shrink-0">
-            <p className="text-gray-600 font-mono text-xs tracking-wider">© 2025 Authon By Stann</p>
-          </div>
         </div>
+
+        <Footer />
       </div>
     </div>
   );
@@ -387,7 +384,7 @@ function ExternalDJGuestPage({ token }: { token: string }) {
 
 function AuthenticatedGuestPage() {
   const [selectedDate, setSelectedDate] = useState<string>(
-    new Date().toISOString().split('T')[0]
+    getBusinessDate()
   );
   const [guestName, setGuestName] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -451,11 +448,6 @@ function AuthenticatedGuestPage() {
     }, 15000);
     return () => clearInterval(interval);
   }, [selectedDate, effectiveVenueId]);
-
-  const formatDateDisplay = (dateString: string) => {
-    const date = new Date(dateString);
-    return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
-  };
 
   const handleSave = async () => {
     if (!guestName.trim()) return;
@@ -766,10 +758,9 @@ function AuthenticatedGuestPage() {
               </div>
             </div>
           </div>
-          <div className="mt-6 text-center pb-2 flex-shrink-0">
-            <p className="text-gray-600 font-mono text-xs tracking-wider">© 2025 Authon By Stann</p>
-          </div>
         </div>
+
+        <Footer />
       </div>
     </div>
   );

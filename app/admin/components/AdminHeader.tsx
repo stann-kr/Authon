@@ -3,6 +3,7 @@
 
 import Link from 'next/link';
 import { logout } from '@/lib/auth';
+import { BRAND_NAME, BRAND_TAGLINE } from '@/lib/brand';
 
 export default function AdminHeader() {
   return (
@@ -15,8 +16,8 @@ export default function AdminHeader() {
           >
             <div className="w-2 h-2 bg-white"></div>
             <div>
-              <h1 className="font-mono text-base sm:text-lg tracking-wider text-white uppercase">Authon</h1>
-              <p className="text-xs text-gray-400 tracking-widest hidden sm:block">Guest Manegement System</p>
+              <h1 className="font-mono text-base sm:text-lg tracking-wider text-white uppercase">{BRAND_NAME}</h1>
+              <p className="text-xs text-gray-400 tracking-widest hidden sm:block">{BRAND_TAGLINE}</p>
             </div>
           </Link>
           

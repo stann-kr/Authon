@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { getUser } from '../../../lib/auth';
+import { formatDateDisplay } from '../../../lib/date';
 import {
   fetchExternalLinksByDate,
   createExternalLink,
@@ -162,11 +163,6 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
       setLinks(prev => prev.map(link => link.id === id ? { ...link, active: false } : link));
     }
     setLoadingStates(prev => ({ ...prev, [`deactivate_${id}`]: false }));
-  };
-
-  const formatDateDisplay = (dateString: string) => {
-    const date = new Date(dateString);
-    return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
   };
 
   const activeLinks = links.filter(l => l.active);

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Pacifico } from "next/font/google";
 import "./globals.css";
+import { BRAND_DESCRIPTION, BRAND_NAME } from '@/lib/brand';
 
 const pacifico = Pacifico({
   weight: '400',
@@ -20,8 +21,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Authon",
-  description: "Authon Guest Management System",
+  title: BRAND_NAME,
+  description: BRAND_DESCRIPTION,
 };
 
 export default function RootLayout({

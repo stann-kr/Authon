@@ -8,6 +8,8 @@ import LinkManagement from './components/LinkManagement';
 import UserManagement from './components/UserManagement';
 import VenueManagement from './components/VenueManagement';
 import AuthGuard from '../../components/AuthGuard';
+import Footer from '../../components/Footer';
+import { getBusinessDate, formatDateDisplay } from '../../lib/date';
 import { getUser } from '../../lib/auth';
 
 export default function AdminPage() {
@@ -21,7 +23,7 @@ export default function AdminPage() {
 function AdminPageContent() {
   const [activeTab, setActiveTab] = useState('guests');
   const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split('T')[0]
+    getBusinessDate()
   );
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
@@ -38,11 +40,6 @@ function AdminPageContent() {
       ? [{ id: 'venues', label: 'VENUES', icon: 'ri-store-2-line' }]
       : []),
   ];
-
-  const formatDateDisplay = (dateString: string) => {
-    const date = new Date(dateString);
-    return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
-  };
 
   return (
     <div className="h-screen overflow-hidden flex flex-col bg-black">
@@ -93,13 +90,9 @@ function AdminPageContent() {
             {activeTab === 'users' && <UserManagement />}
             {activeTab === 'venues' && <VenueManagement />}
           </div>
-
-          <div className="mt-6 text-center pb-2 flex-shrink-0">
-            <p className="text-gray-600 font-mono text-xs tracking-wider">
-              © 2025 Authon By Stann
-            </p>
-          </div>
         </div>
+
+        <Footer />
       </div>
     </div>
   );
