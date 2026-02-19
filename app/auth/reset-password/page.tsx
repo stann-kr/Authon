@@ -17,12 +17,16 @@ export default function ResetPasswordPage() {
   const [isInvite, setIsInvite] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+
+  const [authCode, setAuthCode] = useState<string | null>(null);
+  const [tokenHash, setTokenHash] = useState<string | null>(null);
+  const [flowType, setFlowType] = useState<string | null>(null);
+
   const router = useRouter();
   const supabase = createClient();
-  const processedCode = useRef<string | null>(null);
 
   useEffect(() => {
-    const checkSession = async () => {
+    const parseUrl = async () => {
       setError("");
 
       try {
@@ -30,102 +34,49 @@ export default function ResetPasswordPage() {
           window.location.hash.replace(/^#/, ""),
         );
         const queryParams = new URLSearchParams(window.location.search);
-        const flowType = hashParams.get("type") || queryParams.get("type");
-        setIsInvite(flowType === "invite");
 
-        // Check if Supabase redirected with an error (e.g., expired token)
-        const hashError =
+        const type = hashParams.get("type") || queryParams.get("type");
+        const code = queryParams.get("code");
+        const hash =
+          hashParams.get("token_hash") || queryParams.get("token_hash");
+        const errorMsg =
           hashParams.get("error_description") ||
           hashParams.get("error") ||
           queryParams.get("error_description") ||
           queryParams.get("error");
 
-        if (hashError) {
-          console.warn("Supabase auth redirect error:", hashError);
+        setFlowType(type);
+        setAuthCode(code);
+        setTokenHash(hash);
+        setIsInvite(type === "invite");
+
+        if (errorMsg) {
+          console.warn("Auth URL error:", errorMsg);
+          setError(decodeURIComponent(errorMsg));
           setIsValid(false);
-          setError(decodeURIComponent(hashError));
           return;
         }
 
-        // 1. PKCE flow: exchange authorization code for session
-        //    @supabase/ssr uses PKCE by default — email links redirect with ?code=...
-        //    ⚠️ MUST run BEFORE signOut — signOut clears the code-verifier cookie
-        const code = queryParams.get("code");
-        if (code) {
-          // Prevent double processing of the same code
-          if (processedCode.current === code) return;
-          processedCode.current = code;
-
-          const { data: codeData, error: codeError } =
-            await supabase.auth.exchangeCodeForSession(code);
-
-          if (codeError) {
-            console.warn("PKCE code exchange failed:", codeError.message);
-            setIsValid(false);
-            setError(codeError.message); // Surface the specific error (e.g., "Email link is invalid or has expired")
-            return;
-          }
-
-          // Detect invite flow from user metadata when type param is absent
-          if (!flowType && codeData?.user?.app_metadata?.invite_type) {
-            setIsInvite(true);
-          }
+        // If we have any valid verification method in URL or an existing session, show the form
+        if (code || hash) {
           setIsValid(true);
-          return;
+        } else {
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+          setIsValid(!!session);
         }
-
-        // Clear any stale local session before trying non-PKCE flows
-        await supabase.auth.signOut({ scope: "local" });
-
-        // 2. Implicit flow: tokens in hash fragment
-        const accessToken = hashParams.get("access_token");
-        const refreshToken = hashParams.get("refresh_token");
-
-        if (accessToken && refreshToken) {
-          const { error: setSessionError } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
-
-          if (!setSessionError) {
-            setIsValid(true);
-            return;
-          }
-        }
-
-        // 3. Magic-link / OTP flow: token_hash in hash or query
-        const tokenHash =
-          hashParams.get("token_hash") || queryParams.get("token_hash");
-        if (tokenHash && (flowType === "invite" || flowType === "recovery")) {
-          const { error: verifyError } = await supabase.auth.verifyOtp({
-            type: flowType,
-            token_hash: tokenHash,
-          });
-
-          if (!verifyError) {
-            setIsValid(true);
-            return;
-          }
-        }
-
-        // 4. Fallback: check if a session already exists
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        setIsValid(!!session);
       } catch (err) {
-        console.error("Failed to validate reset-password session:", err);
+        console.error("Failed to parse URL:", err);
+        setError("Invalid link. Please request a new one.");
         setIsValid(false);
-        setError(
-          "Failed to verify this link. Please request password reset again.",
-        );
       } finally {
         setIsValidating(false);
       }
     };
 
-    checkSession();
-  }, []);
+    parseUrl();
+  }, [supabase.auth]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,6 +95,32 @@ export default function ResetPasswordPage() {
     setIsLoading(true);
 
     try {
+      // 1. Perform verification if not already logged in
+      const {
+        data: { session: existingSession },
+      } = await supabase.auth.getSession();
+
+      if (!existingSession) {
+        if (authCode) {
+          // PKCE Flow
+          const { error: codeError } =
+            await supabase.auth.exchangeCodeForSession(authCode);
+          if (codeError) throw codeError;
+        } else if (tokenHash && flowType) {
+          // OTP / Magic Link Flow
+          const { error: otpError } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: flowType as any,
+          });
+          if (otpError) throw otpError;
+        } else {
+          throw new Error(
+            "No active session or valid token found. Please use the original link from your email.",
+          );
+        }
+      }
+
+      // 2. Update password
       const { error: updateError } = await supabase.auth.updateUser({
         password: newPassword,
       });
@@ -151,26 +128,31 @@ export default function ResetPasswordPage() {
       if (updateError) {
         setError("Failed to change password: " + updateError.message);
       } else {
-        // Activate user account after successful password setup (for invited users)
+        // Activate user account after successful password setup
         const {
           data: { user },
         } = await supabase.auth.getUser();
         if (user) {
-          await (supabase as any)
+          const { error: activeErr } = await supabase
             .from("users")
             .update({ active: true })
             .eq("auth_user_id", user.id);
+
+          if (activeErr) {
+            console.error("Activation error:", activeErr);
+          }
         }
 
-        // Sign out after password change
+        // Sign out after password change for clean state
         await supabase.auth.signOut();
         setSuccess(true);
         setTimeout(() => {
           router.push("/auth/login");
         }, 3000);
       }
-    } catch (err) {
-      setError("An error occurred while changing password.");
+    } catch (err: any) {
+      console.error("Password update error:", err);
+      setError(err.message || "An unexpected error occurred.");
     } finally {
       setIsLoading(false);
     }

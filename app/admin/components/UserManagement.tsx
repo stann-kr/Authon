@@ -1,31 +1,41 @@
+"use client";
 
-'use client';
-
-import { useState, useEffect } from 'react';
-import InviteUser from './InviteUser';
-import VenueSelector, { useVenueSelector } from '../../../components/VenueSelector';
-import StatGrid from '../../../components/StatGrid';
-import PanelHeader from '../../../components/PanelHeader';
-import Spinner from '../../../components/Spinner';
-import RoleLabel from '../../../components/RoleLabel';
+import { useState, useEffect } from "react";
+import InviteUser from "./InviteUser";
+import VenueSelector, {
+  useVenueSelector,
+} from "../../../components/VenueSelector";
+import StatGrid from "../../../components/StatGrid";
+import PanelHeader from "../../../components/PanelHeader";
+import Spinner from "../../../components/Spinner";
+import RoleLabel from "../../../components/RoleLabel";
 import {
   fetchUsersByVenue,
   updateUserProfile,
   deleteUserViaEdge,
   type User,
-} from '../../../lib/api/guests';
+} from "../../../lib/api/guests";
 
 export default function UserManagement() {
-  const [activeTab, setActiveTab] = useState<'create' | 'users'>('create');
+  const [activeTab, setActiveTab] = useState<"create" | "users">("create");
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const { venueId, venues, selectedVenueId, setSelectedVenueId, isSuperAdmin, user: currentUser } = useVenueSelector();
+  const {
+    venueId,
+    venues,
+    selectedVenueId,
+    setSelectedVenueId,
+    isSuperAdmin,
+    user: currentUser,
+  } = useVenueSelector();
 
-  const effectiveVenueId = isSuperAdmin ? selectedVenueId : currentUser?.venue_id;
+  const effectiveVenueId = isSuperAdmin
+    ? selectedVenueId
+    : currentUser?.venue_id;
 
   useEffect(() => {
-    if (activeTab === 'users' && effectiveVenueId) {
+    if (activeTab === "users" && effectiveVenueId) {
       loadUsers();
     }
   }, [activeTab, effectiveVenueId]);
@@ -34,62 +44,76 @@ export default function UserManagement() {
     if (!effectiveVenueId && !isSuperAdmin) return;
     setIsLoading(true);
     try {
-      const { data, error } = await fetchUsersByVenue(isSuperAdmin ? effectiveVenueId || null : effectiveVenueId);
+      const { data, error } = await fetchUsersByVenue(
+        isSuperAdmin ? effectiveVenueId || null : effectiveVenueId,
+      );
       if (error) {
-        console.error('Failed to load users:', error);
+        console.error("Failed to load users:", error);
       } else if (data) {
         setUsers(data);
       }
     } catch (error) {
-      console.error('Failed to load users:', error);
+      console.error("Failed to load users:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleUserUpdate = async (userId: string, updates: { name?: string; guestLimit?: number; active?: boolean; role?: string }) => {
+  const handleUserUpdate = async (
+    userId: string,
+    updates: {
+      name?: string;
+      guestLimit?: number;
+      active?: boolean;
+      role?: string;
+    },
+  ) => {
     try {
       const { error } = await updateUserProfile(userId, updates);
       if (error) {
-        console.error('Failed to update user:', error);
-        alert('Failed to update user.');
+        console.error("Failed to update user:", error);
+        alert("Failed to update user.");
       } else {
         await loadUsers();
       }
     } catch (error) {
-      console.error('Failed to update user:', error);
+      console.error("Failed to update user:", error);
     }
   };
 
   const handleUserDelete = async (userId: string) => {
-    if (!confirm('Delete this user? This action cannot be undone.')) return;
+    if (!confirm("Delete this user? This action cannot be undone.")) return;
     try {
       const { error } = await deleteUserViaEdge(userId);
       if (error) {
-        console.error('Failed to delete user:', error);
-        alert('Failed to delete user.');
+        console.error("Failed to delete user:", error);
+        alert(error.message || "Failed to delete user.");
       } else {
         await loadUsers();
       }
-    } catch (error) {
-      console.error('Failed to delete user:', error);
+    } catch (error: any) {
+      console.error("Failed to delete user:", error);
+      alert(error?.message || "Failed to delete user.");
     }
   };
 
   const getTabInfo = () => {
     switch (activeTab) {
-      case 'create':
-        return { title: 'CREATE USER', description: 'Create new staff accounts' };
-      case 'users':
-        return { title: 'USER LIST', description: 'Manage existing users' };
+      case "create":
+        return {
+          title: "CREATE USER",
+          description: "Create new staff accounts",
+        };
+      case "users":
+        return { title: "USER LIST", description: "Manage existing users" };
       default:
-        return { title: '', description: '' };
+        return { title: "", description: "" };
     }
   };
 
   const tabInfo = getTabInfo();
 
-  if (isLoading && activeTab === 'users') {
+  if (isLoading && activeTab === "users") {
     return <Spinner mode="inline" text="LOADING..." />;
   }
 
@@ -107,25 +131,27 @@ export default function UserManagement() {
         )}
         <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
           <div className="mb-4">
-            <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase mb-3">SELECT MENU</h3>
+            <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase mb-3">
+              SELECT MENU
+            </h3>
             <div className="space-y-2">
               <button
-                onClick={() => setActiveTab('create')}
+                onClick={() => setActiveTab("create")}
                 className={`w-full p-3 font-mono text-xs tracking-wider uppercase transition-colors text-left ${
-                  activeTab === 'create'
-                    ? 'bg-white text-black'
-                    : 'bg-gray-800 text-gray-400 hover:text-white border border-gray-700'
+                  activeTab === "create"
+                    ? "bg-white text-black"
+                    : "bg-gray-800 text-gray-400 hover:text-white border border-gray-700"
                 }`}
               >
                 <i className="ri-user-add-line mr-2"></i>
                 CREATE
               </button>
               <button
-                onClick={() => setActiveTab('users')}
+                onClick={() => setActiveTab("users")}
                 className={`w-full p-3 font-mono text-xs tracking-wider uppercase transition-colors text-left ${
-                  activeTab === 'users'
-                    ? 'bg-white text-black'
-                    : 'bg-gray-800 text-gray-400 hover:text-white border border-gray-700'
+                  activeTab === "users"
+                    ? "bg-white text-black"
+                    : "bg-gray-800 text-gray-400 hover:text-white border border-gray-700"
                 }`}
               >
                 <i className="ri-user-line mr-2"></i>
@@ -146,30 +172,46 @@ export default function UserManagement() {
           </div>
           <div className="text-center mb-4">
             <div className="text-white font-mono text-3xl sm:text-4xl tracking-wider">
-              {activeTab === 'users' ? users.length : '-'}
+              {activeTab === "users" ? users.length : "-"}
             </div>
             <div className="text-cyan-300 text-xs font-mono tracking-wider uppercase">
-              {activeTab === 'users' ? 'TOTAL USERS' : ''}
+              {activeTab === "users" ? "TOTAL USERS" : ""}
             </div>
           </div>
-          
-          {activeTab === 'users' && (
-            <StatGrid items={[
-              { label: 'DJ', value: users.filter(u => u.role === 'dj').length, color: 'green' },
-              { label: 'STAFF', value: users.filter(u => u.role === 'staff').length, color: 'cyan' },
-              { label: 'DOOR', value: users.filter(u => u.role === 'door_staff').length, color: 'blue' },
-              { label: 'ADMIN', value: users.filter(u => u.role === 'venue_admin').length, color: 'red' },
-            ]} />
+
+          {activeTab === "users" && (
+            <StatGrid
+              items={[
+                {
+                  label: "DJ",
+                  value: users.filter((u) => u.role === "dj").length,
+                  color: "green",
+                },
+                {
+                  label: "STAFF",
+                  value: users.filter((u) => u.role === "staff").length,
+                  color: "cyan",
+                },
+                {
+                  label: "DOOR",
+                  value: users.filter((u) => u.role === "door_staff").length,
+                  color: "blue",
+                },
+                {
+                  label: "ADMIN",
+                  value: users.filter((u) => u.role === "venue_admin").length,
+                  color: "red",
+                },
+              ]}
+            />
           )}
         </div>
       </div>
 
       <div className="lg:col-span-3">
-        {activeTab === 'create' && (
-          <InviteUser />
-        )}
+        {activeTab === "create" && <InviteUser />}
 
-        {activeTab === 'users' && (
+        {activeTab === "users" && (
           <div className="bg-gray-900 border border-gray-700">
             <PanelHeader
               title="USER LIST"
@@ -179,14 +221,16 @@ export default function UserManagement() {
             <div className="p-4">
               {users.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-gray-400 font-mono text-sm">No users found.</p>
+                  <p className="text-gray-400 font-mono text-sm">
+                    No users found.
+                  </p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {users.map((user) => (
-                    <UserCard 
-                      key={user.id} 
-                      user={user} 
+                    <UserCard
+                      key={user.id}
+                      user={user}
                       onUpdate={handleUserUpdate}
                       onDelete={handleUserDelete}
                     />
@@ -201,16 +245,28 @@ export default function UserManagement() {
   );
 }
 
-function UserCard({ user, onUpdate, onDelete }: { 
-  user: User; 
-  onUpdate: (id: string, updates: { name?: string; guestLimit?: number; active?: boolean; role?: string }) => void;
+function UserCard({
+  user,
+  onUpdate,
+  onDelete,
+}: {
+  user: User;
+  onUpdate: (
+    id: string,
+    updates: {
+      name?: string;
+      guestLimit?: number;
+      active?: boolean;
+      role?: string;
+    },
+  ) => void;
   onDelete: (id: string) => void;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({
     role: user.role,
     guestLimit: user.guestLimit,
-    active: user.active
+    active: user.active,
   });
 
   const handleSave = () => {
@@ -220,27 +276,39 @@ function UserCard({ user, onUpdate, onDelete }: {
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'super_admin': return 'text-purple-400';
-      case 'venue_admin': return 'text-red-400';
-      case 'door_staff': return 'text-blue-400';
-      case 'staff': return 'text-cyan-400';
-      case 'dj': return 'text-green-400';
-      default: return 'text-gray-400';
+      case "super_admin":
+        return "text-purple-400";
+      case "venue_admin":
+        return "text-red-400";
+      case "door_staff":
+        return "text-blue-400";
+      case "staff":
+        return "text-cyan-400";
+      case "dj":
+        return "text-green-400";
+      default:
+        return "text-gray-400";
     }
   };
 
   // Available roles for editing depend on current user
-  const editableRoles = ['venue_admin', 'door_staff', 'staff', 'dj'];
+  const editableRoles = ["venue_admin", "door_staff", "staff", "dj"];
 
   return (
     <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
       <div className="flex justify-between items-start mb-3">
         <div>
-          <h3 className="text-white font-mono text-sm sm:text-base tracking-wider">{user.name}</h3>
-          <p className="text-gray-400 font-mono text-xs sm:text-sm">{user.email}</p>
+          <h3 className="text-white font-mono text-sm sm:text-base tracking-wider">
+            {user.name}
+          </h3>
+          <p className="text-gray-400 font-mono text-xs sm:text-sm">
+            {user.email}
+          </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className={`font-mono text-xs tracking-wider uppercase ${getRoleColor(user.role)}`}>
+          <span
+            className={`font-mono text-xs tracking-wider uppercase ${getRoleColor(user.role)}`}
+          >
             <RoleLabel role={user.role} />
           </span>
         </div>
@@ -250,13 +318,21 @@ function UserCard({ user, onUpdate, onDelete }: {
         <div>
           <div className="grid grid-cols-2 gap-4 mb-3">
             <div>
-              <p className="text-gray-500 font-mono text-xs uppercase mb-1">Guest Limit</p>
-              <p className="text-white font-mono text-xs sm:text-sm">{user.guestLimit}</p>
+              <p className="text-gray-500 font-mono text-xs uppercase mb-1">
+                Guest Limit
+              </p>
+              <p className="text-white font-mono text-xs sm:text-sm">
+                {user.guestLimit}
+              </p>
             </div>
             <div>
-              <p className="text-gray-500 font-mono text-xs uppercase mb-1">Status</p>
-              <p className={`font-mono text-xs sm:text-sm ${user.active ? 'text-green-400' : 'text-red-400'}`}>
-                {user.active ? 'ACTIVE' : 'INACTIVE'}
+              <p className="text-gray-500 font-mono text-xs uppercase mb-1">
+                Status
+              </p>
+              <p
+                className={`font-mono text-xs sm:text-sm ${user.active ? "text-green-400" : "text-red-400"}`}
+              >
+                {user.active ? "ACTIVE" : "INACTIVE"}
               </p>
             </div>
           </div>
@@ -285,11 +361,13 @@ function UserCard({ user, onUpdate, onDelete }: {
               {editableRoles.map((role) => (
                 <button
                   key={role}
-                  onClick={() => setEditData({...editData, role: role as any})}
+                  onClick={() =>
+                    setEditData({ ...editData, role: role as any })
+                  }
                   className={`p-2 sm:p-3 border font-mono text-xs tracking-wider uppercase transition-colors ${
                     editData.role === role
-                      ? 'bg-white text-black border-white'
-                      : 'bg-gray-800 text-gray-400 border-gray-600 hover:text-white hover:border-gray-500'
+                      ? "bg-white text-black border-white"
+                      : "bg-gray-800 text-gray-400 border-gray-600 hover:text-white hover:border-gray-500"
                   }`}
                 >
                   <RoleLabel role={role} />
@@ -305,7 +383,12 @@ function UserCard({ user, onUpdate, onDelete }: {
             <input
               type="number"
               value={editData.guestLimit}
-              onChange={(e) => setEditData({...editData, guestLimit: parseInt(e.target.value) || 0})}
+              onChange={(e) =>
+                setEditData({
+                  ...editData,
+                  guestLimit: parseInt(e.target.value) || 0,
+                })
+              }
               className="w-full bg-gray-800 border border-gray-600 px-3 py-2 sm:py-3 text-white font-mono text-sm focus:outline-none focus:border-white"
               min="0"
               max="999"
@@ -314,14 +397,16 @@ function UserCard({ user, onUpdate, onDelete }: {
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setEditData({...editData, active: !editData.active})}
+              onClick={() =>
+                setEditData({ ...editData, active: !editData.active })
+              }
               className={`flex-1 p-2 sm:p-3 border font-mono text-xs tracking-wider uppercase transition-colors ${
                 editData.active
-                  ? 'bg-green-600 text-white border-green-600'
-                  : 'bg-red-600 text-white border-red-600'
+                  ? "bg-green-600 text-white border-green-600"
+                  : "bg-red-600 text-white border-red-600"
               }`}
             >
-              {editData.active ? 'ACTIVE' : 'INACTIVE'}
+              {editData.active ? "ACTIVE" : "INACTIVE"}
             </button>
           </div>
 
@@ -338,7 +423,7 @@ function UserCard({ user, onUpdate, onDelete }: {
                 setEditData({
                   role: user.role,
                   guestLimit: user.guestLimit,
-                  active: user.active
+                  active: user.active,
                 });
               }}
               className="bg-gray-700 hover:bg-gray-600 text-white font-mono text-xs tracking-wider uppercase py-2 sm:py-3 transition-colors"
