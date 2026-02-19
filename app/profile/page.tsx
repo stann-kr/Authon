@@ -7,6 +7,7 @@ import Link from 'next/link';
 import Footer from '@/components/Footer';
 import { getUser, User } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/client';
+import { updateUserProfile } from '@/lib/api/guests';
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -86,7 +87,17 @@ export default function ProfilePage() {
         }
       }
 
-      // 2. 이름 변경
+      // 2. 이름 변경 — DB에 저장
+      if (user && formData.name !== user.name) {
+        const { error: nameError } = await updateUserProfile(user.id, { name: formData.name });
+
+        if (nameError) {
+          setError('이름 변경에 실패했습니다: ' + nameError.message);
+          setIsSaving(false);
+          return;
+        }
+      }
+
       const updatedUser = {
         ...user,
         name: formData.name

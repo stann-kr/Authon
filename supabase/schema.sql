@@ -354,7 +354,7 @@ CREATE POLICY "Door staff and admins can update guests" ON public.guests
     FOR UPDATE USING (
         (auth.jwt()->'app_metadata'->>'app_role') = 'super_admin'
         OR (
-            (auth.jwt()->'app_metadata'->>'app_role') IN ('venue_admin', 'door_staff')
+            (auth.jwt()->'app_metadata'->>'app_role') IN ('venue_admin', 'door_staff', 'staff', 'dj')
             AND (auth.jwt()->'app_metadata'->>'app_venue_id')::uuid = venue_id
         )
     );

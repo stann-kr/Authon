@@ -12,6 +12,7 @@ import {
   fetchGuestsByDate,
   fetchUsersByVenue,
   fetchExternalLinksByDate,
+  fetchVenues,
   updateGuestStatus,
   deleteGuest,
   type Guest,
@@ -50,15 +51,13 @@ function DoorPageContent() {
   // Load venues for super_admin
   useEffect(() => {
     if (isSuperAdmin) {
-      import('../../lib/api/guests').then(({ fetchVenues }) => {
-        fetchVenues().then(({ data }) => {
-          if (data) {
-            setVenues(data);
-            if (data.length > 0 && !selectedVenueId) {
-              setSelectedVenueId(data[0].id);
-            }
+      fetchVenues().then(({ data }) => {
+        if (data) {
+          setVenues(data);
+          if (data.length > 0 && !selectedVenueId) {
+            setSelectedVenueId(data[0].id);
           }
-        });
+        }
       });
     }
   }, [isSuperAdmin]);

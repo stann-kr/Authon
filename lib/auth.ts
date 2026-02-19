@@ -102,7 +102,7 @@ export const hasAccess = (userRole: string, requiredAccess: string[]): boolean =
   const accessMap: Record<string, string[]> = {
     'super_admin': ['guest', 'door', 'admin', 'venue'],
     'venue_admin': ['guest', 'door', 'admin'],
-    'door_staff': ['guest', 'door'],
+    'door_staff': ['door'],
     'staff': ['guest'],
     'dj': ['guest']
   };

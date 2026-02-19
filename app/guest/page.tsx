@@ -340,7 +340,7 @@ function ExternalDJGuestPage({ token }: { token: string }) {
                         onChange={(e) => setGuestName(e.target.value)}
                         placeholder="Enter guest full name"
                         className="flex-1 bg-transparent border-none outline-none text-white font-mono text-sm tracking-wider placeholder-gray-400"
-                        onKeyPress={(e) => {
+                        onKeyDown={(e) => {
                           if (e.key === 'Enter') handleSave();
                         }}
                       />
@@ -728,7 +728,7 @@ function AuthenticatedGuestPage() {
                       onChange={(e) => setGuestName(e.target.value)}
                       placeholder="Enter guest full name"
                       className="flex-1 bg-transparent border-none outline-none text-white font-mono text-sm tracking-wider placeholder-gray-400"
-                      onKeyPress={(e) => {
+                      onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           handleSave();
                         }
