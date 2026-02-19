@@ -14,9 +14,17 @@
 
 -- Venues table
 CREATE TABLE IF NOT EXISTS public.venues (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
     name TEXT NOT NULL,
-    type TEXT NOT NULL DEFAULT 'club' CHECK (type IN ('club', 'bar', 'lounge', 'festival', 'private')),
+    type TEXT NOT NULL DEFAULT 'club' CHECK (
+        type IN (
+            'club',
+            'bar',
+            'lounge',
+            'festival',
+            'private'
+        )
+    ),
     address TEXT,
     description TEXT,
     active BOOLEAN DEFAULT true,
@@ -27,12 +35,20 @@ CREATE TABLE IF NOT EXISTS public.venues (
 -- Users table (all authenticated staff)
 -- auth_user_id references Supabase Auth; every internal user MUST have an auth account
 CREATE TABLE IF NOT EXISTS public.users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    auth_user_id UUID UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
-    venue_id UUID REFERENCES public.venues(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
+    auth_user_id UUID UNIQUE REFERENCES auth.users (id) ON DELETE CASCADE,
+    venue_id UUID REFERENCES public.venues (id) ON DELETE CASCADE,
     email TEXT NOT NULL,
     name TEXT NOT NULL,
-    role TEXT NOT NULL CHECK (role IN ('super_admin', 'venue_admin', 'door_staff', 'staff', 'dj')),
+    role TEXT NOT NULL CHECK (
+        role IN (
+            'super_admin',
+            'venue_admin',
+            'door_staff',
+            'staff',
+            'dj'
+        )
+    ),
     guest_limit INTEGER DEFAULT 10,
     active BOOLEAN DEFAULT true,
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -40,15 +56,16 @@ CREATE TABLE IF NOT EXISTS public.users (
     -- super_admin은 플랫폼 전체 관리자이므로 venue_id가 NULL 허용
     -- 그 외 역할은 반드시 venue_id 필수
     CONSTRAINT users_venue_required CHECK (
-        role = 'super_admin' OR venue_id IS NOT NULL
+        role = 'super_admin'
+        OR venue_id IS NOT NULL
     )
 );
 
 -- DJs table (registered venue DJs, linked to a user account)
 CREATE TABLE IF NOT EXISTS public.djs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    venue_id UUID NOT NULL REFERENCES public.venues(id) ON DELETE CASCADE,
-    user_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
+    venue_id UUID NOT NULL REFERENCES public.venues (id) ON DELETE CASCADE,
+    user_id UUID REFERENCES public.users (id) ON DELETE SET NULL,
     name TEXT NOT NULL,
     event TEXT NOT NULL,
     active BOOLEAN DEFAULT true,
@@ -58,9 +75,9 @@ CREATE TABLE IF NOT EXISTS public.djs (
 
 -- External DJ Links (token-based access for unregistered DJs)
 CREATE TABLE IF NOT EXISTS public.external_dj_links (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    venue_id UUID NOT NULL REFERENCES public.venues(id) ON DELETE CASCADE,
-    token UUID NOT NULL UNIQUE DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
+    venue_id UUID NOT NULL REFERENCES public.venues (id) ON DELETE CASCADE,
+    token UUID NOT NULL UNIQUE DEFAULT gen_random_uuid (),
     dj_name TEXT NOT NULL,
     event TEXT NOT NULL,
     date DATE NOT NULL,
@@ -68,20 +85,26 @@ CREATE TABLE IF NOT EXISTS public.external_dj_links (
     used_guests INTEGER NOT NULL DEFAULT 0,
     active BOOLEAN DEFAULT true,
     expires_at TIMESTAMPTZ,
-    created_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
+    created_by UUID REFERENCES public.users (id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Guests table
 CREATE TABLE IF NOT EXISTS public.guests (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    venue_id UUID NOT NULL REFERENCES public.venues(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
+    venue_id UUID NOT NULL REFERENCES public.venues (id) ON DELETE CASCADE,
     name TEXT NOT NULL,
-    dj_id UUID REFERENCES public.djs(id) ON DELETE SET NULL,
-    external_link_id UUID REFERENCES public.external_dj_links(id) ON DELETE SET NULL,
-    created_by_user_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
-    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'checked', 'deleted')),
+    dj_id UUID REFERENCES public.djs (id) ON DELETE SET NULL,
+    external_link_id UUID REFERENCES public.external_dj_links (id) ON DELETE SET NULL,
+    created_by_user_id UUID REFERENCES public.users (id) ON DELETE SET NULL,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (
+        status IN (
+            'pending',
+            'checked',
+            'deleted'
+        )
+    ),
     check_in_time TIMESTAMPTZ,
     date DATE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -119,6 +142,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS enforce_guest_dj_venue ON public.guests;
+
 CREATE TRIGGER enforce_guest_dj_venue
     BEFORE INSERT OR UPDATE ON public.guests
     FOR EACH ROW EXECUTE FUNCTION check_guest_dj_venue();
@@ -133,22 +157,27 @@ END;
 $$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS update_venues_updated_at ON public.venues;
+
 CREATE TRIGGER update_venues_updated_at BEFORE UPDATE ON public.venues
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 DROP TRIGGER IF EXISTS update_users_updated_at ON public.users;
+
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON public.users
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 DROP TRIGGER IF EXISTS update_djs_updated_at ON public.djs;
+
 CREATE TRIGGER update_djs_updated_at BEFORE UPDATE ON public.djs
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 DROP TRIGGER IF EXISTS update_guests_updated_at ON public.guests;
+
 CREATE TRIGGER update_guests_updated_at BEFORE UPDATE ON public.guests
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 DROP TRIGGER IF EXISTS update_external_dj_links_updated_at ON public.external_dj_links;
+
 CREATE TRIGGER update_external_dj_links_updated_at BEFORE UPDATE ON public.external_dj_links
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -166,6 +195,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS on_guest_created_increment_link ON public.guests;
+
 CREATE TRIGGER on_guest_created_increment_link
     AFTER INSERT ON public.guests
     FOR EACH ROW EXECUTE FUNCTION increment_external_link_guest_count();
@@ -210,6 +240,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
@@ -218,22 +249,37 @@ CREATE TRIGGER on_auth_user_created
 -- 3. INDEXES
 -- ============================================================
 
-CREATE INDEX IF NOT EXISTS idx_venues_active ON public.venues(active);
-CREATE INDEX IF NOT EXISTS idx_users_venue_id ON public.users(venue_id);
-CREATE INDEX IF NOT EXISTS idx_users_email ON public.users(email);
-CREATE INDEX IF NOT EXISTS idx_users_role ON public.users(role);
-CREATE INDEX IF NOT EXISTS idx_users_auth_user_id ON public.users(auth_user_id);
-CREATE INDEX IF NOT EXISTS idx_djs_venue_id ON public.djs(venue_id);
-CREATE INDEX IF NOT EXISTS idx_djs_user_id ON public.djs(user_id);
-CREATE INDEX IF NOT EXISTS idx_djs_active ON public.djs(active);
-CREATE INDEX IF NOT EXISTS idx_guests_venue_id ON public.guests(venue_id);
-CREATE INDEX IF NOT EXISTS idx_guests_date ON public.guests(date);
-CREATE INDEX IF NOT EXISTS idx_guests_dj_id ON public.guests(dj_id);
-CREATE INDEX IF NOT EXISTS idx_guests_external_link_id ON public.guests(external_link_id);
-CREATE INDEX IF NOT EXISTS idx_guests_status ON public.guests(status);
-CREATE INDEX IF NOT EXISTS idx_external_dj_links_venue_id ON public.external_dj_links(venue_id);
-CREATE INDEX IF NOT EXISTS idx_external_dj_links_token ON public.external_dj_links(token);
-CREATE INDEX IF NOT EXISTS idx_external_dj_links_date ON public.external_dj_links(date);
+CREATE INDEX IF NOT EXISTS idx_venues_active ON public.venues (active);
+
+CREATE INDEX IF NOT EXISTS idx_users_venue_id ON public.users (venue_id);
+
+CREATE INDEX IF NOT EXISTS idx_users_email ON public.users (email);
+
+CREATE INDEX IF NOT EXISTS idx_users_role ON public.users (role);
+
+CREATE INDEX IF NOT EXISTS idx_users_auth_user_id ON public.users (auth_user_id);
+
+CREATE INDEX IF NOT EXISTS idx_djs_venue_id ON public.djs (venue_id);
+
+CREATE INDEX IF NOT EXISTS idx_djs_user_id ON public.djs (user_id);
+
+CREATE INDEX IF NOT EXISTS idx_djs_active ON public.djs (active);
+
+CREATE INDEX IF NOT EXISTS idx_guests_venue_id ON public.guests (venue_id);
+
+CREATE INDEX IF NOT EXISTS idx_guests_date ON public.guests (date);
+
+CREATE INDEX IF NOT EXISTS idx_guests_dj_id ON public.guests (dj_id);
+
+CREATE INDEX IF NOT EXISTS idx_guests_external_link_id ON public.guests (external_link_id);
+
+CREATE INDEX IF NOT EXISTS idx_guests_status ON public.guests (status);
+
+CREATE INDEX IF NOT EXISTS idx_external_dj_links_venue_id ON public.external_dj_links (venue_id);
+
+CREATE INDEX IF NOT EXISTS idx_external_dj_links_token ON public.external_dj_links (token);
+
+CREATE INDEX IF NOT EXISTS idx_external_dj_links_date ON public.external_dj_links (date);
 
 -- ============================================================
 -- 4. ROW LEVEL SECURITY (JWT app_metadata based — no recursion)
@@ -247,43 +293,61 @@ CREATE INDEX IF NOT EXISTS idx_external_dj_links_date ON public.external_dj_link
 --   (auth.jwt()->'app_metadata'->>'app_venue_id')   — UUID string or null
 
 ALTER TABLE public.venues ENABLE ROW LEVEL SECURITY;
+
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+
 ALTER TABLE public.djs ENABLE ROW LEVEL SECURITY;
+
 ALTER TABLE public.guests ENABLE ROW LEVEL SECURITY;
+
 ALTER TABLE public.external_dj_links ENABLE ROW LEVEL SECURITY;
 
 -- ---- Venues Policies ----
 DROP POLICY IF EXISTS "Enable read access for all users" ON public.venues;
-CREATE POLICY "Enable read access for all users" ON public.venues
-    FOR SELECT USING (true);
+
+CREATE POLICY "Enable read access for all users" ON public.venues FOR
+SELECT USING (true);
 
 DROP POLICY IF EXISTS "Super admins can insert venues" ON public.venues;
-CREATE POLICY "Super admins can insert venues" ON public.venues
-    FOR INSERT WITH CHECK (
-        (auth.jwt()->'app_metadata'->>'app_role') = 'super_admin'
+
+CREATE POLICY "Super admins can insert venues" ON public.venues FOR
+INSERT
+WITH
+    CHECK (
+        (
+            auth.jwt () -> 'app_metadata' ->> 'app_role'
+        ) = 'super_admin'
     );
 
 DROP POLICY IF EXISTS "Super admins can update venues" ON public.venues;
-CREATE POLICY "Super admins can update venues" ON public.venues
-    FOR UPDATE USING (
-        (auth.jwt()->'app_metadata'->>'app_role') = 'super_admin'
-    );
+
+CREATE POLICY "Super admins can update venues" ON public.venues FOR
+UPDATE USING (
+    (
+        auth.jwt () -> 'app_metadata' ->> 'app_role'
+    ) = 'super_admin'
+);
 
 -- ---- Users Policies ----
 -- Own profile: always allowed
 DROP POLICY IF EXISTS "Users can view own profile" ON public.users;
-CREATE POLICY "Users can view own profile" ON public.users
-    FOR SELECT USING (auth.uid() = auth_user_id);
+
+CREATE POLICY "Users can view own profile" ON public.users FOR
+SELECT USING (auth.uid () = auth_user_id);
 
 -- Super admin: see all users
 DROP POLICY IF EXISTS "Super admins can view all users" ON public.users;
-CREATE POLICY "Super admins can view all users" ON public.users
-    FOR SELECT USING (
-        (auth.jwt()->'app_metadata'->>'app_role') = 'super_admin'
+
+CREATE POLICY "Super admins can view all users" ON public.users FOR
+SELECT USING (
+        (
+            auth.jwt () -> 'app_metadata' ->> 'app_role'
+        ) = 'super_admin'
     );
 
 -- Venue admin: see users in same venue
 DROP POLICY IF EXISTS "Venue admins can view venue users" ON public.users;
+
 CREATE POLICY "Venue admins can view venue users" ON public.users
     FOR SELECT USING (
         (auth.jwt()->'app_metadata'->>'app_role') = 'venue_admin'
@@ -292,18 +356,23 @@ CREATE POLICY "Venue admins can view venue users" ON public.users
 
 -- Own profile update
 DROP POLICY IF EXISTS "Users can update own profile" ON public.users;
-CREATE POLICY "Users can update own profile" ON public.users
-    FOR UPDATE USING (auth.uid() = auth_user_id);
+
+CREATE POLICY "Users can update own profile" ON public.users FOR
+UPDATE USING (auth.uid () = auth_user_id);
 
 -- Super admin: update all
 DROP POLICY IF EXISTS "Super admins can update all users" ON public.users;
-CREATE POLICY "Super admins can update all users" ON public.users
-    FOR UPDATE USING (
-        (auth.jwt()->'app_metadata'->>'app_role') = 'super_admin'
-    );
+
+CREATE POLICY "Super admins can update all users" ON public.users FOR
+UPDATE USING (
+    (
+        auth.jwt () -> 'app_metadata' ->> 'app_role'
+    ) = 'super_admin'
+);
 
 -- Venue admin: update venue users
 DROP POLICY IF EXISTS "Venue admins can update venue users" ON public.users;
+
 CREATE POLICY "Venue admins can update venue users" ON public.users
     FOR UPDATE USING (
         (auth.jwt()->'app_metadata'->>'app_role') = 'venue_admin'
@@ -312,6 +381,7 @@ CREATE POLICY "Venue admins can update venue users" ON public.users
 
 -- ---- DJs Policies ----
 DROP POLICY IF EXISTS "Venue members can view djs" ON public.djs;
+
 CREATE POLICY "Venue members can view djs" ON public.djs
     FOR SELECT USING (
         (auth.jwt()->'app_metadata'->>'app_role') = 'super_admin'
@@ -319,6 +389,7 @@ CREATE POLICY "Venue members can view djs" ON public.djs
     );
 
 DROP POLICY IF EXISTS "Super admins and venue admins can manage djs" ON public.djs;
+
 CREATE POLICY "Super admins and venue admins can manage djs" ON public.djs
     FOR ALL USING (
         (auth.jwt()->'app_metadata'->>'app_role') = 'super_admin'
@@ -330,6 +401,7 @@ CREATE POLICY "Super admins and venue admins can manage djs" ON public.djs
 
 -- ---- Guests Policies ----
 DROP POLICY IF EXISTS "Venue staff can view guests" ON public.guests;
+
 CREATE POLICY "Venue staff can view guests" ON public.guests
     FOR SELECT USING (
         (auth.jwt()->'app_metadata'->>'app_role') = 'super_admin'
@@ -340,16 +412,18 @@ CREATE POLICY "Venue staff can view guests" ON public.guests
     );
 
 DROP POLICY IF EXISTS "Venue staff and DJs can add guests" ON public.guests;
+
 CREATE POLICY "Venue staff and DJs can add guests" ON public.guests
     FOR INSERT WITH CHECK (
         (auth.jwt()->'app_metadata'->>'app_role') = 'super_admin'
         OR (
-            (auth.jwt()->'app_metadata'->>'app_role') IN ('venue_admin', 'staff', 'dj')
+            (auth.jwt()->'app_metadata'->>'app_role') IN ('venue_admin', 'door_staff', 'staff', 'dj')
             AND (auth.jwt()->'app_metadata'->>'app_venue_id')::uuid = venue_id
         )
     );
 
 DROP POLICY IF EXISTS "Door staff and admins can update guests" ON public.guests;
+
 CREATE POLICY "Door staff and admins can update guests" ON public.guests
     FOR UPDATE USING (
         (auth.jwt()->'app_metadata'->>'app_role') = 'super_admin'
@@ -360,17 +434,19 @@ CREATE POLICY "Door staff and admins can update guests" ON public.guests
     );
 
 DROP POLICY IF EXISTS "Admins can delete guests" ON public.guests;
+
 CREATE POLICY "Admins can delete guests" ON public.guests
     FOR DELETE USING (
         (auth.jwt()->'app_metadata'->>'app_role') = 'super_admin'
         OR (
-            (auth.jwt()->'app_metadata'->>'app_role') IN ('venue_admin', 'staff', 'dj')
+            (auth.jwt()->'app_metadata'->>'app_role') IN ('venue_admin', 'door_staff', 'staff', 'dj')
             AND (auth.jwt()->'app_metadata'->>'app_venue_id')::uuid = venue_id
         )
     );
 
 -- ---- External DJ Links Policies ----
 DROP POLICY IF EXISTS "Admins can view external links" ON public.external_dj_links;
+
 CREATE POLICY "Admins can view external links" ON public.external_dj_links
     FOR SELECT USING (
         (auth.jwt()->'app_metadata'->>'app_role') = 'super_admin'
@@ -381,6 +457,7 @@ CREATE POLICY "Admins can view external links" ON public.external_dj_links
     );
 
 DROP POLICY IF EXISTS "Admins can create external links" ON public.external_dj_links;
+
 CREATE POLICY "Admins can create external links" ON public.external_dj_links
     FOR INSERT WITH CHECK (
         (auth.jwt()->'app_metadata'->>'app_role') = 'super_admin'
@@ -391,6 +468,7 @@ CREATE POLICY "Admins can create external links" ON public.external_dj_links
     );
 
 DROP POLICY IF EXISTS "Admins can update external links" ON public.external_dj_links;
+
 CREATE POLICY "Admins can update external links" ON public.external_dj_links
     FOR UPDATE USING (
         (auth.jwt()->'app_metadata'->>'app_role') = 'super_admin'
@@ -401,6 +479,7 @@ CREATE POLICY "Admins can update external links" ON public.external_dj_links
     );
 
 DROP POLICY IF EXISTS "Admins can delete external links" ON public.external_dj_links;
+
 CREATE POLICY "Admins can delete external links" ON public.external_dj_links
     FOR DELETE USING (
         (auth.jwt()->'app_metadata'->>'app_role') = 'super_admin'

@@ -7,10 +7,11 @@ import Spinner from "@/components/Spinner";
 import Alert from "@/components/Alert";
 import { BRAND_NAME } from "@/lib/brand";
 import { createClient } from "@/lib/supabase/client";
-import { Database } from "@/lib/database.types";
-import { SupabaseClient } from "@supabase/supabase-js";
+import { activateUserByAuthId } from "@/lib/api/guests";
 
 export default function ResetPasswordPage() {
+  // ... (omitted for brevity in replacement chunk, but I'll make sure to replace the right block)
+
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -25,7 +26,7 @@ export default function ResetPasswordPage() {
   const [flowType, setFlowType] = useState<string | null>(null);
 
   const router = useRouter();
-  const supabase: SupabaseClient<Database> = createClient();
+  const supabase = createClient();
 
   useEffect(() => {
     const parseUrl = async () => {
@@ -145,10 +146,7 @@ export default function ResetPasswordPage() {
         data: { user },
       } = await supabase.auth.getUser();
       if (user) {
-        const { error: activeErr } = await supabase
-          .from("users")
-          .update({ active: true })
-          .eq("auth_user_id", user.id);
+        const { error: activeErr } = await activateUserByAuthId(user.id);
 
         if (activeErr) {
           console.error("Activation error:", activeErr);

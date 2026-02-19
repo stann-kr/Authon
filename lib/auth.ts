@@ -1,4 +1,4 @@
-import { createClient } from './supabase/client';
+import { createClient } from "./supabase/client";
 
 export interface User {
   id: string;
@@ -6,40 +6,49 @@ export interface User {
   venue_id?: string;
   email: string;
   name: string;
-  role: 'super_admin' | 'venue_admin' | 'door_staff' | 'staff' | 'dj';
+  role: "super_admin" | "venue_admin" | "door_staff" | "staff" | "dj";
   guest_limit: number;
 }
 
 const supabase = createClient();
 
-export const login = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
+export const login = async (
+  email: string,
+  password: string,
+): Promise<{ success: boolean; message?: string }> => {
   try {
-    const { data: { user }, error: signInError } = await supabase.auth.signInWithPassword({
+    const {
+      data: { user },
+      error: signInError,
+    } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     if (signInError) {
-      console.error('Sign in error:', signInError);
-      return { success: false, message: 'Invalid email or password.' };
+      console.error("Sign in error:", signInError);
+      return { success: false, message: "Invalid email or password." };
     }
 
     if (!user) {
-      return { success: false, message: 'Login failed: unable to load user information.' };
+      return {
+        success: false,
+        message: "Login failed: unable to load user information.",
+      };
     }
 
     // 사용자 상세 정보 조회 (public.users 테이블)
     const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('auth_user_id', user.id)
+      .from("users")
+      .select("*")
+      .eq("auth_user_id", user.id)
       .single();
 
     if (userError || !userData) {
-      console.error('User data fetch error:', userError);
+      console.error("User data fetch error:", userError);
       // Auth에는 있지만 public.users에 없는 경우 로그아웃 처리
       await supabase.auth.signOut();
-      return { success: false, message: 'User profile could not be found.' };
+      return { success: false, message: "User profile could not be found." };
     }
 
     // 타입 단언 사용 (userData가 any로 추론되지 않도록)
@@ -47,7 +56,7 @@ export const login = async (email: string, password: string): Promise<{ success:
 
     if (!activeUser.active) {
       await supabase.auth.signOut();
-      return { success: false, message: 'This account is inactive.' };
+      return { success: false, message: "This account is inactive." };
     }
 
     // [호환성 유지] 기존 앱 로직이 localStorage 'user' 키를 동기적으로 참조하는 경우가 많으므로
@@ -60,24 +69,29 @@ export const login = async (email: string, password: string): Promise<{ success:
       venue_id: activeUser.venue_id,
       email: activeUser.email,
       name: activeUser.name,
-      role: activeUser.role as 'super_admin' | 'venue_admin' | 'door_staff' | 'staff' | 'dj',
-      guest_limit: activeUser.guest_limit
+      role: activeUser.role as
+        | "super_admin"
+        | "venue_admin"
+        | "door_staff"
+        | "staff"
+        | "dj",
+      guest_limit: activeUser.guest_limit,
     };
 
-    localStorage.setItem('user', JSON.stringify(userInfo));
+    localStorage.setItem("user", JSON.stringify(userInfo));
 
     return { success: true };
   } catch (error) {
-    console.error('Login error:', error);
-    return { success: false, message: 'An error occurred during login.' };
+    console.error("Login error:", error);
+    return { success: false, message: "An error occurred during login." };
   }
 };
 
 export const logout = async () => {
   await supabase.auth.signOut();
-  localStorage.removeItem('user');
-  if (typeof window !== 'undefined') {
-    window.location.href = '/auth/login';
+  localStorage.removeItem("user");
+  if (typeof window !== "undefined") {
+    window.location.href = "/auth/login";
   }
 };
 
@@ -86,11 +100,11 @@ export const logout = async () => {
  * This function relies on localStorage which might be out of sync.
  */
 export const getUser = (): User | null => {
-  if (typeof window === 'undefined') return null;
-  
-  const userStr = localStorage.getItem('user');
+  if (typeof window === "undefined") return null;
+
+  const userStr = localStorage.getItem("user");
   if (!userStr) return null;
-  
+
   try {
     return JSON.parse(userStr);
   } catch {
@@ -98,14 +112,17 @@ export const getUser = (): User | null => {
   }
 };
 
-export const hasAccess = (userRole: string, requiredAccess: string[]): boolean => {
+export const hasAccess = (
+  userRole: string,
+  requiredAccess: string[],
+): boolean => {
   const accessMap: Record<string, string[]> = {
-    'super_admin': ['guest', 'door', 'admin', 'venue'],
-    'venue_admin': ['guest', 'door', 'admin'],
-    'door_staff': ['door'],
-    'staff': ['guest'],
-    'dj': ['guest']
+    super_admin: ["guest", "door", "admin", "venue"],
+    venue_admin: ["guest", "door", "admin"],
+    door_staff: ["door", "guest"],
+    staff: ["guest"],
+    dj: ["guest"],
   };
-  
-  return requiredAccess.some(access => accessMap[userRole]?.includes(access));
+
+  return requiredAccess.some((access) => accessMap[userRole]?.includes(access));
 };
