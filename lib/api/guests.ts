@@ -357,6 +357,40 @@ export async function deleteUserViaEdge(
   return { error: null };
 }
 
+/**
+ * Resend invitation to an unverified user via Edge Function
+ */
+export async function resendInvitationViaEdge(
+  userId: string,
+): Promise<{ error: any }> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session?.access_token) {
+    return { error: { message: "Login is required." } };
+  }
+  const { data, error } = await supabase.functions.invoke("create-user", {
+    body: { action: "resend-invite", userId },
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
+  });
+
+  if (error || data?.error) {
+    return {
+      error: {
+        message: normalizeEdgeFunctionErrorMessage(
+          error,
+          data,
+          "Failed to resend invitation. Please try again.",
+        ),
+      },
+    };
+  }
+
+  return { error: null };
+}
+
 // ============================================================
 // DJ APIs
 // ============================================================
