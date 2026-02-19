@@ -746,3 +746,17 @@ export async function deleteGuestViaExternalLink(params: {
 
   return { error: null };
 }
+
+/**
+ * Activate a user profile using their auth_user_id
+ */
+export async function activateUserByAuthId(
+  authUserId: string,
+): Promise<{ error: any }> {
+  const { error } = await supabase
+    .from("users")
+    .update({ active: true })
+    .eq("auth_user_id", authUserId);
+
+  return { error };
+}
