@@ -75,6 +75,15 @@ export default function ResetPasswordPage() {
       if (updateError) {
         setError('비밀번호 변경에 실패했습니다: ' + updateError.message);
       } else {
+        // Activate user account after successful password setup (for invited users)
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await (supabase as any)
+            .from('users')
+            .update({ active: true })
+            .eq('auth_user_id', user.id);
+        }
+
         // Sign out after password change
         await supabase.auth.signOut();
         setSuccess(true);

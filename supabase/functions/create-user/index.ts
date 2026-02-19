@@ -7,6 +7,57 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
+/**
+ * Ensure public.users profile exists for a given auth user.
+ * The on_auth_user_created trigger should have created it, but may fail silently.
+ * This function acts as a safety net: upsert if missing.
+ */
+async function ensurePublicProfile(
+  supabaseAdmin: any,
+  authUserId: string,
+  email: string,
+  profileData: { name: string; role: string; venue_id: string | null; guest_limit: number; active: boolean }
+): Promise<{ data: any; error: any }> {
+  // 1. Check if trigger already created the profile
+  const { data: existing } = await supabaseAdmin
+    .from('users')
+    .select('*')
+    .eq('auth_user_id', authUserId)
+    .single()
+
+  if (existing) {
+    // Profile exists (trigger succeeded) — update active status if needed
+    if (existing.active !== profileData.active) {
+      const { data: updated, error: updateErr } = await supabaseAdmin
+        .from('users')
+        .update({ active: profileData.active })
+        .eq('auth_user_id', authUserId)
+        .select('*')
+        .single()
+      return { data: updated ?? existing, error: updateErr }
+    }
+    return { data: existing, error: null }
+  }
+
+  // 2. Trigger failed → manually create the profile
+  console.warn(`Trigger did not create public.users for auth_user_id=${authUserId}. Creating manually.`)
+  const { data: created, error: insertErr } = await supabaseAdmin
+    .from('users')
+    .insert({
+      auth_user_id: authUserId,
+      email,
+      name: profileData.name,
+      role: profileData.role,
+      venue_id: profileData.venue_id,
+      guest_limit: profileData.guest_limit,
+      active: profileData.active,
+    })
+    .select('*')
+    .single()
+
+  return { data: created, error: insertErr }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -51,12 +102,11 @@ serve(async (req) => {
       .eq('auth_user_id', caller.id)
       .single()
 
-    // FALLBACK: Auto-create missing profile from auth metadata
+    // FALLBACK: Auto-create missing caller profile from auth metadata
     if (profileError || !callerProfile) {
-      // Get full user metadata from admin API (getUser doesn't include app_metadata)
-      const { data: authUserData, error: authError } = await supabaseAdmin.auth.admin.getUserById(caller.id)
+      const { data: authUserData, error: adminAuthError } = await supabaseAdmin.auth.admin.getUserById(caller.id)
       
-      if (authError || !authUserData?.user) {
+      if (adminAuthError || !authUserData?.user) {
         return new Response(
           JSON.stringify({ error: '호출자 인증 정보를 가져올 수 없습니다.' }),
           { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -69,24 +119,23 @@ serve(async (req) => {
       
       if (!authRole || (authRole !== 'super_admin' && !authVenueId)) {
         return new Response(
-          JSON.stringify({ error: '호출자 프로필을 찾을 수 없습니다. auth에 role 또는 venue_id가 없습니다. 관리자에게 문의하세요.' }),
+          JSON.stringify({ error: '호출자 프로필을 찾을 수 없습니다. 관리자에게 문의하세요.' }),
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
       
-      // Auto-create missing profile
-      const { data: createdProfile, error: createProfileError } = await supabaseAdmin
-        .from('users')
-        .insert({
-          auth_user_id: caller.id,
-          email: authUser.email,
+      const { data: createdProfile, error: createProfileError } = await ensurePublicProfile(
+        supabaseAdmin,
+        caller.id,
+        authUser.email ?? '',
+        {
           name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
           role: authRole,
           venue_id: authVenueId || null,
           guest_limit: authUser.user_metadata?.guest_limit || (authRole === 'venue_admin' ? 999 : 10),
-        })
-        .select('id, role, venue_id')
-        .single()
+          active: true,
+        }
+      )
       
       if (createProfileError || !createdProfile) {
         return new Response(
@@ -104,7 +153,6 @@ serve(async (req) => {
     if (body.action === 'delete') {
       const { userId } = body
 
-      // Check permissions
       if (callerProfile.role !== 'super_admin' && callerProfile.role !== 'venue_admin') {
         return new Response(
           JSON.stringify({ error: '권한이 없습니다.' }),
@@ -112,7 +160,6 @@ serve(async (req) => {
         )
       }
 
-      // Get the user to delete
       const { data: targetUser } = await supabaseAdmin
         .from('users')
         .select('auth_user_id, venue_id')
@@ -126,7 +173,6 @@ serve(async (req) => {
         )
       }
 
-      // Venue admin can only delete users in their venue
       if (callerProfile.role === 'venue_admin' && targetUser.venue_id !== callerProfile.venue_id) {
         return new Response(
           JSON.stringify({ error: '다른 베뉴의 사용자를 삭제할 수 없습니다.' }),
@@ -134,11 +180,13 @@ serve(async (req) => {
         )
       }
 
-      // Delete auth user (cascade will delete public.users row)
       if (targetUser.auth_user_id) {
         const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(targetUser.auth_user_id)
         if (deleteError) throw deleteError
       }
+
+      // Also delete public.users row in case cascade doesn't fire
+      await supabaseAdmin.from('users').delete().eq('id', userId)
 
       return new Response(
         JSON.stringify({ message: '사용자가 삭제되었습니다.' }),
@@ -149,7 +197,7 @@ serve(async (req) => {
     // ---- CREATE USER ----
     const { email, name, role, venueId, guestLimit, password } = body
 
-    // Validate required fields (venueId nullable for super_admin)
+    // Validate required fields
     if (!email || !name || !role) {
       return new Response(
         JSON.stringify({ error: '필수 필드가 누락되었습니다. (email, name, role)' }),
@@ -172,7 +220,6 @@ serve(async (req) => {
       )
     }
 
-    // Venue admin can only create users in their own venue
     if (callerProfile.role === 'venue_admin') {
       if (venueId !== callerProfile.venue_id) {
         return new Response(
@@ -180,13 +227,26 @@ serve(async (req) => {
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
-      // Venue admin cannot create super_admin
       if (role === 'super_admin') {
         return new Response(
           JSON.stringify({ error: '슈퍼 어드민은 생성할 수 없습니다.' }),
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
+    }
+
+    // Check for duplicate email BEFORE creating auth user
+    const { data: existingUsers } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('email', email)
+      .limit(1)
+    
+    if (existingUsers && existingUsers.length > 0) {
+      return new Response(
+        JSON.stringify({ error: '이미 등록된 이메일입니다.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     const userData = {
@@ -196,9 +256,10 @@ serve(async (req) => {
       guest_limit: guestLimit ?? 10,
     }
 
-    let newAuthUser
-    let createError
+    let newAuthUser: any
+    let createError: any
     let successMessage: string
+    const isInviteMode = !password
 
     if (password) {
       // ---- MODE A: Create with temporary password (instant activation) ----
@@ -224,20 +285,9 @@ serve(async (req) => {
       newAuthUser = result.data
       createError = result.error
       successMessage = '초대 이메일이 전송되었습니다.'
-
-      // inviteUserByEmail doesn't set app_metadata via `data`, so set it separately
-      if (!createError && newAuthUser?.user) {
-        await supabaseAdmin.auth.admin.updateUserById(newAuthUser.user.id, {
-          app_metadata: {
-            app_role: role,
-            app_venue_id: venueId ?? null,
-          },
-        })
-      }
     }
 
     if (createError) {
-      // Check for duplicate email
       if (createError.message?.includes('already been registered') || createError.message?.includes('already exists')) {
         return new Response(
           JSON.stringify({ error: '이미 등록된 이메일입니다.' }),
@@ -247,15 +297,45 @@ serve(async (req) => {
       throw createError
     }
 
-    // 3. Fetch the created public.users profile (created by trigger)
-    // Small delay to ensure trigger has fired
-    await new Promise(resolve => setTimeout(resolve, 500))
+    if (!newAuthUser?.user?.id) {
+      throw new Error('Auth 사용자가 생성되었지만 ID를 가져올 수 없습니다.')
+    }
 
-    const { data: newUser } = await supabaseAdmin
-      .from('users')
-      .select('*')
-      .eq('auth_user_id', newAuthUser.user.id)
-      .single()
+    const authUserId = newAuthUser.user.id
+
+    // Always set app_metadata explicitly (trigger may set it, but we ensure correctness)
+    await supabaseAdmin.auth.admin.updateUserById(authUserId, {
+      app_metadata: {
+        app_role: role,
+        app_venue_id: venueId ?? null,
+      },
+    })
+
+    // Wait for trigger to potentially create public.users, then ensure it exists
+    await new Promise(resolve => setTimeout(resolve, 800))
+
+    const { data: newUser, error: profileError2 } = await ensurePublicProfile(
+      supabaseAdmin,
+      authUserId,
+      email,
+      {
+        name,
+        role,
+        venue_id: venueId ?? null,
+        guest_limit: guestLimit ?? 10,
+        active: !isInviteMode, // invite → inactive until user sets password; temp password → active
+      }
+    )
+
+    if (profileError2) {
+      // Auth user was created but profile failed → clean up auth user to avoid orphan
+      console.error('Failed to create profile, cleaning up auth user:', profileError2)
+      await supabaseAdmin.auth.admin.deleteUser(authUserId)
+      return new Response(
+        JSON.stringify({ error: '사용자 프로필 생성 실패: ' + profileError2.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     return new Response(
       JSON.stringify({
