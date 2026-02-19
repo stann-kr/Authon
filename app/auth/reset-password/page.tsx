@@ -7,6 +7,8 @@ import Spinner from "@/components/Spinner";
 import Alert from "@/components/Alert";
 import { BRAND_NAME } from "@/lib/brand";
 import { createClient } from "@/lib/supabase/client";
+import { Database } from "@/lib/database.types";
+import { SupabaseClient } from "@supabase/supabase-js";
 
 export default function ResetPasswordPage() {
   const [newPassword, setNewPassword] = useState("");
@@ -23,7 +25,7 @@ export default function ResetPasswordPage() {
   const [flowType, setFlowType] = useState<string | null>(null);
 
   const router = useRouter();
-  const supabase = createClient();
+  const supabase: SupabaseClient<Database> = createClient();
 
   useEffect(() => {
     const parseUrl = async () => {

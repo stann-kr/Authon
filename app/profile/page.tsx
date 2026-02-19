@@ -1,29 +1,28 @@
+"use client";
 
-'use client';
-
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import Footer from '@/components/Footer';
-import Spinner from '@/components/Spinner';
-import Alert from '@/components/Alert';
-import RoleLabel from '@/components/RoleLabel';
-import { getUser, User } from '@/lib/auth';
-import { createClient } from '@/lib/supabase/client';
-import { updateUserProfile } from '@/lib/api/guests';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import Footer from "@/components/Footer";
+import Spinner from "@/components/Spinner";
+import Alert from "@/components/Alert";
+import RoleLabel from "@/components/RoleLabel";
+import { getUser, User } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/client";
+import { updateUserProfile } from "@/lib/api/guests";
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [error, setError] = useState('');
-  
+  const [error, setError] = useState("");
+
   const [formData, setFormData] = useState({
-    name: '',
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
+    name: "",
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
   });
 
   const router = useRouter();
@@ -32,32 +31,32 @@ export default function ProfilePage() {
   useEffect(() => {
     const currentUser = getUser();
     if (!currentUser) {
-      router.push('/auth/login');
+      router.push("/auth/login");
       return;
     }
     setUser(currentUser);
-    setFormData(prev => ({ ...prev, name: currentUser.name }));
+    setFormData((prev) => ({ ...prev, name: currentUser.name }));
     setIsLoading(false);
   }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setIsSaving(true);
 
     if (formData.newPassword) {
       if (formData.newPassword.length < 6) {
-        setError('New password must be at least 6 characters.');
+        setError("New password must be at least 6 characters.");
         setIsSaving(false);
         return;
       }
       if (formData.newPassword !== formData.confirmPassword) {
-        setError('New passwords do not match.');
+        setError("New passwords do not match.");
         setIsSaving(false);
         return;
       }
       if (!formData.currentPassword) {
-        setError('Please enter your current password.');
+        setError("Please enter your current password.");
         setIsSaving(false);
         return;
       }
@@ -73,7 +72,7 @@ export default function ProfilePage() {
         });
 
         if (signInError) {
-          setError('Current password is incorrect.');
+          setError("Current password is incorrect.");
           setIsSaving(false);
           return;
         }
@@ -84,7 +83,7 @@ export default function ProfilePage() {
         });
 
         if (updateError) {
-          setError('Failed to change password: ' + updateError.message);
+          setError("Failed to change password: " + updateError.message);
           setIsSaving(false);
           return;
         }
@@ -92,10 +91,12 @@ export default function ProfilePage() {
 
       // 2. 이름 변경 — DB에 저장
       if (user && formData.name !== user.name) {
-        const { error: nameError } = await updateUserProfile(user.id, { name: formData.name });
+        const { error: nameError } = await updateUserProfile(user.id, {
+          name: formData.name,
+        });
 
         if (nameError) {
-          setError('Failed to update name: ' + nameError.message);
+          setError("Failed to update name: " + nameError.message);
           setIsSaving(false);
           return;
         }
@@ -103,23 +104,23 @@ export default function ProfilePage() {
 
       const updatedUser = {
         ...user,
-        name: formData.name
+        name: formData.name,
       };
-      
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+
+      localStorage.setItem("user", JSON.stringify(updatedUser));
       setUser(updatedUser as User);
-      
+
       setShowSuccess(true);
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
       }));
-      
+
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (err) {
-      setError('An error occurred while saving.');
+      setError("An error occurred while saving.");
     } finally {
       setIsSaving(false);
     }
@@ -136,12 +137,19 @@ export default function ProfilePage() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-10">
         <div className="flex items-center justify-between h-16 sm:h-20">
           <div className="flex items-center gap-4">
-            <Link href="/" className="w-8 h-8 sm:w-10 sm:h-10 border border-gray-600 bg-black hover:bg-gray-900 transition-colors flex items-center justify-center">
+            <Link
+              href="/"
+              className="w-8 h-8 sm:w-10 sm:h-10 border border-gray-600 bg-black hover:bg-gray-900 transition-colors flex items-center justify-center"
+            >
               <i className="ri-arrow-left-line text-gray-400 text-sm sm:text-base"></i>
             </Link>
             <div>
-              <h1 className="font-mono text-base sm:text-lg tracking-wider text-white uppercase">PROFILE</h1>
-              <p className="text-xs text-gray-500 font-mono tracking-wider uppercase hidden sm:block">EDIT YOUR INFORMATION</p>
+              <h1 className="font-mono text-base sm:text-lg tracking-wider text-white uppercase">
+                PROFILE
+              </h1>
+              <p className="text-xs text-gray-500 font-mono tracking-wider uppercase hidden sm:block">
+                EDIT YOUR INFORMATION
+              </p>
             </div>
           </div>
         </div>
@@ -179,19 +187,33 @@ export default function ProfilePage() {
               </div>
 
               <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
-                <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase mb-3">ACCOUNT INFO</h3>
+                <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase mb-3">
+                  ACCOUNT INFO
+                </h3>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-500 font-mono text-xs uppercase">Role</span>
-                    <span className="text-white font-mono text-xs uppercase"><RoleLabel role={user.role} /></span>
+                    <span className="text-gray-500 font-mono text-xs uppercase">
+                      Role
+                    </span>
+                    <span className="text-white font-mono text-xs uppercase">
+                      <RoleLabel role={user.role} />
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-500 font-mono text-xs uppercase">Guest Limit</span>
-                    <span className="text-white font-mono text-xs">{user.guest_limit}</span>
+                    <span className="text-gray-500 font-mono text-xs uppercase">
+                      Guest Limit
+                    </span>
+                    <span className="text-white font-mono text-xs">
+                      {user.guest_limit}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-500 font-mono text-xs uppercase">Status</span>
-                    <span className="text-green-400 font-mono text-xs uppercase">ACTIVE</span>
+                    <span className="text-gray-500 font-mono text-xs uppercase">
+                      Status
+                    </span>
+                    <span className="text-green-400 font-mono text-xs uppercase">
+                      ACTIVE
+                    </span>
                   </div>
                 </div>
               </div>
@@ -199,12 +221,14 @@ export default function ProfilePage() {
 
             <div className="lg:col-span-3">
               {showSuccess && (
-                <Alert type="success" message="Profile saved successfully." className="mb-6" />
+                <Alert
+                  type="success"
+                  message="Profile saved successfully."
+                  className="mb-6"
+                />
               )}
 
-              {error && (
-                <Alert type="error" message={error} className="mb-6" />
-              )}
+              {error && <Alert type="error" message={error} className="mb-6" />}
 
               <div className="bg-gray-900 border border-gray-700">
                 <div className="border-b border-gray-700 p-4">
@@ -221,8 +245,10 @@ export default function ProfilePage() {
                     <input
                       type="text"
                       value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full bg-black border border-gray-600 px-4 py-3 text-white font-mono text-sm tracking-wider uppercase focus:outline-none focus:border-white transition-colors"
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
+                      className="w-full bg-black border border-gray-600 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white transition-colors"
                       required
                     />
                   </div>
@@ -231,7 +257,7 @@ export default function ProfilePage() {
                     <p className="text-xs sm:text-sm text-gray-400 font-mono tracking-wider uppercase mb-4">
                       CHANGE PASSWORD (OPTIONAL)
                     </p>
-                    
+
                     <div className="space-y-4">
                       <div>
                         <label className="block text-xs sm:text-sm text-gray-400 font-mono tracking-wider uppercase mb-2">
@@ -240,7 +266,12 @@ export default function ProfilePage() {
                         <input
                           type="password"
                           value={formData.currentPassword}
-                          onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              currentPassword: e.target.value,
+                            })
+                          }
                           className="w-full bg-black border border-gray-600 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white transition-colors"
                           placeholder="••••••••"
                         />
@@ -254,7 +285,12 @@ export default function ProfilePage() {
                           <input
                             type="password"
                             value={formData.newPassword}
-                            onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                newPassword: e.target.value,
+                              })
+                            }
                             className="w-full bg-black border border-gray-600 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white transition-colors"
                             placeholder="••••••••"
                           />
@@ -267,7 +303,12 @@ export default function ProfilePage() {
                           <input
                             type="password"
                             value={formData.confirmPassword}
-                            onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                confirmPassword: e.target.value,
+                              })
+                            }
                             className="w-full bg-black border border-gray-600 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white transition-colors"
                             placeholder="••••••••"
                           />
