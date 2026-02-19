@@ -286,11 +286,14 @@ export async function createUserViaEdge(params: {
   const {
     data: { session },
   } = await supabase.auth.getSession();
-  if (!session) {
+  if (!session?.access_token) {
     return { data: null, error: { message: "Login is required." } };
   }
   const { data, error } = await supabase.functions.invoke("create-user", {
     body: params,
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
   });
 
   if (error) {
@@ -329,11 +332,14 @@ export async function deleteUserViaEdge(
   const {
     data: { session },
   } = await supabase.auth.getSession();
-  if (!session) {
+  if (!session?.access_token) {
     return { error: { message: "Login is required." } };
   }
   const { data, error } = await supabase.functions.invoke("create-user", {
     body: { action: "delete", userId },
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
   });
 
   if (error || data?.error) {
