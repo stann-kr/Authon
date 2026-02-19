@@ -444,14 +444,14 @@ CREATE POLICY "Admins can delete guests" ON public.guests
         )
     );
 
--- ---- External DJ Links Policies ----
-DROP POLICY IF EXISTS "Admins can view external links" ON public.external_dj_links;
+-- Venue staff can view external links (needed to show DJ name in guest lists)
+DROP POLICY IF EXISTS "Venue staff can view external links" ON public.external_dj_links;
 
-CREATE POLICY "Admins can view external links" ON public.external_dj_links
+CREATE POLICY "Venue staff can view external links" ON public.external_dj_links
     FOR SELECT USING (
         (auth.jwt()->'app_metadata'->>'app_role') = 'super_admin'
         OR (
-            (auth.jwt()->'app_metadata'->>'app_role') = 'venue_admin'
+            (auth.jwt()->'app_metadata'->>'app_role') IN ('venue_admin', 'door_staff', 'staff', 'dj')
             AND (auth.jwt()->'app_metadata'->>'app_venue_id')::uuid = venue_id
         )
     );
