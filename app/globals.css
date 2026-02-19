@@ -1,26 +1,31 @@
-@import url('https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.5.0/remixicon.min.css');
+@import url("https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.5.0/remixicon.min.css");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-	font-size: 14px;
+  font-size: 14px;
+}
+
+html,
+body {
+  @apply bg-black;
 }
 
 @layer components {
-	.page-shell {
-		@apply min-h-screen flex flex-col bg-black;
-	}
+  .page-shell {
+    @apply min-h-screen flex flex-col bg-black;
+  }
 
-	.page-scroll {
-		@apply flex-1 overflow-x-hidden pt-20 sm:pt-24 flex flex-col;
-	}
+  .page-scroll {
+    @apply flex-1 overflow-x-hidden pt-20 sm:pt-24 flex flex-col;
+  }
 
-	.page-container {
-		@apply max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10 w-full lg:flex-1 lg:min-h-0 flex flex-col;
-	}
+  .page-container {
+    @apply max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10 w-full lg:flex-1 lg:min-h-0 flex flex-col;
+  }
 
-	.main-content-panel {
-		@apply bg-gray-900 border border-gray-700 flex flex-col min-h-0 lg:min-h-[520px];
-	}
+  .main-content-panel {
+    @apply bg-gray-900 border border-gray-700 flex flex-col min-h-0 lg:min-h-[520px];
+  }
 }
