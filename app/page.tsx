@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getUser, logout, hasAccess, User } from '../lib/auth';
+import Footer from '@/components/Footer';
+import { BRAND_NAME, BRAND_TAGLINE } from '@/lib/brand';
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null);
@@ -88,8 +90,8 @@ export default function Home() {
                 <div className="w-2 h-2 bg-white"></div>
                 <div className="w-2 h-2 bg-white"></div>
               </div>
-              <h1 className="font-mono text-xl sm:text-2xl lg:text-3xl tracking-wider text-white uppercase mb-1">Authon</h1>
-              <p className="text-xs sm:text-sm text-gray-400 tracking-widest font-mono uppercase">Guest Management System</p>
+              <h1 className="font-mono text-xl sm:text-2xl lg:text-3xl tracking-wider text-white uppercase mb-1">{BRAND_NAME}</h1>
+              <p className="text-xs sm:text-sm text-gray-400 tracking-widest font-mono uppercase">{BRAND_TAGLINE}</p>
             </div>
             
             <button 
@@ -173,6 +175,8 @@ export default function Home() {
               </Link>
             ))}
           </div>
+
+          <Footer />
         </div>
       </div>
     </div>

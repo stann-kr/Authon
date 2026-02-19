@@ -61,7 +61,7 @@ serve(async (req) => {
               password_hash: application.password_hash,
               name: application.name,
               role: application.requested_role,
-              guest_limit: guestLimit || (application.requested_role === 'DJ' ? 20 : 0),
+              guest_limit: guestLimit || (['dj', 'staff'].includes(application.requested_role) ? 20 : 0),
               is_active: true
             })
 

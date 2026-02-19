@@ -6,6 +6,7 @@ export async function generateStaticParams() {
   ];
 }
 
-export default function InvitePage({ params }: { params: { id: string } }) {
-  return <InvitePageClient inviteId={params.id} />;
+export default async function InvitePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  return <InvitePageClient inviteId={id} />;
 }

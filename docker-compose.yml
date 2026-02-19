@@ -11,3 +11,17 @@ services:
     environment:
       - NODE_ENV=development
     command: npm run dev
+
+  # Supabase CLI for deploying Edge Functions
+  supabase:
+    build:
+      context: .
+      dockerfile: Dockerfile.supabase
+    volumes:
+      - ./:/app
+      - supabase-config:/root/.supabase
+    working_dir: /app
+    entrypoint: supabase
+
+volumes:
+  supabase-config:

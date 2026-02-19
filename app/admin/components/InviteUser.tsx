@@ -1,110 +1,161 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-
-interface InviteLink {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  guest_limit: number;
-  link: string;
-  created_at: string;
-  used: boolean;
-}
+import { getUser } from '../../../lib/auth';
+import { createUserViaEdge, fetchVenues, type Venue } from '../../../lib/api/guests';
 
 export default function InviteUser() {
+  const [createMode, setCreateMode] = useState<'invite' | 'password'>('invite');
   const [formData, setFormData] = useState({
     email: '',
     name: '',
-    role: 'DJ',
-    guest_limit: 20
+    role: 'dj' as 'venue_admin' | 'door_staff' | 'staff' | 'dj',
+    guest_limit: 10,
+    venue_id: '',
+    password: '',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [generatedLink, setGeneratedLink] = useState('');
-  const [inviteLinks, setInviteLinks] = useState<InviteLink[]>([]);
+  const [success, setSuccess] = useState('');
+  const [venues, setVenues] = useState<Venue[]>([]);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    const user = getUser();
+    setCurrentUser(user);
+
+    // Set default venue_id from current user
+    if (user?.venue_id) {
+      setFormData(prev => ({ ...prev, venue_id: user.venue_id as string }));
+    }
+
+    // Super admin can choose venue
+    if (user?.role === 'super_admin') {
+      fetchVenues().then(({ data }) => {
+        if (data) setVenues(data);
+      });
+    }
+  }, []);
+
+  const isSuperAdmin = currentUser?.role === 'super_admin';
+
+  // Role options depend on caller role
+  const roleOptions = isSuperAdmin
+    ? [
+        { value: 'venue_admin', label: 'VENUE ADMIN' },
+        { value: 'door_staff', label: 'DOOR STAFF' },
+        { value: 'staff', label: 'STAFF' },
+        { value: 'dj', label: 'DJ' },
+      ]
+    : [
+        { value: 'venue_admin', label: 'VENUE ADMIN' },
+        { value: 'door_staff', label: 'DOOR STAFF' },
+        { value: 'staff', label: 'STAFF' },
+        { value: 'dj', label: 'DJ' },
+      ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-    setGeneratedLink('');
+    setSuccess('');
+
+    if (!formData.venue_id) {
+      setError('베뉴를 선택해주세요.');
+      setIsLoading(false);
+      return;
+    }
 
     try {
-      const inviteId = `invite_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      const newInvite: InviteLink = {
-        id: inviteId,
+      const { data, error: createError } = await createUserViaEdge({
         email: formData.email,
         name: formData.name,
         role: formData.role,
-        guest_limit: formData.guest_limit,
-        link: `${window.location.origin}/auth/invite/${inviteId}`,
-        created_at: new Date().toISOString(),
-        used: false
-      };
-
-      const existingInvites = JSON.parse(localStorage.getItem('inviteLinks') || '[]');
-      const updatedInvites = [...existingInvites, newInvite];
-      localStorage.setItem('inviteLinks', JSON.stringify(updatedInvites));
-
-      setGeneratedLink(newInvite.link);
-      loadInviteLinks();
-      setFormData({
-        email: '',
-        name: '',
-        role: 'DJ',
-        guest_limit: 20
+        venueId: formData.venue_id,
+        guestLimit: formData.role === 'venue_admin' ? 999 : formData.guest_limit,
+        ...(createMode === 'password' && formData.password ? { password: formData.password } : {}),
       });
-    } catch (error) {
-      setError('초대 링크 생성 중 오류가 발생했습니다.');
+
+      if (createError) {
+        setError(createError.message || '사용자 생성에 실패했습니다.');
+      } else {
+        const msg = createMode === 'password'
+          ? `${formData.name} (${formData.email}) 계정이 생성되었습니다. 임시 비밀번호: ${formData.password}`
+          : `${formData.name} (${formData.email})에게 초대 이메일이 전송되었습니다.`;
+        setSuccess(msg);
+        setFormData(prev => ({
+          ...prev,
+          email: '',
+          name: '',
+          role: 'dj',
+          guest_limit: 10,
+          password: '',
+        }));
+      }
+    } catch (err: any) {
+      setError(err.message || '사용자 생성 중 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const loadInviteLinks = () => {
-    try {
-      const invites = JSON.parse(localStorage.getItem('inviteLinks') || '[]');
-      setInviteLinks(invites);
-    } catch (error) {
-      console.error('Failed to load invite links:', error);
-      setInviteLinks([]);
-    }
-  };
-
-  const copyToClipboard = async (link: string) => {
-    try {
-      await navigator.clipboard.writeText(link);
-      alert('링크가 복사되었습니다!');
-    } catch (error) {
-      console.error('Failed to copy to clipboard:', error);
-    }
-  };
-
-  const deleteInvite = (inviteId: string) => {
-    try {
-      const existingInvites = JSON.parse(localStorage.getItem('inviteLinks') || '[]');
-      const updatedInvites = existingInvites.filter((invite: InviteLink) => invite.id !== inviteId);
-      localStorage.setItem('inviteLinks', JSON.stringify(updatedInvites));
-      loadInviteLinks();
-    } catch (error) {
-      console.error('Failed to delete invite:', error);
-    }
-  };
-
-  useEffect(() => {
-    loadInviteLinks();
-  }, []);
-
   return (
     <div className="space-y-6">
-      <div className="bg-gray-900 border border-gray-700 p-6">
+      <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
         <h2 className="font-mono text-lg tracking-wider text-white uppercase mb-4">
-          INVITE NEW USER
+          CREATE USER
         </h2>
 
+        <div className="grid grid-cols-2 gap-px bg-gray-700 mb-4">
+          <button
+            type="button"
+            onClick={() => setCreateMode('invite')}
+            className={`p-3 font-mono text-xs tracking-wider uppercase transition-colors ${
+              createMode === 'invite'
+                ? 'bg-white text-black'
+                : 'bg-black text-gray-400 hover:text-white'
+            }`}
+          >
+            <i className="ri-mail-send-line mr-1"></i> EMAIL INVITE
+          </button>
+          <button
+            type="button"
+            onClick={() => setCreateMode('password')}
+            className={`p-3 font-mono text-xs tracking-wider uppercase transition-colors ${
+              createMode === 'password'
+                ? 'bg-white text-black'
+                : 'bg-black text-gray-400 hover:text-white'
+            }`}
+          >
+            <i className="ri-key-line mr-1"></i> TEMP PASSWORD
+          </button>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
+          {isSuperAdmin && venues.length > 0 && (
+            <div>
+              <label className="block text-gray-400 font-mono text-xs tracking-wider uppercase mb-2">
+                VENUE
+              </label>
+              <div className="relative">
+                <select
+                  value={formData.venue_id}
+                  onChange={(e) => setFormData({ ...formData, venue_id: e.target.value })}
+                  className="w-full appearance-none bg-black border border-gray-700 px-4 py-3 pr-10 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
+                  required
+                >
+                  <option value="">SELECT VENUE</option>
+                  {venues.map((venue) => (
+                    <option key={venue.id} value={venue.id}>
+                      {venue.name} ({venue.type})
+                    </option>
+                  ))}
+                </select>
+                <i className="ri-arrow-down-s-line absolute right-3 top-1/2 -translate-y-1/2 text-base text-gray-400 pointer-events-none"></i>
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="block text-gray-400 font-mono text-xs tracking-wider uppercase mb-2">
               EMAIL ADDRESS
@@ -112,7 +163,7 @@ export default function InviteUser() {
             <input
               type="email"
               value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               className="w-full bg-black border border-gray-700 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
               placeholder="user@example.com"
               required
@@ -126,7 +177,7 @@ export default function InviteUser() {
             <input
               type="text"
               value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="w-full bg-black border border-gray-700 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
               placeholder="John Doe"
               required
@@ -137,66 +188,72 @@ export default function InviteUser() {
             <label className="block text-gray-400 font-mono text-xs tracking-wider uppercase mb-2">
               ROLE
             </label>
-            <div className="grid grid-cols-3 gap-2">
-              {['DJ', 'Door', 'Admin'].map((role) => (
+            <div className="grid grid-cols-4 gap-2">
+              {roleOptions.map((opt) => (
                 <button
-                  key={role}
+                  key={opt.value}
                   type="button"
-                  onClick={() => setFormData({...formData, role})}
+                  onClick={() => setFormData({ ...formData, role: opt.value as any })}
                   className={`p-3 border font-mono text-xs tracking-wider uppercase transition-colors ${
-                    formData.role === role
+                    formData.role === opt.value
                       ? 'bg-white text-black border-white'
                       : 'bg-black text-gray-400 border-gray-700 hover:text-white hover:border-gray-500'
                   }`}
                 >
-                  {role}
+                  {opt.label}
                 </button>
               ))}
             </div>
           </div>
 
-          <div>
-            <label className="block text-gray-400 font-mono text-xs tracking-wider uppercase mb-2">
-              GUEST LIMIT
-            </label>
-            <input
-              type="number"
-              value={formData.guest_limit}
-              onChange={(e) => setFormData({...formData, guest_limit: parseInt(e.target.value) || 1})}
-              className="w-full bg-black border border-gray-700 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
-              min="1"
-              required
-            />
-          </div>
+          {formData.role !== 'venue_admin' && (
+            <div>
+              <label className="block text-gray-400 font-mono text-xs tracking-wider uppercase mb-2">
+                GUEST LIMIT
+              </label>
+              <input
+                type="number"
+                value={formData.guest_limit}
+                onChange={(e) => setFormData({ ...formData, guest_limit: parseInt(e.target.value) || 1 })}
+                className="w-full bg-black border border-gray-700 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
+                min="1"
+                required
+              />
+            </div>
+          )}
 
-          {error && (
-            <div className="bg-red-900/30 border border-red-700 p-3">
-              <p className="text-red-400 font-mono text-xs tracking-wider">
-                {error}
+          {createMode === 'password' && (
+            <div>
+              <label className="block text-gray-400 font-mono text-xs tracking-wider uppercase mb-2">
+                TEMPORARY PASSWORD
+              </label>
+              <input
+                type="text"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                className="w-full bg-black border border-gray-700 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
+                placeholder="Min 6 characters"
+                minLength={6}
+                required
+              />
+              <p className="text-gray-500 font-mono text-xs mt-1 tracking-wider">
+                사용자에게 전달 후 로그인 시 변경 안내
               </p>
             </div>
           )}
 
-          {generatedLink && (
+          {error && (
+            <div className="bg-red-900/30 border border-red-700 p-3">
+              <p className="text-red-400 font-mono text-xs tracking-wider">{error}</p>
+            </div>
+          )}
+
+          {success && (
             <div className="bg-green-900/30 border border-green-700 p-4">
-              <p className="text-green-400 font-mono text-xs tracking-wider uppercase mb-2">
-                INVITE LINK GENERATED
+              <p className="text-green-400 font-mono text-xs tracking-wider uppercase mb-1">
+                {createMode === 'password' ? 'ACCOUNT CREATED' : 'INVITATION SENT'}
               </p>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={generatedLink}
-                  readOnly
-                  className="flex-1 bg-black border border-green-700 px-3 py-2 text-green-400 font-mono text-xs tracking-wider"
-                />
-                <button
-                  type="button"
-                  onClick={() => copyToClipboard(generatedLink)}
-                  className="px-4 py-2 bg-green-700 text-white font-mono text-xs tracking-wider uppercase hover:bg-green-600 transition-colors"
-                >
-                  COPY
-                </button>
-              </div>
+              <p className="text-green-300 font-mono text-xs tracking-wider">{success}</p>
             </div>
           )}
 
@@ -205,62 +262,16 @@ export default function InviteUser() {
             disabled={isLoading}
             className="w-full bg-white text-black py-3 font-mono text-sm tracking-wider uppercase hover:bg-gray-200 transition-colors disabled:opacity-50"
           >
-            {isLoading ? 'GENERATING...' : 'GENERATE INVITE LINK'}
+            {isLoading ? (
+              <div className="flex items-center justify-center gap-2">
+                <div className="w-4 h-4 border border-black border-t-transparent rounded-full animate-spin"></div>
+                <span>{createMode === 'password' ? 'CREATING...' : 'SENDING...'}</span>
+              </div>
+            ) : (
+              createMode === 'password' ? 'CREATE ACCOUNT' : 'SEND INVITATION'
+            )}
           </button>
         </form>
-      </div>
-
-      <div className="bg-gray-900 border border-gray-700 p-6">
-        <h2 className="font-mono text-lg tracking-wider text-white uppercase mb-4">
-          PENDING INVITES
-        </h2>
-
-        <div className="space-y-3">
-          {inviteLinks.filter(invite => !invite.used).length === 0 ? (
-            <p className="text-gray-500 font-mono text-xs tracking-wider text-center py-8">
-              NO PENDING INVITES
-            </p>
-          ) : (
-            inviteLinks.filter(invite => !invite.used).map((invite) => (
-              <div key={invite.id} className="bg-black border border-gray-700 p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <p className="text-white font-mono text-sm tracking-wider uppercase">
-                      {invite.name}
-                    </p>
-                    <p className="text-gray-400 font-mono text-xs tracking-wider">
-                      {invite.email}
-                    </p>
-                    <p className="text-gray-500 font-mono text-xs tracking-wider mt-1">
-                      ROLE: {invite.role} • LIMIT: {invite.guest_limit}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => deleteInvite(invite.id)}
-                    className="w-8 h-8 border border-red-700 bg-red-900/30 hover:bg-red-900/50 transition-colors flex items-center justify-center"
-                  >
-                    <i className="ri-delete-bin-line text-red-400 text-sm"></i>
-                  </button>
-                </div>
-
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={invite.link}
-                    readOnly
-                    className="flex-1 bg-gray-900 border border-gray-700 px-3 py-2 text-gray-400 font-mono text-xs tracking-wider"
-                  />
-                  <button
-                    onClick={() => copyToClipboard(invite.link)}
-                    className="px-4 py-2 bg-gray-700 text-white font-mono text-xs tracking-wider uppercase hover:bg-gray-600 transition-colors"
-                  >
-                    COPY
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
       </div>
     </div>
   );

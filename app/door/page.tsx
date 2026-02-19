@@ -1,23 +1,23 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import AdminHeader from '../admin/components/AdminHeader';
 import AuthGuard from '../../components/AuthGuard';
-
-interface Guest {
-  id: string;
-  name: string;
-  djId: string;
-  status: 'pending' | 'checked' | 'deleted';
-  checkInTime?: string;
-}
-
-interface DJ {
-  id: string;
-  name: string;
-  event: string;
-}
+import GuestListCard from '../../components/GuestListCard';
+import Footer from '../../components/Footer';
+import { getBusinessDate, formatDateDisplay } from '../../lib/date';
+import { getUser } from '../../lib/auth';
+import {
+  fetchGuestsByDate,
+  fetchUsersByVenue,
+  fetchExternalLinksByDate,
+  updateGuestStatus,
+  deleteGuest,
+  type Guest,
+  type User,
+  type ExternalDJLink,
+} from '../../lib/api/guests';
 
 export default function DoorPage() {
   return (
@@ -28,38 +28,77 @@ export default function DoorPage() {
 }
 
 function DoorPageContent() {
-  const [selectedDate, setSelectedDate] = useState('2025-08-30');
+  const [selectedDate, setSelectedDate] = useState(
+    getBusinessDate()
+  );
   const [selectedDJ, setSelectedDJ] = useState<string>('all');
   const [loadingStates, setLoadingStates] = useState<{ [key: string]: boolean }>({});
   const [isDJDropdownOpen, setIsDJDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [users, setUsers] = useState<User[]>([]);
+  const [externalLinks, setExternalLinks] = useState<ExternalDJLink[]>([]);
+  const [guests, setGuests] = useState<Guest[]>([]);
+  const [isFetching, setIsFetching] = useState(true);
+  const [venues, setVenues] = useState<any[]>([]);
+  const [selectedVenueId, setSelectedVenueId] = useState<string>('');
+  const [sortMode, setSortMode] = useState<'default' | 'alpha'>('default');
 
-  const [djs] = useState<DJ[]>([
-    { id: '1', name: 'STANN LUMO', event: 'INVITES' },
-    { id: '2', name: 'JOHN DOE', event: 'MIDNIGHT SESSIONS' },
-    { id: '3', name: 'KATE MOON', event: 'DEEP HOUSE NIGHT' },
-    { id: '4', name: 'ALEX JONES', event: 'TECHNO PARADISE' },
-    { id: '5', name: 'SARA KIM', event: 'ELECTRONIC VIBES' }
-  ]);
+  const user = getUser();
+  const isSuperAdmin = user?.role === 'super_admin';
+  const venueId = isSuperAdmin ? selectedVenueId : user?.venue_id;
 
-  const [guests, setGuests] = useState<Guest[]>([
-    { id: '1', name: 'KIM MINSU', djId: '1', status: 'pending' },
-    { id: '2', name: 'LEE YOUNGHEE', djId: '1', status: 'checked', checkInTime: '19:30' },
-    { id: '3', name: 'PARK JUNHO', djId: '2', status: 'pending' },
-    { id: '4', name: 'CHOI SEOYEON', djId: '2', status: 'checked', checkInTime: '20:15' },
-    { id: '5', name: 'JUNG DAEUN', djId: '3', status: 'pending' },
-    { id: '6', name: 'WANG MINHO', djId: '3', status: 'checked', checkInTime: '21:00' },
-    { id: '7', name: 'SONG JIHYE', djId: '4', status: 'pending' },
-    { id: '8', name: 'KIM TAEHYUN', djId: '5', status: 'pending' },
-    { id: '1', name: 'KIM MINSU', djId: '1', status: 'pending' },
-    { id: '2', name: 'LEE YOUNGHEE', djId: '1', status: 'checked', checkInTime: '19:30' },
-    { id: '3', name: 'PARK JUNHO', djId: '2', status: 'pending' },
-    { id: '4', name: 'CHOI SEOYEON', djId: '2', status: 'checked', checkInTime: '20:15' },
-    { id: '5', name: 'JUNG DAEUN', djId: '3', status: 'pending' },
-    { id: '6', name: 'WANG MINHO', djId: '3', status: 'checked', checkInTime: '21:00' },
-    { id: '7', name: 'SONG JIHYE', djId: '4', status: 'pending' },
-    { id: '8', name: 'KIM TAEHYUN', djId: '5', status: 'pending' }
-  ]);
+  // Load venues for super_admin
+  useEffect(() => {
+    if (isSuperAdmin) {
+      import('../../lib/api/guests').then(({ fetchVenues }) => {
+        fetchVenues().then(({ data }) => {
+          if (data) {
+            setVenues(data);
+            if (data.length > 0 && !selectedVenueId) {
+              setSelectedVenueId(data[0].id);
+            }
+          }
+        });
+      });
+    }
+  }, [isSuperAdmin]);
+
+  const loadData = useCallback(async () => {
+    if (!venueId) return;
+    setIsFetching(true);
+    try {
+      const [guestRes, userRes, linkRes] = await Promise.all([
+        fetchGuestsByDate(selectedDate, venueId),
+        fetchUsersByVenue(venueId),
+        fetchExternalLinksByDate(venueId, selectedDate),
+      ]);
+      if (guestRes.data) setGuests(guestRes.data);
+      if (userRes.data) setUsers(userRes.data);
+      if (linkRes.data) setExternalLinks(linkRes.data);
+    } catch (err) {
+      console.error('Failed to load data:', err);
+    } finally {
+      setIsFetching(false);
+    }
+  }, [selectedDate, venueId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Polling for real-time updates (every 15 seconds)
+  useEffect(() => {
+    if (!venueId) return;
+    const interval = setInterval(async () => {
+      try {
+        const { data } = await fetchGuestsByDate(selectedDate, venueId);
+        if (data) setGuests(data);
+      } catch (err) {
+        // Silent fail for polling
+      }
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [selectedDate, venueId]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -71,52 +110,109 @@ function DoorPageContent() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const formatDateDisplay = (dateString: string) => {
-    const date = new Date(dateString);
-    return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
-  };
-
   const handleStatusChange = async (id: string, newStatus: Guest['status'], action: string) => {
     setLoadingStates(prev => ({ ...prev, [`${id}_${action}`]: true }));
-    await new Promise(resolve => setTimeout(resolve, 100));
 
-    setGuests(prev => prev.map(guest =>
-      guest.id === id
-        ? { ...guest, status: newStatus, checkInTime: newStatus === 'checked' ? new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : undefined }
-        : guest
-    ));
+    const { data, error } = newStatus === 'deleted'
+      ? await deleteGuest(id)
+      : await updateGuestStatus(id, newStatus);
+
+    if (!error && data) {
+      setGuests(prev => prev.map(g => g.id === id ? data : g));
+    } else {
+      console.error('Failed to update guest status:', error);
+    }
 
     setLoadingStates(prev => ({ ...prev, [`${id}_${action}`]: false }));
   };
 
+  // Helper: get contributor name for a guest (user or external DJ)
+  const getContributorName = (guest: Guest): string | undefined => {
+    if (guest.createdByUserId) {
+      const u = users.find(u => u.id === guest.createdByUserId);
+      return u?.name;
+    }
+    if (guest.externalLinkId) {
+      const link = externalLinks.find(l => l.id === guest.externalLinkId);
+      return link ? `${link.djName} (EXT)` : undefined;
+    }
+    return undefined;
+  };
+
   const filteredGuests = selectedDJ === 'all'
     ? guests
-    : guests.filter(guest => guest.djId === selectedDJ);
+    : selectedDJ.startsWith('ext:')
+      ? guests.filter(guest => guest.externalLinkId === selectedDJ.replace('ext:', ''))
+      : guests.filter(guest => guest.createdByUserId === selectedDJ);
 
   const pendingGuests = filteredGuests.filter(guest => guest.status === 'pending');
   const checkedGuests = filteredGuests.filter(guest => guest.status === 'checked');
+  const displayGuests = sortMode === 'alpha'
+    ? [...filteredGuests].sort((a, b) =>
+        (a.name || '').localeCompare(b.name || '', 'ko-KR', { sensitivity: 'base' })
+      )
+    : [...filteredGuests].sort((a, b) => {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return timeA - timeB;
+      });
 
   const getSelectedDJInfo = () => {
-    if (selectedDJ === 'all') return { name: 'ALL DJS', event: 'TOTAL OVERVIEW' };
-    return djs.find(dj => dj.id === selectedDJ) || { name: '', event: '' };
+    if (selectedDJ === 'all') return { name: 'ALL USERS', event: 'TOTAL OVERVIEW' };
+    if (selectedDJ.startsWith('ext:')) {
+      const link = externalLinks.find(l => l.id === selectedDJ.replace('ext:', ''));
+      return link ? { name: link.djName, event: 'EXTERNAL DJ' } : { name: '', event: '' };
+    }
+    const u = users.find(u => u.id === selectedDJ);
+    return u ? { name: u.name, event: u.role.toUpperCase() } : { name: '', event: '' };
   };
 
   const selectedDJInfo = getSelectedDJInfo();
 
   const getSelectedDJName = () => {
-    if (selectedDJ === 'all') return 'SELECT DJ';
-    const dj = djs.find(d => d.id === selectedDJ);
-    return dj ? dj.name : 'SELECT DJ';
+    if (selectedDJ === 'all') return 'SELECT USER';
+    if (selectedDJ.startsWith('ext:')) {
+      const link = externalLinks.find(l => l.id === selectedDJ.replace('ext:', ''));
+      return link ? link.djName : 'SELECT USER';
+    }
+    const u = users.find(u => u.id === selectedDJ);
+    return u ? u.name : 'SELECT USER';
   };
 
+  // Only show users/links who registered guests on the selected date
+  const activeUserIds = new Set(guests.map(g => g.createdByUserId).filter(Boolean));
+  const filteredUsers = users.filter(u => activeUserIds.has(u.id));
+  const activeExtLinkIds = new Set(guests.map(g => g.externalLinkId).filter(Boolean));
+  const filteredExtLinks = externalLinks.filter(l => activeExtLinkIds.has(l.id));
+
   return (
-    <div className="min-h-screen bg-black">
+    <div className="h-screen overflow-hidden flex flex-col bg-black">
       <AdminHeader />
 
-      <div className="pt-20 sm:pt-24 pb-4">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mb-6">
-            <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden lg:overflow-hidden pt-20 sm:pt-24 pb-6 flex flex-col">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10 w-full lg:flex-1 lg:min-h-0 flex flex-col">
+          <div className="mb-4 lg:mb-6 flex-shrink-0 flex flex-col sm:flex-row gap-4">
+            {isSuperAdmin && (
+              <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5 flex-1">
+                <div className="mb-2">
+                  <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase">SELECT VENUE</h3>
+                </div>
+                <div className="relative">
+                  <select
+                    value={selectedVenueId}
+                    onChange={(e) => setSelectedVenueId(e.target.value)}
+                    className="w-full appearance-none bg-black border border-gray-600 px-4 py-3 pr-10 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
+                  >
+                    <option value="">-- Select Venue --</option>
+                    {venues.map((v) => (
+                      <option key={v.id} value={v.id}>{v.name}</option>
+                    ))}
+                  </select>
+                  <i className="ri-arrow-down-s-line absolute right-3 top-1/2 -translate-y-1/2 text-base text-gray-400 pointer-events-none"></i>
+                </div>
+              </div>
+            )}
+            <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5 flex-1">
               <div className="mb-2">
                 <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase">SELECT DATE</h3>
               </div>
@@ -129,11 +225,11 @@ function DoorPageContent() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            <div className="lg:col-span-1 space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6 lg:flex-1 lg:min-h-0">
+            <div className="lg:col-span-1 space-y-4 lg:overflow-y-auto">
               <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
                 <div className="mb-4">
-                  <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase mb-3">SELECT DJ</h3>
+                  <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase mb-3">SELECT USER</h3>
                   <div className="space-y-2">
                     <button
                       onClick={() => setSelectedDJ('all')}
@@ -143,37 +239,52 @@ function DoorPageContent() {
                           : 'bg-gray-800 text-gray-400 hover:text-white border border-gray-700'
                       }`}
                     >
-                      ALL DJS
+                      ALL USERS
                     </button>
                     
                     <div className="relative" ref={dropdownRef}>
                       <button
                         onClick={() => setIsDJDropdownOpen(!isDJDropdownOpen)}
-                        className={`w-full bg-gray-800 border border-gray-700 p-3 font-mono text-xs tracking-wider uppercase focus:outline-none focus:border-white flex items-center justify-between transition-colors ${
+                        className={`w-full bg-gray-800 border border-gray-700 px-4 py-3 font-mono text-xs tracking-wider uppercase focus:outline-none focus:border-white flex items-center justify-between gap-3 transition-colors ${
                           selectedDJ !== 'all' ? 'text-white' : 'text-gray-400'
                         }`}
                       >
-                        <span>{getSelectedDJName()}</span>
-                        <i className={`ri-arrow-down-s-line text-base transition-transform ${isDJDropdownOpen ? 'rotate-180' : ''}`}></i>
+                        <span className="break-words">{getSelectedDJName()}</span>
+                        <i className={`ri-arrow-down-s-line text-base transition-transform flex-shrink-0 ${isDJDropdownOpen ? 'rotate-180' : ''}`}></i>
                       </button>
                       
                       {isDJDropdownOpen && (
                         <div className="absolute top-full left-0 right-0 mt-1 bg-gray-900 border border-gray-700 z-50 max-h-60 overflow-y-auto">
-                          {djs.map((dj) => (
+                          {filteredUsers.map((u) => (
                             <button
-                              key={dj.id}
+                              key={u.id}
                               onClick={() => {
-                                setSelectedDJ(dj.id);
+                                setSelectedDJ(u.id);
                                 setIsDJDropdownOpen(false);
                               }}
                               className={`w-full p-3 font-mono text-xs tracking-wider uppercase text-left transition-colors ${
-                                selectedDJ === dj.id
+                                selectedDJ === u.id
                                   ? 'bg-white text-black'
                                   : 'text-gray-400 hover:bg-gray-800 hover:text-white'
                               }`}
                             >
-                              <div>{dj.name}</div>
-                              <div className="text-[10px] mt-1 opacity-60">{dj.event}</div>
+                              {u.name}
+                            </button>
+                          ))}
+                          {filteredExtLinks.map((link) => (
+                            <button
+                              key={`ext:${link.id}`}
+                              onClick={() => {
+                                setSelectedDJ(`ext:${link.id}`);
+                                setIsDJDropdownOpen(false);
+                              }}
+                              className={`w-full p-3 font-mono text-xs tracking-wider uppercase text-left transition-colors ${
+                                selectedDJ === `ext:${link.id}`
+                                  ? 'bg-white text-black'
+                                  : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                              }`}
+                            >
+                              {link.djName}
                             </button>
                           ))}
                         </div>
@@ -185,19 +296,19 @@ function DoorPageContent() {
 
               <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
                 <div className="mb-4">
-                  <h2 className="font-mono text-base sm:text-lg tracking-wider text-white uppercase mb-1">
+                  <h2 className="font-mono text-base sm:text-lg tracking-wider text-white uppercase mb-1 break-words">
                     {selectedDJInfo.name}
                   </h2>
-                  <p className="text-gray-400 font-mono text-xs tracking-wider mb-1">
+                  <p className="text-gray-400 font-mono text-xs tracking-wider mb-1 break-words">
                     {selectedDJInfo.event}
                   </p>
-                  <p className="text-gray-400 font-mono text-xs tracking-wider">
+                  <p className="text-gray-400 font-mono text-xs tracking-wider break-words">
                     {formatDateDisplay(selectedDate)}
                   </p>
                 </div>
                 <div className="text-center mb-4">
                   <div className="text-white font-mono text-3xl sm:text-4xl tracking-wider">
-                    {pendingGuests.length + checkedGuests.length}
+                    {isFetching ? '...' : pendingGuests.length + checkedGuests.length}
                   </div>
                   <div className="text-gray-400 text-xs font-mono tracking-wider uppercase">
                     TOTAL GUESTS
@@ -225,111 +336,74 @@ function DoorPageContent() {
               </div>
             </div>
 
-            <div className="lg:col-span-3">
-              <div className="bg-gray-900 border border-gray-700">
-                <div className="border-b border-gray-700 p-4">
+            <div className="lg:col-span-3 flex flex-col lg:min-h-0">
+              <div className="bg-gray-900 border border-gray-700 flex flex-col lg:min-h-0 lg:max-h-full">
+                <div className="border-b border-gray-700 p-4 flex items-center justify-between flex-shrink-0">
                   <h3 className="font-mono text-xs sm:text-sm tracking-wider text-white uppercase">
                     GUEST LIST ({filteredGuests.length})
                   </h3>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setSortMode(prev => prev === 'default' ? 'alpha' : 'default')}
+                      className="px-3 py-1 bg-gray-800 text-gray-400 font-mono text-xs tracking-wider uppercase hover:text-white transition-colors border border-gray-700"
+                    >
+                      SORT: {sortMode === 'alpha' ? 'ABC' : 'DEFAULT'}
+                    </button>
+                    <button
+                      onClick={loadData}
+                      className="px-3 py-1 bg-gray-800 text-gray-400 font-mono text-xs tracking-wider uppercase hover:text-white transition-colors border border-gray-700"
+                    >
+                      <i className="ri-refresh-line mr-1"></i>REFRESH
+                    </button>
+                  </div>
                 </div>
 
-                <div className="divide-y divide-gray-700 lg:[max-height:calc(100vh-320px)] lg:overflow-y-auto">
-                  {filteredGuests.map((guest, index) => {
-                    const guestDJ = djs.find(dj => dj.id === guest.djId);
-                    return (
-                      <div key={guest.id} className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3 sm:gap-4">
-                            <div className="w-8 h-8 sm:w-10 sm:h-10 border border-gray-600 flex items-center justify-center">
-                              <span className="text-xs sm:text-sm font-mono text-gray-400">
-                                {String(index + 1).padStart(2, '0')}
-                              </span>
-                            </div>
-                            <div>
-                              <p className="font-mono text-sm sm:text-base tracking-wider text-white uppercase">
-                                {guest.name}
-                              </p>
-                              <div className="flex flex-wrap gap-2 mt-1">
-                                {selectedDJ === 'all' && guestDJ && (
-                                  <span className="text-xs font-mono text-gray-400">
-                                    DJ: {guestDJ.name}
-                                  </span>
-                                )}
-                                {guest.checkInTime && (
-                                  <span className="text-xs font-mono text-green-400">
-                                    IN: {guest.checkInTime}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex gap-2">
-                            {guest.status === 'pending' && (
-                              <>
-                                <button
-                                  onClick={() => handleStatusChange(guest.id, 'checked', 'check')}
-                                  disabled={loadingStates[`${guest.id}_check`]}
-                                  className="px-4 sm:px-6 py-2 sm:py-3 bg-white text-black font-mono text-xs tracking-wider uppercase hover:bg-gray-200 transition-colors disabled:opacity-50"
-                                >
-                                  {loadingStates[`${guest.id}_check`] ? (
-                                    <div className="flex items-center justify-center">
-                                      <div className="w-3 h-3 border border-black border-t-transparent rounded-full animate-spin"></div>
-                                    </div>
-                                  ) : (
-                                    'CHECK'
-                                  )}
-                                </button>
-                                <button
-                                  onClick={() => handleStatusChange(guest.id, 'deleted', 'remove')}
-                                  disabled={loadingStates[`${guest.id}_remove`]}
-                                  className="px-3 sm:px-4 py-2 sm:py-3 border border-gray-600 text-gray-400 font-mono text-xs tracking-wider uppercase hover:bg-gray-800 transition-colors disabled:opacity-50"
-                                >
-                                  {loadingStates[`${guest.id}_remove`] ? (
-                                    <div className="flex items-center justify-center">
-                                      <div className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-                                    </div>
-                                  ) : (
-                                    <i className="ri-close-line"></i>
-                                  )}
-                                </button>
-                              </>
-                            )}
-
-                            {guest.status === 'checked' && (
-                              <div className="flex items-center gap-2">
-                                <span className="px-4 sm:px-6 py-2 sm:py-3 bg-green-600/20 border border-green-600 text-green-400 font-mono text-xs tracking-wider uppercase">
-                                  ACTIVE
-                                </span>
-                                <button
-                                  onClick={() => handleStatusChange(guest.id, 'deleted', 'remove')}
-                                  disabled={loadingStates[`${guest.id}_remove`]}
-                                  className="w-8 h-8 sm:w-10 sm:h-10 border border-gray-600 flex items-center justify-center text-gray-400 hover:bg-gray-800 transition-colors disabled:opacity-50"
-                                >
-                                  {loadingStates[`${guest.id}_remove`] ? (
-                                    <div className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-                                  ) : (
-                                    <i className="ri-close-line text-sm"></i>
-                                  )}
-                                </button>
-                              </div>
-                            )}
-
-                            {guest.status === 'deleted' && (
-                              <span className="px-4 sm:px-6 py-2 sm:py-3 bg-gray-800 text-gray-500 font-mono text-xs tracking-wider uppercase">
-                                REMOVED
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                {isFetching ? (
+                  <div className="flex items-center justify-center p-8">
+                    <div className="w-6 h-6 border border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span className="ml-2 text-white font-mono text-sm">LOADING...</span>
+                  </div>
+                ) : filteredGuests.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <div className="w-16 h-16 border border-gray-600 mx-auto mb-4 flex items-center justify-center">
+                      <i className="ri-user-line text-gray-400 text-2xl"></i>
+                    </div>
+                    <p className="text-gray-400 font-mono text-sm tracking-wider uppercase">
+                      NO GUESTS FOR THIS DATE
+                    </p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-700 lg:overflow-y-auto">
+                    {displayGuests.map((guest, index) => {
+                      return (
+                        <GuestListCard
+                          key={guest.id}
+                          guest={{
+                            id: guest.id,
+                            name: guest.name,
+                            status: guest.status,
+                            checkInTime: guest.checkInTime || undefined,
+                            createdAt: guest.createdAt || undefined,
+                            djId: guest.djId || undefined,
+                          }}
+                          index={index}
+                          variant="admin"
+                          djName={getContributorName(guest)}
+                          onCheck={() => handleStatusChange(guest.id, 'checked', 'check')}
+                          onDelete={() => handleStatusChange(guest.id, 'deleted', 'remove')}
+                          isCheckLoading={loadingStates[`${guest.id}_check`]}
+                          isDeleteLoading={loadingStates[`${guest.id}_remove`]}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
+
+        <Footer />
       </div>
     </div>
   );
