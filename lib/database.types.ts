@@ -37,7 +37,7 @@ export interface Database {
         Row: {
           id: string;
           auth_user_id: string | null;
-          venue_id: string;
+          venue_id: string | null;
           email: string;
           name: string;
           role: 'super_admin' | 'venue_admin' | 'door_staff' | 'staff' | 'dj';
@@ -157,6 +157,7 @@ export interface Database {
           name: string;
           dj_id: string | null;
           external_link_id: string | null;
+          created_by_user_id: string | null;
           status: 'pending' | 'checked' | 'deleted';
           check_in_time: string | null;
           date: string;
@@ -169,6 +170,7 @@ export interface Database {
           name: string;
           dj_id?: string | null;
           external_link_id?: string | null;
+          created_by_user_id?: string | null;
           status?: 'pending' | 'checked' | 'deleted';
           check_in_time?: string | null;
           date: string;
@@ -181,6 +183,7 @@ export interface Database {
           name?: string;
           dj_id?: string | null;
           external_link_id?: string | null;
+          created_by_user_id?: string | null;
           status?: 'pending' | 'checked' | 'deleted';
           check_in_time?: string | null;
           date?: string;

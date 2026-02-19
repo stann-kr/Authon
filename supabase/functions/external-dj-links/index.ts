@@ -162,11 +162,8 @@ serve(async (req) => {
         throw guestError
       }
 
-      // Increment used_guests
-      await supabaseAdmin
-        .from('external_dj_links')
-        .update({ used_guests: link.used_guests + 1 })
-        .eq('id', link.id)
+      // NOTE: used_guests is auto-incremented by DB trigger (on_guest_created_increment_link)
+      // Do NOT manually increment here to avoid double-counting.
 
       return new Response(
         JSON.stringify({
