@@ -143,7 +143,7 @@ export default function ResetPasswordPage() {
         data: { user },
       } = await supabase.auth.getUser();
       if (user) {
-        const { error: activeErr } = await (supabase as any)
+        const { error: activeErr } = await supabase
           .from("users")
           .update({ active: true })
           .eq("auth_user_id", user.id);
