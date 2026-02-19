@@ -10,11 +10,33 @@
 html,
 body {
   @apply bg-black;
+  overflow-x: hidden;
+}
+
+/* iOS Safari: min-h-screen을 dvh로 오버라이드 (주소창 동적 높이 대응) */
+.min-h-screen {
+  min-height: 100dvh;
+}
+
+/* iOS Safari: 16px 미만 input focus 시 자동 zoom 방지 */
+input,
+select,
+textarea {
+  font-size: 16px !important;
+}
+
+/* iOS Safari: date input 네이티브 렌더링 overflow 방지 */
+input[type="date"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  min-width: 0;
 }
 
 @layer components {
   .page-shell {
-    @apply min-h-screen flex flex-col bg-black;
+    @apply flex flex-col bg-black;
+    min-height: 100dvh;
   }
 
   .page-scroll {
