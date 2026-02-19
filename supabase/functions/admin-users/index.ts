@@ -55,7 +55,7 @@ serve(async (req) => {
         if (error) throw error
 
         return new Response(
-          JSON.stringify({ message: '사용자 정보가 업데이트되었습니다.' }),
+          JSON.stringify({ message: 'User information updated.' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
@@ -72,7 +72,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Admin users error:', error)
     return new Response(
-      JSON.stringify({ message: '처리 중 오류가 발생했습니다.' }),
+      JSON.stringify({ message: 'An error occurred while processing the request.' }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

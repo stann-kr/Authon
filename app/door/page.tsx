@@ -4,15 +4,19 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import AdminHeader from '../admin/components/AdminHeader';
 import AuthGuard from '../../components/AuthGuard';
-import PageLayout from '../../components/PageLayout';
+import Footer from '../../components/Footer';
 import GuestListCard from '../../components/GuestListCard';
+import VenueSelector, { useVenueSelector } from '../../components/VenueSelector';
+import DatePicker from '../../components/DatePicker';
+import StatGrid from '../../components/StatGrid';
+import PanelHeader from '../../components/PanelHeader';
+import Spinner from '../../components/Spinner';
+import EmptyState from '../../components/EmptyState';
 import { getBusinessDate, formatDateDisplay } from '../../lib/date';
-import { getUser } from '../../lib/auth';
 import {
   fetchGuestsByDate,
   fetchUsersByVenue,
   fetchExternalLinksByDate,
-  fetchVenues,
   updateGuestStatus,
   deleteGuest,
   type Guest,
@@ -40,27 +44,9 @@ function DoorPageContent() {
   const [externalLinks, setExternalLinks] = useState<ExternalDJLink[]>([]);
   const [guests, setGuests] = useState<Guest[]>([]);
   const [isFetching, setIsFetching] = useState(true);
-  const [venues, setVenues] = useState<any[]>([]);
-  const [selectedVenueId, setSelectedVenueId] = useState<string>('');
   const [sortMode, setSortMode] = useState<'default' | 'alpha'>('default');
 
-  const user = getUser();
-  const isSuperAdmin = user?.role === 'super_admin';
-  const venueId = isSuperAdmin ? selectedVenueId : user?.venue_id;
-
-  // Load venues for super_admin
-  useEffect(() => {
-    if (isSuperAdmin) {
-      fetchVenues().then(({ data }) => {
-        if (data) {
-          setVenues(data);
-          if (data.length > 0 && !selectedVenueId) {
-            setSelectedVenueId(data[0].id);
-          }
-        }
-      });
-    }
-  }, [isSuperAdmin]);
+  const { venueId, venues, selectedVenueId, setSelectedVenueId, isSuperAdmin } = useVenueSelector();
 
   const loadData = useCallback(async () => {
     if (!venueId) return;
@@ -185,39 +171,24 @@ function DoorPageContent() {
   const filteredExtLinks = externalLinks.filter(l => activeExtLinkIds.has(l.id));
 
   return (
-    <PageLayout header={<AdminHeader />}>
+    <div className="min-h-screen bg-black flex flex-col">
+      <AdminHeader />
+      <div className="flex-1 overflow-x-hidden pt-20 sm:pt-24 flex flex-col">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 w-full lg:flex-1 lg:min-h-0 flex flex-col">
           <div className="mb-4 lg:mb-6 flex-shrink-0 flex flex-col sm:flex-row gap-4">
             {isSuperAdmin && (
-              <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5 flex-1">
-                <div className="mb-2">
-                  <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase">SELECT VENUE</h3>
-                </div>
-                <div className="relative">
-                  <select
-                    value={selectedVenueId}
-                    onChange={(e) => setSelectedVenueId(e.target.value)}
-                    className="w-full appearance-none bg-black border border-gray-600 px-4 py-3 pr-10 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
-                  >
-                    <option value="">-- Select Venue --</option>
-                    {venues.map((v) => (
-                      <option key={v.id} value={v.id}>{v.name}</option>
-                    ))}
-                  </select>
-                  <i className="ri-arrow-down-s-line absolute right-3 top-1/2 -translate-y-1/2 text-base text-gray-400 pointer-events-none"></i>
-                </div>
-              </div>
-            )}
-            <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5 flex-1">
-              <div className="mb-2">
-                <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase">SELECT DATE</h3>
-              </div>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full sm:w-auto sm:min-w-[250px] bg-black border border-gray-600 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
+              <VenueSelector
+                venues={venues}
+                selectedVenueId={selectedVenueId}
+                onVenueChange={setSelectedVenueId}
+                className="flex-1"
               />
-            </div>
+            )}
+            <DatePicker
+              value={selectedDate}
+              onChange={setSelectedDate}
+              className="flex-1"
+            />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6 lg:flex-1 lg:min-h-0">
@@ -305,68 +276,32 @@ function DoorPageContent() {
                   <div className="text-white font-mono text-3xl sm:text-4xl tracking-wider">
                     {isFetching ? '...' : pendingGuests.length + checkedGuests.length}
                   </div>
-                  <div className="text-gray-400 text-xs font-mono tracking-wider uppercase">
+                  <div className="text-cyan-300 text-xs font-mono tracking-wider uppercase">
                     TOTAL GUESTS
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-px bg-gray-700">
-                  <div className="bg-gray-800 p-3 text-center">
-                    <div className="text-white font-mono text-lg sm:text-xl tracking-wider">
-                      {pendingGuests.length}
-                    </div>
-                    <div className="text-gray-400 text-xs font-mono tracking-wider uppercase">
-                      WAITING
-                    </div>
-                  </div>
-                  <div className="bg-gray-800 p-3 text-center">
-                    <div className="text-white font-mono text-lg sm:text-xl tracking-wider">
-                      {checkedGuests.length}
-                    </div>
-                    <div className="text-gray-400 text-xs font-mono tracking-wider uppercase">
-                      CHECKED
-                    </div>
-                  </div>
-                </div>
+                <StatGrid items={[
+                  { label: 'WAITING', value: pendingGuests.length, color: 'yellow' },
+                  { label: 'CHECKED', value: checkedGuests.length, color: 'green' },
+                ]} />
               </div>
             </div>
 
             <div className="lg:col-span-3 flex flex-col lg:min-h-0">
               <div className="main-content-panel lg:min-h-0 lg:max-h-full">
-                <div className="border-b border-gray-700 p-4 flex items-center justify-between flex-shrink-0">
-                  <h3 className="font-mono text-xs sm:text-sm tracking-wider text-white uppercase">
-                    GUEST LIST ({filteredGuests.length})
-                  </h3>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setSortMode(prev => prev === 'default' ? 'alpha' : 'default')}
-                      className="px-3 py-1 bg-gray-800 text-gray-400 font-mono text-xs tracking-wider uppercase hover:text-white transition-colors border border-gray-700"
-                    >
-                      SORT: {sortMode === 'alpha' ? 'ABC' : 'DEFAULT'}
-                    </button>
-                    <button
-                      onClick={loadData}
-                      className="px-3 py-1 bg-gray-800 text-gray-400 font-mono text-xs tracking-wider uppercase hover:text-white transition-colors border border-gray-700"
-                    >
-                      <i className="ri-refresh-line mr-1"></i>REFRESH
-                    </button>
-                  </div>
-                </div>
+                <PanelHeader
+                  title="GUEST LIST"
+                  count={filteredGuests.length}
+                  sortMode={sortMode}
+                  onSortToggle={() => setSortMode(prev => prev === 'default' ? 'alpha' : 'default')}
+                  onRefresh={loadData}
+                />
 
                 {isFetching ? (
-                  <div className="flex items-center justify-center p-8">
-                    <div className="w-6 h-6 border border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span className="ml-2 text-white font-mono text-sm">LOADING...</span>
-                  </div>
+                  <Spinner mode="inline" text="LOADING..." />
                 ) : filteredGuests.length === 0 ? (
-                  <div className="p-8 text-center">
-                    <div className="w-16 h-16 border border-gray-600 mx-auto mb-4 flex items-center justify-center">
-                      <i className="ri-user-line text-gray-400 text-2xl"></i>
-                    </div>
-                    <p className="text-gray-400 font-mono text-sm tracking-wider uppercase">
-                      NO GUESTS FOR THIS DATE
-                    </p>
-                  </div>
+                  <EmptyState icon="ri-user-line" message="NO GUESTS FOR THIS DATE" />
                 ) : (
                   <div className="divide-y divide-gray-700 lg:overflow-y-auto">
                     {displayGuests.map((guest, index) => {
@@ -385,9 +320,7 @@ function DoorPageContent() {
                           variant="admin"
                           djName={getContributorName(guest)}
                           onCheck={() => handleStatusChange(guest.id, 'checked', 'check')}
-                          onDelete={() => handleStatusChange(guest.id, 'deleted', 'remove')}
                           isCheckLoading={loadingStates[`${guest.id}_check`]}
-                          isDeleteLoading={loadingStates[`${guest.id}_remove`]}
                         />
                       );
                     })}
@@ -396,6 +329,9 @@ function DoorPageContent() {
               </div>
             </div>
           </div>
-    </PageLayout>
+        </div>
+        <Footer />
+      </div>
+    </div>
   );
 }

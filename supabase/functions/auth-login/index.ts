@@ -14,7 +14,7 @@ serve(async (req) => {
   try {
     return new Response(
       JSON.stringify({
-        message: '로그인 엔드포인트가 아직 연결되지 않았습니다.'
+        message: 'Login endpoint is not connected yet.'
       }),
       {
         status: 501,
@@ -24,7 +24,7 @@ serve(async (req) => {
 
   } catch (error) {
     return new Response(
-      JSON.stringify({ message: '서버 오류가 발생했습니다.' }),
+      JSON.stringify({ message: 'A server error occurred.' }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

@@ -27,7 +27,7 @@ serve(async (req) => {
 
       if (!token) {
         return new Response(
-          JSON.stringify({ error: '토큰이 필요합니다.' }),
+          JSON.stringify({ error: 'Token is required.' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
@@ -41,7 +41,7 @@ serve(async (req) => {
 
       if (linkError || !link) {
         return new Response(
-          JSON.stringify({ error: '유효하지 않은 링크입니다.' }),
+          JSON.stringify({ error: 'Invalid link.' }),
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
@@ -49,7 +49,7 @@ serve(async (req) => {
       // Check expiry
       if (link.expires_at && new Date(link.expires_at) < new Date()) {
         return new Response(
-          JSON.stringify({ error: '만료된 링크입니다.' }),
+          JSON.stringify({ error: 'Link has expired.' }),
           { status: 410, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
@@ -57,7 +57,7 @@ serve(async (req) => {
       // Check guest limit
       if (link.used_guests >= link.max_guests) {
         return new Response(
-          JSON.stringify({ error: '게스트 등록 한도에 도달했습니다.' }),
+          JSON.stringify({ error: 'Guest limit reached.' }),
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
@@ -103,7 +103,7 @@ serve(async (req) => {
 
       if (!token || !guestName || !date) {
         return new Response(
-          JSON.stringify({ error: '필수 필드가 누락되었습니다. (token, guestName, date)' }),
+          JSON.stringify({ error: 'Missing required fields. (token, guestName, date)' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
@@ -118,21 +118,21 @@ serve(async (req) => {
 
       if (linkError || !link) {
         return new Response(
-          JSON.stringify({ error: '유효하지 않은 링크입니다.' }),
+          JSON.stringify({ error: 'Invalid link.' }),
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
 
       if (link.expires_at && new Date(link.expires_at) < new Date()) {
         return new Response(
-          JSON.stringify({ error: '만료된 링크입니다.' }),
+          JSON.stringify({ error: 'Link has expired.' }),
           { status: 410, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
 
       if (link.used_guests >= link.max_guests) {
         return new Response(
-          JSON.stringify({ error: '게스트 등록 한도에 도달했습니다.' }),
+          JSON.stringify({ error: 'Guest limit reached.' }),
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
@@ -140,7 +140,7 @@ serve(async (req) => {
       // Ensure the date matches
       if (link.date !== date) {
         return new Response(
-          JSON.stringify({ error: '이 링크는 해당 날짜에 사용할 수 없습니다.' }),
+          JSON.stringify({ error: 'This link cannot be used for the selected date.' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
@@ -167,7 +167,7 @@ serve(async (req) => {
 
       return new Response(
         JSON.stringify({
-          message: '게스트가 등록되었습니다.',
+          message: 'Guest registered.',
           guest,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -180,7 +180,7 @@ serve(async (req) => {
 
       if (!token || !guestId) {
         return new Response(
-          JSON.stringify({ error: '필수 필드가 누락되었습니다. (token, guestId)' }),
+          JSON.stringify({ error: 'Missing required fields. (token, guestId)' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
@@ -195,7 +195,7 @@ serve(async (req) => {
 
       if (linkError || !link) {
         return new Response(
-          JSON.stringify({ error: '유효하지 않은 링크입니다.' }),
+          JSON.stringify({ error: 'Invalid link.' }),
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
@@ -210,7 +210,7 @@ serve(async (req) => {
 
       if (guestError || !guest) {
         return new Response(
-          JSON.stringify({ error: '게스트를 찾을 수 없습니다.' }),
+          JSON.stringify({ error: 'Guest not found.' }),
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
@@ -218,7 +218,7 @@ serve(async (req) => {
       // Only allow deletion of pending guests
       if (guest.status !== 'pending') {
         return new Response(
-          JSON.stringify({ error: '체크인된 게스트는 삭제할 수 없습니다.' }),
+          JSON.stringify({ error: 'Checked-in guests cannot be deleted.' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
@@ -240,20 +240,20 @@ serve(async (req) => {
         .eq('id', link.id)
 
       return new Response(
-        JSON.stringify({ message: '게스트가 삭제되었습니다.' }),
+        JSON.stringify({ message: 'Guest deleted.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
     return new Response(
-      JSON.stringify({ error: '알 수 없는 action입니다.' }),
+      JSON.stringify({ error: 'Unknown action.' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
   } catch (error) {
     console.error('External DJ links error:', error)
     return new Response(
-      JSON.stringify({ error: error.message || '처리 중 오류가 발생했습니다.' }),
+      JSON.stringify({ error: error.message || 'An error occurred while processing the request.' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }

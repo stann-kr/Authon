@@ -50,7 +50,7 @@ serve(async (req) => {
             .single()
 
           if (fetchError || !application) {
-            throw new Error('신청 정보를 찾을 수 없습니다.')
+            throw new Error('Application data not found.')
           }
 
           // 사용자 테이블에 추가
@@ -86,7 +86,7 @@ serve(async (req) => {
         }
 
         return new Response(
-          JSON.stringify({ message: '처리되었습니다.' }),
+          JSON.stringify({ message: 'Processed successfully.' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
@@ -103,7 +103,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Admin applications error:', error)
     return new Response(
-      JSON.stringify({ message: '처리 중 오류가 발생했습니다.' }),
+      JSON.stringify({ message: 'An error occurred while processing the request.' }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

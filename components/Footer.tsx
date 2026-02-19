@@ -6,19 +6,13 @@ interface FooterProps {
 }
 
 export default function Footer({ compact = false }: FooterProps) {
-  if (compact) {
-    return (
-      <footer className="text-center pt-6 flex-shrink-0">
-        <p className="text-gray-600 font-mono text-xs tracking-wider">
-          {BRAND_FOOTER}
-        </p>
-      </footer>
-    );
-  }
+  const footerClassName = compact
+    ? 'flex-shrink-0'
+    : 'flex-shrink-0 mt-auto';
 
   return (
-    <footer className="border-t border-gray-800 flex-shrink-0 mt-auto">
-      <div className="text-center py-4">
+    <footer className={footerClassName}>
+      <div className="border-t border-gray-800 mt-4 text-center py-4">
         <p className="text-gray-600 font-mono text-xs tracking-wider">
           {BRAND_FOOTER}
         </p>

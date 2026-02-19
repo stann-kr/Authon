@@ -2,6 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { fetchVenues, createVenue, updateVenue, type Venue } from '../../../lib/api/guests';
+import StatGrid from '../../../components/StatGrid';
+import PanelHeader from '../../../components/PanelHeader';
+import Spinner from '../../../components/Spinner';
+import Alert from '../../../components/Alert';
 
 const VENUE_TYPES = [
   { value: 'club', label: 'CLUB' },
@@ -44,7 +48,7 @@ export default function VenueManagement() {
     setFormSuccess('');
 
     if (!formData.name.trim()) {
-      setFormError('베뉴 이름을 입력해주세요.');
+      setFormError('Please enter a venue name.');
       setIsSubmitting(false);
       return;
     }
@@ -57,9 +61,9 @@ export default function VenueManagement() {
     });
 
     if (error) {
-      setFormError(error.message || '베뉴 생성에 실패했습니다.');
+      setFormError(error.message || 'Failed to create venue.');
     } else if (data) {
-      setFormSuccess(`"${data.name}" 베뉴가 생성되었습니다.`);
+      setFormSuccess(`Venue "${data.name}" has been created.`);
       setFormData({ name: '', type: 'club', address: '', description: '' });
       loadVenues();
     }
@@ -89,12 +93,7 @@ export default function VenueManagement() {
   const tabInfo = getTabInfo();
 
   if (isLoading && activeTab === 'list') {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="w-6 h-6 border border-white border-t-transparent rounded-full animate-spin"></div>
-        <span className="ml-2 text-white font-mono text-sm">LOADING...</span>
-      </div>
-    );
+    return <Spinner mode="inline" text="LOADING..." />;
   }
 
   return (
@@ -144,30 +143,16 @@ export default function VenueManagement() {
             <div className="text-white font-mono text-3xl sm:text-4xl tracking-wider">
               {activeTab === 'list' ? venues.length : '-'}
             </div>
-            <div className="text-gray-400 text-xs font-mono tracking-wider uppercase">
+            <div className="text-cyan-300 text-xs font-mono tracking-wider uppercase">
               {activeTab === 'list' ? 'TOTAL VENUES' : ''}
             </div>
           </div>
 
           {activeTab === 'list' && (
-            <div className="grid grid-cols-2 gap-px bg-gray-700">
-              <div className="bg-gray-800 p-3 text-center">
-                <div className="text-green-400 font-mono text-lg sm:text-xl tracking-wider">
-                  {venues.filter(v => v.active).length}
-                </div>
-                <div className="text-gray-400 text-xs font-mono tracking-wider uppercase">
-                  ACTIVE
-                </div>
-              </div>
-              <div className="bg-gray-800 p-3 text-center">
-                <div className="text-red-400 font-mono text-lg sm:text-xl tracking-wider">
-                  {venues.filter(v => !v.active).length}
-                </div>
-                <div className="text-gray-400 text-xs font-mono tracking-wider uppercase">
-                  INACTIVE
-                </div>
-              </div>
-            </div>
+            <StatGrid items={[
+              { label: 'ACTIVE', value: venues.filter(v => v.active).length, color: 'green' },
+              { label: 'INACTIVE', value: venues.filter(v => !v.active).length, color: 'red' },
+            ]} />
           )}
         </div>
       </div>
@@ -227,7 +212,7 @@ export default function VenueManagement() {
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                     className="w-full bg-black border border-gray-700 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
-                    placeholder="서울특별시 강남구..."
+                    placeholder="Gangnam-gu, Seoul..."
                   />
                 </div>
 
@@ -245,18 +230,11 @@ export default function VenueManagement() {
                 </div>
 
                 {formError && (
-                  <div className="bg-red-900/30 border border-red-700 p-3">
-                    <p className="text-red-400 font-mono text-xs tracking-wider">{formError}</p>
-                  </div>
+                  <Alert type="error" message={formError} />
                 )}
 
                 {formSuccess && (
-                  <div className="bg-green-900/30 border border-green-700 p-4">
-                    <p className="text-green-400 font-mono text-xs tracking-wider uppercase mb-1">
-                      VENUE CREATED SUCCESSFULLY
-                    </p>
-                    <p className="text-green-300 font-mono text-xs tracking-wider">{formSuccess}</p>
-                  </div>
+                  <Alert type="success" message={formSuccess} />
                 )}
 
                 <button
@@ -280,21 +258,15 @@ export default function VenueManagement() {
 
         {activeTab === 'list' && (
           <div className="bg-gray-900 border border-gray-700">
-            <div className="border-b border-gray-700 p-4 flex items-center justify-between">
-              <h3 className="font-mono text-xs sm:text-sm tracking-wider text-white uppercase">
-                VENUE LIST ({venues.length})
-              </h3>
-              <button
-                onClick={loadVenues}
-                className="px-3 py-1 bg-gray-800 text-gray-400 font-mono text-xs tracking-wider uppercase hover:text-white transition-colors border border-gray-700"
-              >
-                <i className="ri-refresh-line mr-1"></i>REFRESH
-              </button>
-            </div>
+            <PanelHeader
+              title="VENUE LIST"
+              count={venues.length}
+              onRefresh={loadVenues}
+            />
             <div className="p-4">
               {venues.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-gray-400 font-mono text-sm">등록된 베뉴가 없습니다.</p>
+                  <p className="text-gray-400 font-mono text-sm">No venues found.</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -377,7 +349,7 @@ function VenueCard({
           </span>
           {!venue.active && (
             <span className="bg-red-600 text-white px-2 py-1 font-mono text-xs tracking-wider uppercase">
-              비활성
+              INACTIVE
             </span>
           )}
         </div>
@@ -407,7 +379,7 @@ function VenueCard({
               onClick={() => setIsEditing(true)}
               className="bg-gray-700 hover:bg-gray-600 text-white font-mono text-xs tracking-wider uppercase py-2 sm:py-3 transition-colors"
             >
-              수정
+              EDIT
             </button>
             <button
               onClick={() => onToggleActive(venue)}
@@ -417,7 +389,7 @@ function VenueCard({
                   : 'bg-green-900/30 hover:bg-green-900/50 text-green-400 border-green-700'
               }`}
             >
-              {venue.active ? '비활성화' : '활성화'}
+              {venue.active ? 'DEACTIVATE' : 'ACTIVATE'}
             </button>
           </div>
         </div>
@@ -486,7 +458,7 @@ function VenueCard({
               onClick={handleSave}
               className="bg-green-600 hover:bg-green-700 text-white font-mono text-xs tracking-wider uppercase py-2 sm:py-3 transition-colors"
             >
-              저장
+              SAVE
             </button>
             <button
               onClick={() => {
@@ -500,7 +472,7 @@ function VenueCard({
               }}
               className="bg-gray-700 hover:bg-gray-600 text-white font-mono text-xs tracking-wider uppercase py-2 sm:py-3 transition-colors"
             >
-              취소
+              CANCEL
             </button>
           </div>
         </div>
