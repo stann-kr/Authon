@@ -34,6 +34,23 @@ export default function ResetPasswordPage() {
         // Prevent collision with existing local session (e.g., admin already logged in).
         await supabase.auth.signOut({ scope: 'local' });
 
+        // 1. PKCE flow: exchange authorization code for session
+        //    @supabase/ssr uses PKCE by default — email links redirect with ?code=...
+        const code = queryParams.get('code');
+        if (code) {
+          const { data: codeData, error: codeError } = await supabase.auth.exchangeCodeForSession(code);
+          if (!codeError) {
+            // Detect invite flow from user metadata when type param is absent
+            if (!flowType && codeData?.user?.app_metadata?.invite_type) {
+              setIsInvite(true);
+            }
+            setIsValid(true);
+            return;
+          }
+          console.warn('PKCE code exchange failed:', codeError.message);
+        }
+
+        // 2. Implicit flow: tokens in hash fragment
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
 
@@ -49,6 +66,7 @@ export default function ResetPasswordPage() {
           }
         }
 
+        // 3. Magic-link / OTP flow: token_hash in hash or query
         const tokenHash = hashParams.get('token_hash') || queryParams.get('token_hash');
         if (tokenHash && (flowType === 'invite' || flowType === 'recovery')) {
           const { error: verifyError } = await supabase.auth.verifyOtp({
@@ -62,6 +80,7 @@ export default function ResetPasswordPage() {
           }
         }
 
+        // 4. Fallback: check if a session already exists
         const { data: { session } } = await supabase.auth.getSession();
         setIsValid(!!session);
       } catch (err) {
