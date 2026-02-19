@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * DatePicker — 날짜 선택 패널 컴포넌트.
@@ -13,9 +13,15 @@ interface DatePickerProps {
   className?: string;
 }
 
-export default function DatePicker({ value, onChange, className = '' }: DatePickerProps) {
+export default function DatePicker({
+  value,
+  onChange,
+  className = "",
+}: DatePickerProps) {
   return (
-    <div className={`bg-gray-900 border border-gray-700 p-4 sm:p-5 ${className}`}>
+    <div
+      className={`bg-gray-900 border border-gray-700 p-4 sm:p-5 ${className}`}
+    >
       <div className="mb-2">
         <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase">
           SELECT DATE
@@ -25,7 +31,7 @@ export default function DatePicker({ value, onChange, className = '' }: DatePick
         type="date"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full sm:w-auto sm:min-w-[250px] bg-black border border-gray-600 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
+        className="w-full max-w-full box-border bg-black border border-gray-600 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
       />
     </div>
   );

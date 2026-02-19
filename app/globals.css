@@ -1,26 +1,53 @@
-@import url('https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.5.0/remixicon.min.css');
+@import url("https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.5.0/remixicon.min.css");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-	font-size: 14px;
+  font-size: 14px;
+}
+
+html,
+body {
+  @apply bg-black;
+  overflow-x: hidden;
+}
+
+/* iOS Safari: min-h-screen을 dvh로 오버라이드 (주소창 동적 높이 대응) */
+.min-h-screen {
+  min-height: 100dvh;
+}
+
+/* iOS Safari: 16px 미만 input focus 시 자동 zoom 방지 */
+input,
+select,
+textarea {
+  font-size: 16px !important;
+}
+
+/* iOS Safari: date input 네이티브 렌더링 overflow 방지 */
+input[type="date"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  min-width: 0;
 }
 
 @layer components {
-	.page-shell {
-		@apply min-h-screen flex flex-col bg-black;
-	}
+  .page-shell {
+    @apply flex flex-col bg-black;
+    min-height: 100dvh;
+  }
 
-	.page-scroll {
-		@apply flex-1 overflow-x-hidden pt-20 sm:pt-24 flex flex-col;
-	}
+  .page-scroll {
+    @apply flex-1 overflow-x-hidden pt-20 sm:pt-24 flex flex-col;
+  }
 
-	.page-container {
-		@apply max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10 w-full lg:flex-1 lg:min-h-0 flex flex-col;
-	}
+  .page-container {
+    @apply max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-10 w-full lg:flex-1 lg:min-h-0 flex flex-col;
+  }
 
-	.main-content-panel {
-		@apply bg-gray-900 border border-gray-700 flex flex-col min-h-0 lg:min-h-[520px];
-	}
+  .main-content-panel {
+    @apply bg-gray-900 border border-gray-700 flex flex-col min-h-0 lg:min-h-[520px];
+  }
 }
