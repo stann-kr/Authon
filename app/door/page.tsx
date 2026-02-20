@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useLocalStorage } from "../../lib/hooks";
 import AdminHeader from "../admin/components/AdminHeader";
 import AuthGuard from "../../components/AuthGuard";
 import Footer from "../../components/Footer";
@@ -34,7 +35,10 @@ export default function DoorPage() {
 }
 
 function DoorPageContent() {
-  const [selectedDate, setSelectedDate] = useState(getBusinessDate());
+  const [selectedDate, setSelectedDate] = useLocalStorage(
+    "door:selectedDate",
+    getBusinessDate(),
+  );
   const [selectedDJ, setSelectedDJ] = useState<string>("all");
   const [loadingStates, setLoadingStates] = useState<{
     [key: string]: boolean;
@@ -45,7 +49,10 @@ function DoorPageContent() {
   const [externalLinks, setExternalLinks] = useState<ExternalDJLink[]>([]);
   const [guests, setGuests] = useState<Guest[]>([]);
   const [isFetching, setIsFetching] = useState(true);
-  const [sortMode, setSortMode] = useState<"default" | "alpha">("default");
+  const [sortMode, setSortMode] = useLocalStorage<"default" | "alpha">(
+    "door:sortMode",
+    "default",
+  );
 
   // 로딩 중 이전 데이터를 유지하여 화면 깜빡임 방지
   const displayCacheRef = useRef<{

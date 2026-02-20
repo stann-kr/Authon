@@ -46,19 +46,21 @@ const GuestListCard: React.FC<GuestListCardProps> = ({
     <div
       className={`p-4 overflow-hidden ${index % 2 === 1 ? "bg-gray-800/30" : ""} ${guest.status === "checked" ? "opacity-50" : ""}`}
     >
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 border border-gray-600 flex items-center justify-center">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start gap-3 sm:gap-4 min-w-0 flex-1">
+          <div
+            className={`w-8 h-8 sm:w-10 sm:h-10 border flex items-center justify-center shrink-0 mt-0.5 ${guest.status === "checked" ? "border-green-600/50" : "border-gray-600"}`}
+          >
             <span className="text-xs sm:text-sm font-mono text-gray-400">
               {String(index + 1).padStart(2, "0")}
             </span>
           </div>
           <div className="min-w-0">
-            <p className="font-mono font-semibold text-sm sm:text-base tracking-widest text-white uppercase truncate">
+            <p className="font-mono font-semibold text-sm sm:text-base tracking-widest text-white uppercase">
               {guest.name}
             </p>
             {(djName || guest.checkInTime || guest.createdAt) && (
-              <div className="flex flex-wrap gap-2 mt-1">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
                 {djName && (
                   <span className="text-xs font-mono text-gray-400">
                     BY: {djName}
@@ -79,7 +81,7 @@ const GuestListCard: React.FC<GuestListCardProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-start gap-2 flex-shrink-0">
           {guest.status === "pending" && (
             <>
               {variant === "admin" && onCheck && (

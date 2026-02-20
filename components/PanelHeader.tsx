@@ -38,35 +38,41 @@ export default function PanelHeader({
   actions,
 }: PanelHeaderProps) {
   const displayTitle = count !== undefined ? `${title} (${count})` : title;
+  const hasButtons =
+    (sortMode !== undefined && onSortToggle) || onRefresh || actions;
 
   return (
-    <div className="border-b border-gray-700 p-4 flex items-center justify-between flex-shrink-0">
-      <h3 className="font-mono text-xs sm:text-sm tracking-wider text-white uppercase">
-        {displayTitle}
-      </h3>
-      <div className="flex items-center gap-2">
-        {sortMode !== undefined && onSortToggle && (
-          <button
-            onClick={onSortToggle}
-            className="px-3 py-1 bg-gray-800 text-gray-400 font-mono text-xs tracking-wider uppercase hover:text-white transition-colors border border-gray-700"
-          >
-            SORT: {sortMode === "alpha" ? "ABC" : "DEFAULT"}
-          </button>
-        )}
-        {onRefresh && (
-          <button
-            onClick={onRefresh}
-            disabled={isLoading}
-            className="px-3 py-1 bg-gray-800 text-gray-400 font-mono text-xs tracking-wider uppercase hover:text-white transition-colors border border-gray-700 disabled:opacity-50"
-          >
-            <i
-              className={`ri-refresh-line mr-1 ${isLoading ? "animate-spin inline-block" : ""}`}
-            ></i>
-            REFRESH
-          </button>
-        )}
-        {actions}
+    <div className="border-b border-gray-700 px-4 pt-4 pb-3 flex-shrink-0">
+      <div className="flex items-center justify-between">
+        <h3 className="font-mono text-xs sm:text-sm tracking-wider text-white uppercase">
+          {displayTitle}
+        </h3>
       </div>
+      {hasButtons && (
+        <div className="flex items-center gap-2 mt-2">
+          {sortMode !== undefined && onSortToggle && (
+            <button
+              onClick={onSortToggle}
+              className="flex-1 py-2 bg-gray-800 text-gray-400 font-mono text-xs tracking-wider uppercase hover:text-white transition-colors border border-gray-700 whitespace-nowrap text-center"
+            >
+              SORT: {sortMode === "alpha" ? "ABC" : "DEFAULT"}
+            </button>
+          )}
+          {onRefresh && (
+            <button
+              onClick={onRefresh}
+              disabled={isLoading}
+              className="flex-1 py-2 bg-gray-800 text-gray-400 font-mono text-xs tracking-wider uppercase hover:text-white transition-colors border border-gray-700 disabled:opacity-50"
+            >
+              <i
+                className={`ri-refresh-line mr-1 ${isLoading ? "animate-spin inline-block" : ""}`}
+              ></i>
+              REFRESH
+            </button>
+          )}
+          {actions}
+        </div>
+      )}
     </div>
   );
 }

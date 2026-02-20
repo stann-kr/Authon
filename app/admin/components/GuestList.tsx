@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useLocalStorage } from "../../../lib/hooks";
 import GuestListCard from "../../../components/GuestListCard";
 import StatGrid from "../../../components/StatGrid";
 import PanelHeader from "../../../components/PanelHeader";
@@ -34,7 +35,10 @@ export default function GuestList({ selectedDate }: GuestListProps) {
   const [externalLinks, setExternalLinks] = useState<ExternalDJLink[]>([]);
   const [guests, setGuests] = useState<Guest[]>([]);
   const [isFetching, setIsFetching] = useState(true);
-  const [sortMode, setSortMode] = useState<"default" | "alpha">("default");
+  const [sortMode, setSortMode] = useLocalStorage<"default" | "alpha">(
+    "guestlist:sortMode",
+    "default",
+  );
 
   // 로딩 중 이전 데이터를 유지하여 화면 깜빡임 방지
   const displayCacheRef = useRef<{
