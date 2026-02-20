@@ -1,20 +1,19 @@
+"use client";
 
-'use client';
-
-import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
-import AdminHeader from '../admin/components/AdminHeader';
-import AuthGuard from '../../components/AuthGuard';
-import Footer from '@/components/Footer';
-import StatGrid from '@/components/StatGrid';
-import PanelHeader from '@/components/PanelHeader';
-import Spinner from '@/components/Spinner';
-import EmptyState from '@/components/EmptyState';
-import Alert from '@/components/Alert';
-import VenueSelector, { useVenueSelector } from '@/components/VenueSelector';
-import DatePicker from '@/components/DatePicker';
-import { BRAND_NAME } from '@/lib/brand';
-import { getBusinessDate, formatDateDisplay } from '@/lib/date';
+import { useState, useEffect, Suspense, useRef } from "react";
+import { useSearchParams } from "next/navigation";
+import AdminHeader from "../admin/components/AdminHeader";
+import AuthGuard from "../../components/AuthGuard";
+import Footer from "@/components/Footer";
+import StatGrid from "@/components/StatGrid";
+import PanelHeader from "@/components/PanelHeader";
+import Spinner from "@/components/Spinner";
+import EmptyState from "@/components/EmptyState";
+import Alert from "@/components/Alert";
+import VenueSelector, { useVenueSelector } from "@/components/VenueSelector";
+import DatePicker from "@/components/DatePicker";
+import { BRAND_NAME } from "@/lib/brand";
+import { getBusinessDate, formatDateDisplay } from "@/lib/date";
 import {
   fetchGuestsByDate,
   createGuest,
@@ -25,16 +24,18 @@ import {
   type Guest,
   type ExternalDJLink,
   type Venue,
-} from '../../lib/api/guests';
+} from "../../lib/api/guests";
 
 const formatTime = (timeStr: string) => {
   const date = new Date(timeStr);
-  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 };
 
 const sortGuestsByName = (list: Guest[]) => {
   return [...list].sort((a, b) =>
-    (a.name || '').localeCompare(b.name || '', 'ko-KR', { sensitivity: 'base' })
+    (a.name || "").localeCompare(b.name || "", "ko-KR", {
+      sensitivity: "base",
+    }),
   );
 };
 
@@ -48,11 +49,13 @@ const sortGuestsByCreatedAt = (list: Guest[]) => {
 
 export default function GuestPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-black flex items-center justify-center">
+          <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      }
+    >
       <GuestPageRouter />
     </Suspense>
   );
@@ -64,14 +67,14 @@ export default function GuestPage() {
  */
 function GuestPageRouter() {
   const searchParams = useSearchParams();
-  const token = searchParams.get('token');
+  const token = searchParams.get("token");
 
   if (token) {
     return <ExternalDJGuestPage token={token} />;
   }
 
   return (
-    <AuthGuard requiredAccess={['guest']}>
+    <AuthGuard requiredAccess={["guest"]}>
       <AuthenticatedGuestPage />
     </AuthGuard>
   );
@@ -86,19 +89,21 @@ function ExternalDJGuestPage({ token }: { token: string }) {
   const [venueInfo, setVenueInfo] = useState<Venue | null>(null);
   const [isValidating, setIsValidating] = useState(true);
   const [validationError, setValidationError] = useState<string | null>(null);
-  const [guestName, setGuestName] = useState('');
+  const [guestName, setGuestName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [guests, setGuests] = useState<Guest[]>([]);
-  const [sortMode, setSortMode] = useState<'default' | 'alpha'>('default');
+  const [sortMode, setSortMode] = useState<"default" | "alpha">("default");
 
   useEffect(() => {
     const validate = async () => {
       setIsValidating(true);
       const { data, error } = await validateExternalToken(token);
       if (error) {
-        setValidationError(typeof error === 'string' ? error : error.message || 'Invalid link.');
+        setValidationError(
+          typeof error === "string" ? error : error.message || "Invalid link.",
+        );
       } else if (data) {
         setLinkInfo(data.link);
         setVenueInfo(data.venue);
@@ -123,12 +128,18 @@ function ExternalDJGuestPage({ token }: { token: string }) {
     });
 
     if (createError) {
-      setError(typeof createError === 'string' ? createError : createError.message || 'Failed to register guest.');
+      setError(
+        typeof createError === "string"
+          ? createError
+          : createError.message || "Failed to register guest.",
+      );
     } else if (data) {
-      setGuests(prev => [...prev, data]);
-      setGuestName('');
+      setGuests((prev) => [...prev, data]);
+      setGuestName("");
       // Update used count locally
-      setLinkInfo(prev => prev ? { ...prev, usedGuests: prev.usedGuests + 1 } : prev);
+      setLinkInfo((prev) =>
+        prev ? { ...prev, usedGuests: prev.usedGuests + 1 } : prev,
+      );
     }
     setIsLoading(false);
   };
@@ -143,10 +154,16 @@ function ExternalDJGuestPage({ token }: { token: string }) {
     });
 
     if (deleteError) {
-      setError(typeof deleteError === 'string' ? deleteError : deleteError.message || 'Failed to delete guest.');
+      setError(
+        typeof deleteError === "string"
+          ? deleteError
+          : deleteError.message || "Failed to delete guest.",
+      );
     } else {
-      setGuests(prev => prev.filter(g => g.id !== guestId));
-      setLinkInfo(prev => prev ? { ...prev, usedGuests: Math.max(0, prev.usedGuests - 1) } : prev);
+      setGuests((prev) => prev.filter((g) => g.id !== guestId));
+      setLinkInfo((prev) =>
+        prev ? { ...prev, usedGuests: Math.max(0, prev.usedGuests - 1) } : prev,
+      );
     }
     setDeletingId(null);
   };
@@ -162,8 +179,12 @@ function ExternalDJGuestPage({ token }: { token: string }) {
           <div className="w-16 h-16 border-2 border-red-600 mx-auto mb-4 flex items-center justify-center">
             <i className="ri-error-warning-line text-red-400 text-2xl"></i>
           </div>
-          <h1 className="font-mono text-xl tracking-wider text-white uppercase mb-2">INVALID LINK</h1>
-          <p className="text-gray-400 font-mono text-xs tracking-wider mb-6">{validationError}</p>
+          <h1 className="font-mono text-xl tracking-wider text-white uppercase mb-2">
+            INVALID LINK
+          </h1>
+          <p className="text-gray-400 font-mono text-xs tracking-wider mb-6">
+            {validationError}
+          </p>
           <Footer compact />
         </div>
       </div>
@@ -172,16 +193,19 @@ function ExternalDJGuestPage({ token }: { token: string }) {
 
   const remaining = linkInfo ? linkInfo.maxGuests - linkInfo.usedGuests : 0;
   const isAtLimit = remaining <= 0;
-  const displayGuests = sortMode === 'alpha'
-    ? sortGuestsByName(guests)
-    : sortGuestsByCreatedAt(guests);
+  const displayGuests =
+    sortMode === "alpha"
+      ? sortGuestsByName(guests)
+      : sortGuestsByCreatedAt(guests);
 
   const externalHeader = (
     <div className="fixed top-0 left-0 right-0 z-50 bg-black border-b border-gray-800">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 bg-white"></div>
-          <span className="font-mono text-sm tracking-wider text-white uppercase">{BRAND_NAME}</span>
+          <span className="font-mono text-sm tracking-wider text-white uppercase">
+            {BRAND_NAME}
+          </span>
         </div>
         <span className="font-mono text-xs tracking-wider text-gray-400 uppercase">
           GUEST ACCESS
@@ -211,7 +235,7 @@ function ExternalDJGuestPage({ token }: { token: string }) {
                     </p>
                   )}
                   <p className="text-gray-400 font-mono text-xs tracking-wider break-words">
-                    {linkInfo ? formatDateDisplay(linkInfo.date) : ''}
+                    {linkInfo ? formatDateDisplay(linkInfo.date) : ""}
                   </p>
                 </div>
                 <div className="text-center mb-4">
@@ -223,78 +247,91 @@ function ExternalDJGuestPage({ token }: { token: string }) {
                   </div>
                 </div>
 
-                <StatGrid items={[
-                  { label: 'REMAINING', value: remaining, color: 'cyan' },
-                  { label: 'MAX', value: linkInfo?.maxGuests ?? 0, color: 'blue' },
-                ]} />
+                <StatGrid
+                  items={[
+                    { label: "REMAINING", value: remaining, color: "cyan" },
+                    {
+                      label: "MAX",
+                      value: linkInfo?.maxGuests ?? 0,
+                      color: "blue",
+                    },
+                  ]}
+                />
               </div>
             </div>
 
             <div className="lg:col-span-3 flex flex-col lg:min-h-0">
-              {error && (
-                <Alert type="error" message={error} className="mb-4" />
-              )}
+              {error && <Alert type="error" message={error} className="mb-4" />}
 
               <div className="main-content-panel lg:min-h-0 lg:max-h-full">
                 <PanelHeader
                   title="GUEST LIST"
                   count={guests.length}
                   sortMode={sortMode}
-                  onSortToggle={() => setSortMode(prev => prev === 'default' ? 'alpha' : 'default')}
+                  onSortToggle={() =>
+                    setSortMode((prev) =>
+                      prev === "default" ? "alpha" : "default",
+                    )
+                  }
                 />
 
                 {guests.length === 0 ? (
-                  <EmptyState icon="ri-user-add-line" message="ADD YOUR GUESTS ABOVE" />
+                  <EmptyState
+                    icon="ri-user-add-line"
+                    message="ADD YOUR GUESTS ABOVE"
+                  />
                 ) : (
-                <div className="divide-y divide-gray-700 lg:overflow-y-auto">
-                  {displayGuests.map((guest, index) => (
-                    <div key={guest.id} className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3 sm:gap-4">
-                          <div className="w-8 h-8 sm:w-10 sm:h-10 border border-gray-600 flex items-center justify-center">
-                            <span className="text-xs sm:text-sm font-mono text-gray-400">
-                              {String(index + 1).padStart(2, '0')}
-                            </span>
+                  <div className="divide-y divide-gray-700 lg:overflow-y-auto">
+                    {displayGuests.map((guest, index) => (
+                      <div key={guest.id} className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3 sm:gap-4">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 border border-gray-600 flex items-center justify-center">
+                              <span className="text-xs sm:text-sm font-mono text-gray-400">
+                                {String(index + 1).padStart(2, "0")}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="font-mono text-sm sm:text-base tracking-wider text-white uppercase">
+                                {guest.name}
+                              </span>
+                              {guest.checkInTime && (
+                                <div className="mt-1">
+                                  <span className="text-xs font-mono text-green-400">
+                                    IN: {formatTime(guest.checkInTime)}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div>
-                            <span className="font-mono text-sm sm:text-base tracking-wider text-white uppercase">
-                              {guest.name}
-                            </span>
-                            {guest.checkInTime && (
-                              <div className="mt-1">
-                                <span className="text-xs font-mono text-green-400">IN: {formatTime(guest.checkInTime)}</span>
-                              </div>
+                          <div className="flex items-center gap-2">
+                            {guest.status === "checked" ? (
+                              <span className="px-4 py-2 bg-green-600/20 border border-green-600 text-green-400 font-mono text-xs tracking-wider uppercase">
+                                ACTIVE
+                              </span>
+                            ) : (
+                              <span className="px-4 py-2 bg-gray-800 border border-gray-600 text-gray-400 font-mono text-xs tracking-wider uppercase">
+                                REGISTERED
+                              </span>
+                            )}
+                            {guest.status === "pending" && (
+                              <button
+                                onClick={() => handleDelete(guest.id)}
+                                disabled={deletingId === guest.id}
+                                className="px-3 py-2 border border-gray-600 text-gray-400 font-mono text-xs tracking-wider uppercase hover:bg-gray-800 transition-colors disabled:opacity-50"
+                              >
+                                {deletingId === guest.id ? (
+                                  <div className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                                ) : (
+                                  <i className="ri-close-line"></i>
+                                )}
+                              </button>
                             )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          {guest.status === 'checked' ? (
-                            <span className="px-4 py-2 bg-green-600/20 border border-green-600 text-green-400 font-mono text-xs tracking-wider uppercase">
-                              ACTIVE
-                            </span>
-                          ) : (
-                            <span className="px-4 py-2 bg-gray-800 border border-gray-600 text-gray-400 font-mono text-xs tracking-wider uppercase">
-                              REGISTERED
-                            </span>
-                          )}
-                          {guest.status === 'pending' && (
-                            <button
-                              onClick={() => handleDelete(guest.id)}
-                              disabled={deletingId === guest.id}
-                              className="px-3 py-2 border border-gray-600 text-gray-400 font-mono text-xs tracking-wider uppercase hover:bg-gray-800 transition-colors disabled:opacity-50"
-                            >
-                              {deletingId === guest.id ? (
-                                <div className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-                              ) : (
-                                <i className="ri-close-line"></i>
-                              )}
-                            </button>
-                          )}
-                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
                 )}
 
                 {!isAtLimit && (
@@ -302,7 +339,7 @@ function ExternalDJGuestPage({ token }: { token: string }) {
                     <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                       <div className="w-8 h-8 sm:w-10 sm:h-10 border border-gray-600 flex items-center justify-center">
                         <span className="text-xs sm:text-sm font-mono text-gray-400">
-                          {String(guests.length + 1).padStart(2, '0')}
+                          {String(guests.length + 1).padStart(2, "0")}
                         </span>
                       </div>
 
@@ -313,7 +350,7 @@ function ExternalDJGuestPage({ token }: { token: string }) {
                         placeholder="Enter guest full name"
                         className="flex-1 min-w-0 bg-transparent border-none outline-none text-white font-mono text-sm tracking-wider placeholder-gray-400"
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleSave();
+                          if (e.key === "Enter") handleSave();
                         }}
                       />
 
@@ -325,7 +362,7 @@ function ExternalDJGuestPage({ token }: { token: string }) {
                         {isLoading ? (
                           <div className="w-3 h-3 border border-black border-t-transparent rounded-full animate-spin"></div>
                         ) : (
-                          'SAVE'
+                          "SAVE"
                         )}
                       </button>
                     </div>
@@ -335,7 +372,8 @@ function ExternalDJGuestPage({ token }: { token: string }) {
                 {isAtLimit && (
                   <div className="p-4 border-t-2 border-gray-600 text-center">
                     <p className="text-yellow-400 font-mono text-xs tracking-wider uppercase">
-                      GUEST LIMIT REACHED ({linkInfo?.maxGuests}/{linkInfo?.maxGuests})
+                      GUEST LIMIT REACHED ({linkInfo?.maxGuests}/
+                      {linkInfo?.maxGuests})
                     </p>
                   </div>
                 )}
@@ -354,19 +392,37 @@ function ExternalDJGuestPage({ token }: { token: string }) {
 // ============================================================
 
 function AuthenticatedGuestPage() {
-  const [selectedDate, setSelectedDate] = useState<string>(
-    getBusinessDate()
-  );
-  const [guestName, setGuestName] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<string>(getBusinessDate());
+  const [guestName, setGuestName] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isFetching, setIsFetching] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [guests, setGuests] = useState<Guest[]>([]);
-  const [sortMode, setSortMode] = useState<'default' | 'alpha'>('default');
+  const [sortMode, setSortMode] = useState<"default" | "alpha">("default");
+
+  // 로딩 중 이전 데이터를 유지하여 화면 깜빡임 방지
+  const displayCacheRef = useRef<Guest[]>([]);
+
+  useEffect(() => {
+    if (!isFetching) {
+      displayCacheRef.current = guests;
+    }
+  }, [isFetching, guests]);
+
+  const displayDataGuests = isFetching ? displayCacheRef.current : guests;
 
   // super_admin venue selector
-  const { venueId, venues, selectedVenueId, setSelectedVenueId, isSuperAdmin, user } = useVenueSelector();
-  const effectiveVenueId = isSuperAdmin ? selectedVenueId : (user?.venue_id ?? '');
+  const {
+    venueId,
+    venues,
+    selectedVenueId,
+    setSelectedVenueId,
+    isSuperAdmin,
+    user,
+  } = useVenueSelector();
+  const effectiveVenueId = isSuperAdmin
+    ? selectedVenueId
+    : (user?.venue_id ?? "");
 
   useEffect(() => {
     if (!effectiveVenueId) {
@@ -376,16 +432,19 @@ function AuthenticatedGuestPage() {
     const loadGuests = async () => {
       setIsFetching(true);
       setError(null);
-      
-      const { data, error: fetchError } = await fetchGuestsByDate(selectedDate, effectiveVenueId);
-      
+
+      const { data, error: fetchError } = await fetchGuestsByDate(
+        selectedDate,
+        effectiveVenueId,
+      );
+
       if (fetchError) {
-        console.error('Failed to fetch guests:', fetchError);
-        setError('Failed to load guest data.');
+        console.error("Failed to fetch guests:", fetchError);
+        setError("Failed to load guest data.");
       } else if (data) {
         setGuests(data);
       }
-      
+
       setIsFetching(false);
     };
 
@@ -397,7 +456,10 @@ function AuthenticatedGuestPage() {
     if (!effectiveVenueId) return;
     const interval = setInterval(async () => {
       try {
-        const { data } = await fetchGuestsByDate(selectedDate, effectiveVenueId);
+        const { data } = await fetchGuestsByDate(
+          selectedDate,
+          effectiveVenueId,
+        );
         if (data) setGuests(data);
       } catch (err) {
         // Silent fail for polling
@@ -410,16 +472,16 @@ function AuthenticatedGuestPage() {
     if (!guestName.trim()) return;
 
     if (!effectiveVenueId) {
-        console.error('No venue ID available');
-        setError('Please select a venue.');
-        return;
+      console.error("No venue ID available");
+      setError("Please select a venue.");
+      return;
     }
 
     setIsLoading(true);
     setError(null);
 
     // Guest limit check
-    const activeGuests = filteredGuests.filter(g => g.status !== 'deleted');
+    const activeGuests = filteredGuests.filter((g) => g.status !== "deleted");
     const limit = user?.guest_limit ?? 0;
     if (limit > 0 && activeGuests.length >= limit) {
       setError(`Guest limit reached. (${limit}/day)`);
@@ -431,20 +493,20 @@ function AuthenticatedGuestPage() {
       venueId: effectiveVenueId,
       name: guestName.trim().toUpperCase(),
       date: selectedDate,
-      status: 'pending',
+      status: "pending",
       createdByUserId: user?.id,
     });
 
     if (createError) {
-      console.error('Failed to create guest:', createError);
-      setError('Failed to register guest.');
+      console.error("Failed to create guest:", createError);
+      setError("Failed to register guest.");
       setIsLoading(false);
       return;
     }
 
     if (data) {
-      setGuests(prev => [...prev, data]);
-      setGuestName('');
+      setGuests((prev) => [...prev, data]);
+      setGuestName("");
     }
 
     setIsLoading(false);
@@ -457,30 +519,40 @@ function AuthenticatedGuestPage() {
     const { data, error: deleteError } = await deleteGuest(id);
 
     if (deleteError) {
-      console.error('Failed to delete guest:', deleteError);
-      setError('Failed to delete guest.');
+      console.error("Failed to delete guest:", deleteError);
+      setError("Failed to delete guest.");
       setIsLoading(false);
       return;
     }
 
     if (data) {
-      setGuests(prev => prev.map(guest => 
-        guest.id === id ? data : guest
-      ));
+      setGuests((prev) =>
+        prev.map((guest) => (guest.id === id ? data : guest)),
+      );
     }
 
     setIsLoading(false);
   };
 
-  const filteredGuests = guests.filter(guest => guest.date === selectedDate && guest.createdByUserId === user?.id);
-  const pendingGuests = filteredGuests.filter(guest => guest.status === 'pending');
-  const checkedGuests = filteredGuests.filter(guest => guest.status === 'checked');
-  const activeGuests = filteredGuests.filter(guest => guest.status !== 'deleted');
+  const filteredGuests = displayDataGuests.filter(
+    (guest) =>
+      guest.date === selectedDate && guest.createdByUserId === user?.id,
+  );
+  const pendingGuests = filteredGuests.filter(
+    (guest) => guest.status === "pending",
+  );
+  const checkedGuests = filteredGuests.filter(
+    (guest) => guest.status === "checked",
+  );
+  const activeGuests = filteredGuests.filter(
+    (guest) => guest.status !== "deleted",
+  );
   const guestLimit = user?.guest_limit ?? 0;
   const isAtLimit = guestLimit > 0 && activeGuests.length >= guestLimit;
-  const displayGuests = sortMode === 'alpha'
-    ? sortGuestsByName(filteredGuests)
-    : sortGuestsByCreatedAt(filteredGuests);
+  const displayGuests =
+    sortMode === "alpha"
+      ? sortGuestsByName(filteredGuests)
+      : sortGuestsByCreatedAt(filteredGuests);
 
   return (
     <div className="min-h-screen bg-black flex flex-col">
@@ -503,15 +575,7 @@ function AuthenticatedGuestPage() {
             />
           </div>
 
-          {error && (
-            <Alert type="error" message={error} className="mb-6" />
-          )}
-
-          {isFetching && (
-            <div className="mb-6 text-center">
-              <Spinner mode="button" color="white" />
-            </div>
-          )}
+          {error && <Alert type="error" message={error} className="mb-6" />}
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6 lg:flex-1 lg:min-h-0">
             <div className="lg:col-span-1 space-y-4 lg:overflow-y-auto">
@@ -536,11 +600,27 @@ function AuthenticatedGuestPage() {
                   </div>
                 </div>
 
-                <StatGrid items={[
-                  { label: 'WAITING', value: pendingGuests.length, color: 'yellow' },
-                  { label: 'CHECKED', value: checkedGuests.length, color: 'green' },
-                  { label: 'REMAINING', value: guestLimit > 0 ? guestLimit - activeGuests.length : '∞', color: isAtLimit ? 'red' : 'cyan' },
-                ]} labelClassName="text-[10px] sm:text-xs" />
+                <StatGrid
+                  items={[
+                    {
+                      label: "WAITING",
+                      value: pendingGuests.length,
+                      color: "yellow",
+                    },
+                    {
+                      label: "CHECKED",
+                      value: checkedGuests.length,
+                      color: "green",
+                    },
+                    {
+                      label: "REMAINING",
+                      value:
+                        guestLimit > 0 ? guestLimit - activeGuests.length : "∞",
+                      color: isAtLimit ? "red" : "cyan",
+                    },
+                  ]}
+                  labelClassName="text-[10px] sm:text-xs"
+                />
               </div>
             </div>
 
@@ -550,118 +630,133 @@ function AuthenticatedGuestPage() {
                   title="GUEST LIST"
                   count={filteredGuests.length}
                   sortMode={sortMode}
-                  onSortToggle={() => setSortMode(prev => prev === 'default' ? 'alpha' : 'default')}
+                  onSortToggle={() =>
+                    setSortMode((prev) =>
+                      prev === "default" ? "alpha" : "default",
+                    )
+                  }
+                  isLoading={isFetching}
                 />
 
-                {filteredGuests.length === 0 ? (
-                  <EmptyState icon="ri-user-add-line" message="No guests registered for this date" />
+                {isFetching && filteredGuests.length === 0 ? (
+                  <Spinner mode="inline" text="LOADING..." />
+                ) : filteredGuests.length === 0 ? (
+                  <EmptyState
+                    icon="ri-user-add-line"
+                    message="No guests registered for this date"
+                  />
                 ) : (
-                <div className="divide-y divide-gray-700 lg:overflow-y-auto">
-                  {displayGuests.map((guest, index) => (
-                    <div key={guest.id} className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3 sm:gap-4">
-                          <div className="w-8 h-8 sm:w-10 sm:h-10 border border-gray-600 flex items-center justify-center">
-                            <span className="text-xs sm:text-sm font-mono text-gray-400">
-                              {String(index + 1).padStart(2, '0')}
-                            </span>
+                  <div
+                    className={`divide-y divide-gray-700 lg:overflow-y-auto transition-opacity duration-200 ${isFetching ? "opacity-50 pointer-events-none" : ""}`}
+                  >
+                    {displayGuests.map((guest, index) => (
+                      <div key={guest.id} className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3 sm:gap-4">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 border border-gray-600 flex items-center justify-center">
+                              <span className="text-xs sm:text-sm font-mono text-gray-400">
+                                {String(index + 1).padStart(2, "0")}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="font-mono text-sm sm:text-base tracking-wider text-white uppercase">
+                                {guest.name}
+                              </span>
+                              {(guest.createdAt || guest.checkInTime) && (
+                                <div className="flex gap-2 mt-1">
+                                  {guest.createdAt && (
+                                    <span className="text-xs font-mono text-gray-500">
+                                      {formatTime(guest.createdAt)}
+                                    </span>
+                                  )}
+                                  {guest.checkInTime && (
+                                    <span className="text-xs font-mono text-green-400">
+                                      IN: {formatTime(guest.checkInTime)}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div>
-                            <span className="font-mono text-sm sm:text-base tracking-wider text-white uppercase">
-                              {guest.name}
-                            </span>
-                            {(guest.createdAt || guest.checkInTime) && (
-                              <div className="flex gap-2 mt-1">
-                                {guest.createdAt && (
-                                  <span className="text-xs font-mono text-gray-500">{formatTime(guest.createdAt)}</span>
+
+                          <div className="flex items-center gap-2">
+                            {guest.status === "pending" && (
+                              <button
+                                onClick={() => handleDelete(guest.id)}
+                                disabled={isLoading}
+                                className="px-3 sm:px-4 py-2 sm:py-3 bg-red-600 text-white font-mono text-xs tracking-wider uppercase hover:bg-red-700 transition-colors disabled:opacity-50"
+                              >
+                                {isLoading ? (
+                                  <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
+                                ) : (
+                                  "DELETE"
                                 )}
-                                {guest.checkInTime && (
-                                  <span className="text-xs font-mono text-green-400">IN: {formatTime(guest.checkInTime)}</span>
-                                )}
-                              </div>
+                              </button>
+                            )}
+
+                            {guest.status === "checked" && (
+                              <span className="px-4 sm:px-6 py-2 sm:py-3 bg-green-600/20 border border-green-600 text-green-400 font-mono text-xs tracking-wider uppercase">
+                                ACTIVE
+                              </span>
+                            )}
+
+                            {guest.status === "deleted" && (
+                              <span className="px-4 sm:px-6 py-2 sm:py-3 bg-gray-800 text-gray-500 font-mono text-xs tracking-wider uppercase">
+                                REMOVED
+                              </span>
                             )}
                           </div>
                         </div>
-
-                        <div className="flex items-center gap-2">
-                          {guest.status === 'pending' && (
-                            <button
-                              onClick={() => handleDelete(guest.id)}
-                              disabled={isLoading}
-                              className="px-3 sm:px-4 py-2 sm:py-3 bg-red-600 text-white font-mono text-xs tracking-wider uppercase hover:bg-red-700 transition-colors disabled:opacity-50"
-                            >
-                              {isLoading ? (
-                                <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
-                              ) : (
-                                'DELETE'
-                              )}
-                            </button>
-                          )}
-
-                          {guest.status === 'checked' && (
-                            <span className="px-4 sm:px-6 py-2 sm:py-3 bg-green-600/20 border border-green-600 text-green-400 font-mono text-xs tracking-wider uppercase">
-                              ACTIVE
-                            </span>
-                          )}
-
-                          {guest.status === 'deleted' && (
-                            <span className="px-4 sm:px-6 py-2 sm:py-3 bg-gray-800 text-gray-500 font-mono text-xs tracking-wider uppercase">
-                              REMOVED
-                            </span>
-                          )}
-                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
                 )}
 
                 {!isAtLimit ? (
-                <div className="p-4 border-t-2 border-gray-600">
-                  <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 border border-gray-600 flex items-center justify-center">
-                      <span className="text-xs sm:text-sm font-mono text-gray-400">
-                        {String(activeGuests.length + 1).padStart(2, '0')}
-                      </span>
+                  <div className="p-4 border-t-2 border-gray-600">
+                    <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 border border-gray-600 flex items-center justify-center">
+                        <span className="text-xs sm:text-sm font-mono text-gray-400">
+                          {String(activeGuests.length + 1).padStart(2, "0")}
+                        </span>
+                      </div>
+
+                      <input
+                        type="text"
+                        value={guestName}
+                        onChange={(e) => setGuestName(e.target.value)}
+                        placeholder="Enter guest full name"
+                        className="flex-1 min-w-0 bg-transparent border-none outline-none text-white font-mono text-sm tracking-wider placeholder-gray-400"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            handleSave();
+                          }
+                        }}
+                      />
+
+                      <button
+                        onClick={handleSave}
+                        disabled={!guestName.trim() || isLoading}
+                        className="shrink-0 px-3 sm:px-6 py-2 sm:py-3 bg-white text-black font-mono text-xs tracking-wider uppercase hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isLoading ? (
+                          <div className="w-3 h-3 border border-black border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                          "SAVE"
+                        )}
+                      </button>
                     </div>
-
-                    <input
-                      type="text"
-                      value={guestName}
-                      onChange={(e) => setGuestName(e.target.value)}
-                      placeholder="Enter guest full name"
-                      className="flex-1 min-w-0 bg-transparent border-none outline-none text-white font-mono text-sm tracking-wider placeholder-gray-400"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          handleSave();
-                        }
-                      }}
-                    />
-
-                    <button
-                      onClick={handleSave}
-                      disabled={!guestName.trim() || isLoading}
-                      className="shrink-0 px-3 sm:px-6 py-2 sm:py-3 bg-white text-black font-mono text-xs tracking-wider uppercase hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isLoading ? (
-                        <div className="w-3 h-3 border border-black border-t-transparent rounded-full animate-spin"></div>
-                      ) : (
-                        'SAVE'
-                      )}
-                    </button>
                   </div>
-                </div>
                 ) : (
-                <div className="p-4 border-t-2 border-gray-600 text-center">
-                  <p className="text-yellow-400 font-mono text-xs tracking-wider uppercase">
-                    GUEST LIMIT REACHED ({guestLimit}/{guestLimit})
-                  </p>
-                </div>
+                  <div className="p-4 border-t-2 border-gray-600 text-center">
+                    <p className="text-yellow-400 font-mono text-xs tracking-wider uppercase">
+                      GUEST LIMIT REACHED ({guestLimit}/{guestLimit})
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
           </div>
-
         </div>
         <Footer />
       </div>
