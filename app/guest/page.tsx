@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense, useRef } from "react";
+import { useLocalStorage } from "@/lib/hooks";
 import { useSearchParams } from "next/navigation";
 import AdminHeader from "../admin/components/AdminHeader";
 import AuthGuard from "../../components/AuthGuard";
@@ -95,7 +96,10 @@ function ExternalDJGuestPage({ token }: { token: string }) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [guests, setGuests] = useState<Guest[]>([]);
-  const [sortMode, setSortMode] = useState<"default" | "alpha">("default");
+  const [sortMode, setSortMode] = useLocalStorage<"default" | "alpha">(
+    "guest:sortMode",
+    "default",
+  );
 
   useEffect(() => {
     const validate = async () => {
@@ -364,7 +368,10 @@ function AuthenticatedGuestPage() {
   const [isFetching, setIsFetching] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [guests, setGuests] = useState<Guest[]>([]);
-  const [sortMode, setSortMode] = useState<"default" | "alpha">("default");
+  const [sortMode, setSortMode] = useLocalStorage<"default" | "alpha">(
+    "guest:sortMode",
+    "default",
+  );
 
   // 로딩 중 이전 데이터를 유지하여 화면 깜빡임 방지
   const displayCacheRef = useRef<Guest[]>([]);

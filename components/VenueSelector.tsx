@@ -1,8 +1,9 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { fetchVenues, type Venue } from '@/lib/api/guests';
-import { getUser } from '@/lib/auth';
+import { useState, useEffect } from "react";
+import { useLocalStorage } from "@/lib/hooks";
+import { fetchVenues, type Venue } from "@/lib/api/guests";
+import { getUser } from "@/lib/auth";
 
 /**
  * useVenueSelector — super_admin 베뉴 선택 로직 훅.
@@ -13,9 +14,12 @@ import { getUser } from '@/lib/auth';
  */
 export function useVenueSelector() {
   const user = getUser();
-  const isSuperAdmin = user?.role === 'super_admin';
+  const isSuperAdmin = user?.role === "super_admin";
   const [venues, setVenues] = useState<Venue[]>([]);
-  const [selectedVenueId, setSelectedVenueId] = useState<string>('');
+  const [selectedVenueId, setSelectedVenueId] = useLocalStorage<string>(
+    "admin:selectedVenueId",
+    "",
+  );
 
   useEffect(() => {
     if (isSuperAdmin) {
@@ -30,9 +34,16 @@ export function useVenueSelector() {
     }
   }, [isSuperAdmin]);
 
-  const venueId = isSuperAdmin ? selectedVenueId : (user?.venue_id ?? '');
+  const venueId = isSuperAdmin ? selectedVenueId : (user?.venue_id ?? "");
 
-  return { venueId, venues, selectedVenueId, setSelectedVenueId, isSuperAdmin, user };
+  return {
+    venueId,
+    venues,
+    selectedVenueId,
+    setSelectedVenueId,
+    isSuperAdmin,
+    user,
+  };
 }
 
 /**
@@ -51,11 +62,13 @@ export default function VenueSelector({
   venues,
   selectedVenueId,
   onVenueChange,
-  placeholder = '-- Select Venue --',
-  className = '',
+  placeholder = "-- Select Venue --",
+  className = "",
 }: VenueSelectorProps) {
   return (
-    <div className={`bg-gray-900 border border-gray-700 p-4 sm:p-5 ${className}`}>
+    <div
+      className={`bg-gray-900 border border-gray-700 p-4 sm:p-5 ${className}`}
+    >
       <div className="mb-2">
         <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase">
           SELECT VENUE

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useLocalStorage } from "../../../lib/hooks";
 import InviteUser from "./InviteUser";
 import VenueSelector, {
   useVenueSelector,
@@ -18,7 +19,10 @@ import {
 } from "../../../lib/api/guests";
 
 export default function UserManagement() {
-  const [activeTab, setActiveTab] = useState<"create" | "users">("create");
+  const [activeTab, setActiveTab] = useLocalStorage<"create" | "users">(
+    "usermgmt:activeTab",
+    "create",
+  );
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
