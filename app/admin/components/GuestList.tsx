@@ -240,7 +240,7 @@ export default function GuestList({ selectedDate }: GuestListProps) {
                       value={`ext:${link.id}`}
                       className="bg-gray-900"
                     >
-                      {link.djName}
+                      {link.djName} (EXT)
                     </option>
                   ))}
                 </select>

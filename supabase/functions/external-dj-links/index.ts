@@ -1,81 +1,78 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
     const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    );
 
-    const body = await req.json()
-    const { action } = body
+    const body = await req.json();
+    const { action } = body;
 
     // ---- VALIDATE TOKEN (public, no auth required) ----
-    if (action === 'validate') {
-      const { token } = body
+    if (action === "validate") {
+      const { token } = body;
 
       if (!token) {
-        return new Response(
-          JSON.stringify({ error: 'Token is required.' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+        return new Response(JSON.stringify({ error: "Token is required." }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       const { data: link, error: linkError } = await supabaseAdmin
-        .from('external_dj_links')
-        .select('*')
-        .eq('token', token)
-        .eq('active', true)
-        .single()
+        .from("external_dj_links")
+        .select("*")
+        .eq("token", token)
+        .eq("active", true)
+        .single();
 
       if (linkError || !link) {
-        return new Response(
-          JSON.stringify({ error: 'Invalid link.' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+        return new Response(JSON.stringify({ error: "Invalid link." }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       // Check expiry
       if (link.expires_at && new Date(link.expires_at) < new Date()) {
-        return new Response(
-          JSON.stringify({ error: 'Link has expired.' }),
-          { status: 410, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+        return new Response(JSON.stringify({ error: "Link has expired." }), {
+          status: 410,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
-      // Check guest limit
-      if (link.used_guests >= link.max_guests) {
-        return new Response(
-          JSON.stringify({ error: 'Guest limit reached.' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
+      // NOTE: Guest limit is NOT checked here intentionally.
+      // Users should still be able to access the link to view/delete guests
+      // even when the limit is reached. The limit is enforced on the create-guest action.
 
       // Get venue info
       const { data: venue } = await supabaseAdmin
-        .from('venues')
-        .select('id, name, type')
-        .eq('id', link.venue_id)
-        .single()
+        .from("venues")
+        .select("id, name, type")
+        .eq("id", link.venue_id)
+        .single();
 
       // Get existing guests for this link
       const { data: existingGuests } = await supabaseAdmin
-        .from('guests')
-        .select('*')
-        .eq('external_link_id', link.id)
-        .neq('status', 'deleted')
-        .order('created_at', { ascending: true })
+        .from("guests")
+        .select("*")
+        .eq("external_link_id", link.id)
+        .neq("status", "deleted")
+        .order("created_at", { ascending: true });
 
       return new Response(
         JSON.stringify({
@@ -93,73 +90,83 @@ serve(async (req) => {
           venue: venue || null,
           guests: existingGuests || [],
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     // ---- CREATE GUEST VIA EXTERNAL LINK (public, no auth required) ----
-    if (action === 'create-guest') {
-      const { token, guestName, date } = body
+    if (action === "create-guest") {
+      const { token, guestName, date } = body;
 
       if (!token || !guestName || !date) {
         return new Response(
-          JSON.stringify({ error: 'Missing required fields. (token, guestName, date)' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+          JSON.stringify({
+            error: "Missing required fields. (token, guestName, date)",
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
       }
 
       // Re-validate the link
       const { data: link, error: linkError } = await supabaseAdmin
-        .from('external_dj_links')
-        .select('*')
-        .eq('token', token)
-        .eq('active', true)
-        .single()
+        .from("external_dj_links")
+        .select("*")
+        .eq("token", token)
+        .eq("active", true)
+        .single();
 
       if (linkError || !link) {
-        return new Response(
-          JSON.stringify({ error: 'Invalid link.' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+        return new Response(JSON.stringify({ error: "Invalid link." }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       if (link.expires_at && new Date(link.expires_at) < new Date()) {
-        return new Response(
-          JSON.stringify({ error: 'Link has expired.' }),
-          { status: 410, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+        return new Response(JSON.stringify({ error: "Link has expired." }), {
+          status: 410,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       if (link.used_guests >= link.max_guests) {
-        return new Response(
-          JSON.stringify({ error: 'Guest limit reached.' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+        return new Response(JSON.stringify({ error: "Guest limit reached." }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       // Ensure the date matches
       if (link.date !== date) {
         return new Response(
-          JSON.stringify({ error: 'This link cannot be used for the selected date.' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+          JSON.stringify({
+            error: "This link cannot be used for the selected date.",
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
       }
 
       // Create the guest using service_role (bypasses RLS)
       const { data: guest, error: guestError } = await supabaseAdmin
-        .from('guests')
+        .from("guests")
         .insert({
           venue_id: link.venue_id,
           name: guestName.trim().toUpperCase(),
           external_link_id: link.id,
           date: date,
-          status: 'pending',
+          status: "pending",
         })
         .select()
-        .single()
+        .single();
 
       if (guestError) {
-        throw guestError
+        throw guestError;
       }
 
       // NOTE: used_guests is auto-incremented by DB trigger (on_guest_created_increment_link)
@@ -167,94 +174,106 @@ serve(async (req) => {
 
       return new Response(
         JSON.stringify({
-          message: 'Guest registered.',
+          message: "Guest registered.",
           guest,
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     // ---- DELETE GUEST VIA EXTERNAL LINK (public, no auth required) ----
-    if (action === 'delete-guest') {
-      const { token, guestId } = body
+    if (action === "delete-guest") {
+      const { token, guestId } = body;
 
       if (!token || !guestId) {
         return new Response(
-          JSON.stringify({ error: 'Missing required fields. (token, guestId)' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+          JSON.stringify({
+            error: "Missing required fields. (token, guestId)",
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
       }
 
       // Validate the link
       const { data: link, error: linkError } = await supabaseAdmin
-        .from('external_dj_links')
-        .select('*')
-        .eq('token', token)
-        .eq('active', true)
-        .single()
+        .from("external_dj_links")
+        .select("*")
+        .eq("token", token)
+        .eq("active", true)
+        .single();
 
       if (linkError || !link) {
-        return new Response(
-          JSON.stringify({ error: 'Invalid link.' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+        return new Response(JSON.stringify({ error: "Invalid link." }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       // Verify the guest belongs to this link
       const { data: guest, error: guestError } = await supabaseAdmin
-        .from('guests')
-        .select('*')
-        .eq('id', guestId)
-        .eq('external_link_id', link.id)
-        .single()
+        .from("guests")
+        .select("*")
+        .eq("id", guestId)
+        .eq("external_link_id", link.id)
+        .single();
 
       if (guestError || !guest) {
-        return new Response(
-          JSON.stringify({ error: 'Guest not found.' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+        return new Response(JSON.stringify({ error: "Guest not found." }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       // Only allow deletion of pending guests
-      if (guest.status !== 'pending') {
+      if (guest.status !== "pending") {
         return new Response(
-          JSON.stringify({ error: 'Checked-in guests cannot be deleted.' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+          JSON.stringify({ error: "Checked-in guests cannot be deleted." }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
       }
 
       // Delete the guest
       const { error: deleteError } = await supabaseAdmin
-        .from('guests')
+        .from("guests")
         .delete()
-        .eq('id', guestId)
+        .eq("id", guestId);
 
       if (deleteError) {
-        throw deleteError
+        throw deleteError;
       }
 
       // Decrement used_guests
       await supabaseAdmin
-        .from('external_dj_links')
+        .from("external_dj_links")
         .update({ used_guests: Math.max(0, link.used_guests - 1) })
-        .eq('id', link.id)
+        .eq("id", link.id);
 
-      return new Response(
-        JSON.stringify({ message: 'Guest deleted.' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return new Response(JSON.stringify({ message: "Guest deleted." }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    return new Response(
-      JSON.stringify({ error: 'Unknown action.' }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
-
+    return new Response(JSON.stringify({ error: "Unknown action." }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
-    console.error('External DJ links error:', error)
+    console.error("External DJ links error:", error);
     return new Response(
-      JSON.stringify({ error: error.message || 'An error occurred while processing the request.' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+      JSON.stringify({
+        error:
+          error.message || "An error occurred while processing the request.",
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
-})
+});

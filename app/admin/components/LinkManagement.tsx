@@ -466,7 +466,7 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
                 <Spinner mode="inline" text="LOADING..." />
               ) : (
                 <div
-                  className={`divide-y divide-gray-700 lg:max-h-[600px] lg:overflow-y-auto transition-opacity duration-200 ${isFetching ? "opacity-50 pointer-events-none" : ""}`}
+                  className={`divide-y divide-gray-700 lg:overflow-y-auto transition-opacity duration-200 ${isFetching ? "opacity-50 pointer-events-none" : ""}`}
                 >
                   {displayLinks.length === 0 ? (
                     <EmptyState
@@ -477,7 +477,7 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
                     displayLinks.map((link, index) => (
                       <div
                         key={link.id}
-                        className={`p-4 ${!link.active ? "opacity-50" : ""}`}
+                        className={`p-4 ${!link.active ? "opacity-50" : ""} ${index % 2 === 1 ? "bg-gray-800/60" : ""}`}
                       >
                         <div className="flex items-center justify-between mb-4">
                           <div className="flex items-center gap-3">

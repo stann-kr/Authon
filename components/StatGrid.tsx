@@ -8,7 +8,7 @@
  * ]} />
  */
 
-type StatColor = "white" | "green" | "red" | "cyan" | "blue" | "yellow";
+import { StatColor, statColorMap, statLabelColorMap } from "../lib/colors";
 
 interface StatItem {
   label: string;
@@ -21,24 +21,6 @@ interface StatGridProps {
   /** 라벨 텍스트 크기 오버라이드 (기본: 'text-[10px] sm:text-xs') */
   labelClassName?: string;
 }
-
-const colorMap: Record<StatColor, string> = {
-  white: "text-white",
-  green: "text-green-400",
-  red: "text-red-400",
-  cyan: "text-cyan-400",
-  blue: "text-blue-400",
-  yellow: "text-yellow-400",
-};
-
-const labelColorMap: Record<StatColor, string> = {
-  white: "text-gray-400",
-  green: "text-green-300",
-  red: "text-red-300",
-  cyan: "text-cyan-300",
-  blue: "text-blue-300",
-  yellow: "text-yellow-300",
-};
 
 export default function StatGrid({ items, labelClassName }: StatGridProps) {
   const colsClass = items.length <= 1 ? "grid-cols-1" : "grid-cols-2";
@@ -57,12 +39,12 @@ export default function StatGrid({ items, labelClassName }: StatGridProps) {
             className={`bg-gray-800 p-3 text-center min-w-0 ${isLastOddItem ? "col-span-2" : ""}`}
           >
             <div
-              className={`font-mono text-sm sm:text-xl tracking-wider ${colorMap[item.color ?? "white"]}`}
+              className={`font-mono text-sm sm:text-xl tracking-wider ${statColorMap[item.color ?? "white"]}`}
             >
               {item.value}
             </div>
             <div
-              className={`${labelColorMap[item.color ?? "white"]} font-mono tracking-wide uppercase leading-tight whitespace-normal break-words px-1 ${labelClassName ?? "text-[10px] sm:text-xs"}`}
+              className={`${statLabelColorMap[item.color ?? "white"]} font-mono tracking-wide uppercase leading-tight whitespace-normal break-words px-1 ${labelClassName ?? "text-[10px] sm:text-xs"}`}
             >
               {item.label}
             </div>
