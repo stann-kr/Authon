@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * PanelHeader — 리스트 패널(main-content-panel 등)의 공통 헤더.
@@ -18,10 +18,12 @@ interface PanelHeaderProps {
   title: string;
   count?: number;
   /** 정렬 모드. 전달하지 않으면 Sort 버튼 숨김 */
-  sortMode?: 'default' | 'alpha';
+  sortMode?: "default" | "alpha";
   onSortToggle?: () => void;
   /** 전달하지 않으면 Refresh 버튼 숨김 */
   onRefresh?: () => void;
+  /** 로딩 상태 여부 */
+  isLoading?: boolean;
   /** 추가 액션 버튼(슬롯) */
   actions?: React.ReactNode;
 }
@@ -32,6 +34,7 @@ export default function PanelHeader({
   sortMode,
   onSortToggle,
   onRefresh,
+  isLoading,
   actions,
 }: PanelHeaderProps) {
   const displayTitle = count !== undefined ? `${title} (${count})` : title;
@@ -47,15 +50,19 @@ export default function PanelHeader({
             onClick={onSortToggle}
             className="px-3 py-1 bg-gray-800 text-gray-400 font-mono text-xs tracking-wider uppercase hover:text-white transition-colors border border-gray-700"
           >
-            SORT: {sortMode === 'alpha' ? 'ABC' : 'DEFAULT'}
+            SORT: {sortMode === "alpha" ? "ABC" : "DEFAULT"}
           </button>
         )}
         {onRefresh && (
           <button
             onClick={onRefresh}
-            className="px-3 py-1 bg-gray-800 text-gray-400 font-mono text-xs tracking-wider uppercase hover:text-white transition-colors border border-gray-700"
+            disabled={isLoading}
+            className="px-3 py-1 bg-gray-800 text-gray-400 font-mono text-xs tracking-wider uppercase hover:text-white transition-colors border border-gray-700 disabled:opacity-50"
           >
-            <i className="ri-refresh-line mr-1"></i>REFRESH
+            <i
+              className={`ri-refresh-line mr-1 ${isLoading ? "animate-spin inline-block" : ""}`}
+            ></i>
+            REFRESH
           </button>
         )}
         {actions}

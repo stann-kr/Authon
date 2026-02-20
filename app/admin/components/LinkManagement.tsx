@@ -448,12 +448,15 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
                 title="LINK LIST"
                 count={links.length}
                 onRefresh={loadLinks}
+                isLoading={isFetching}
               />
 
-              {isFetching ? (
+              {isFetching && links.length === 0 ? (
                 <Spinner mode="inline" text="LOADING..." />
               ) : (
-                <div className="divide-y divide-gray-700 lg:max-h-[600px] lg:overflow-y-auto">
+                <div
+                  className={`divide-y divide-gray-700 lg:max-h-[600px] lg:overflow-y-auto transition-opacity duration-200 ${isFetching ? "opacity-50 pointer-events-none" : ""}`}
+                >
                   {links.length === 0 ? (
                     <EmptyState
                       icon="ri-link"

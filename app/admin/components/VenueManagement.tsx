@@ -1,39 +1,44 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { fetchVenues, createVenue, updateVenue, type Venue } from '../../../lib/api/guests';
-import StatGrid from '../../../components/StatGrid';
-import PanelHeader from '../../../components/PanelHeader';
-import Spinner from '../../../components/Spinner';
-import Alert from '../../../components/Alert';
+import { useState, useEffect, useCallback } from "react";
+import {
+  fetchVenues,
+  createVenue,
+  updateVenue,
+  type Venue,
+} from "../../../lib/api/guests";
+import StatGrid from "../../../components/StatGrid";
+import PanelHeader from "../../../components/PanelHeader";
+import Spinner from "../../../components/Spinner";
+import Alert from "../../../components/Alert";
 
 const VENUE_TYPES = [
-  { value: 'club', label: 'CLUB' },
-  { value: 'bar', label: 'BAR' },
-  { value: 'lounge', label: 'LOUNGE' },
-  { value: 'festival', label: 'FESTIVAL' },
-  { value: 'private', label: 'PRIVATE' },
+  { value: "club", label: "CLUB" },
+  { value: "bar", label: "BAR" },
+  { value: "lounge", label: "LOUNGE" },
+  { value: "festival", label: "FESTIVAL" },
+  { value: "private", label: "PRIVATE" },
 ] as const;
 
 export default function VenueManagement() {
   const [venues, setVenues] = useState<Venue[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'list' | 'create'>('list');
+  const [activeTab, setActiveTab] = useState<"list" | "create">("list");
   const [formData, setFormData] = useState({
-    name: '',
-    type: 'club' as Venue['type'],
-    address: '',
-    description: '',
+    name: "",
+    type: "club" as Venue["type"],
+    address: "",
+    description: "",
   });
-  const [formError, setFormError] = useState('');
-  const [formSuccess, setFormSuccess] = useState('');
+  const [formError, setFormError] = useState("");
+  const [formSuccess, setFormSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const loadVenues = useCallback(async () => {
     setIsLoading(true);
     const { data, error } = await fetchVenues(true); // include inactive
     if (data) setVenues(data);
-    if (error) console.error('Failed to load venues:', error);
+    if (error) console.error("Failed to load venues:", error);
     setIsLoading(false);
   }, []);
 
@@ -44,11 +49,11 @@ export default function VenueManagement() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setFormError('');
-    setFormSuccess('');
+    setFormError("");
+    setFormSuccess("");
 
     if (!formData.name.trim()) {
-      setFormError('Please enter a venue name.');
+      setFormError("Please enter a venue name.");
       setIsSubmitting(false);
       return;
     }
@@ -61,10 +66,10 @@ export default function VenueManagement() {
     });
 
     if (error) {
-      setFormError(error.message || 'Failed to create venue.');
+      setFormError(error.message || "Failed to create venue.");
     } else if (data) {
       setFormSuccess(`Venue "${data.name}" has been created.`);
-      setFormData({ name: '', type: 'club', address: '', description: '' });
+      setFormData({ name: "", type: "club", address: "", description: "" });
       loadVenues();
     }
     setIsSubmitting(false);
@@ -73,7 +78,7 @@ export default function VenueManagement() {
   const handleToggleActive = async (venue: Venue) => {
     const { error } = await updateVenue(venue.id, { active: !venue.active });
     if (error) {
-      console.error('Failed to update venue:', error);
+      console.error("Failed to update venue:", error);
     } else {
       loadVenues();
     }
@@ -81,20 +86,16 @@ export default function VenueManagement() {
 
   const getTabInfo = () => {
     switch (activeTab) {
-      case 'create':
-        return { title: 'CREATE VENUE', description: 'Register a new venue' };
-      case 'list':
-        return { title: 'VENUE LIST', description: 'Manage all venues' };
+      case "create":
+        return { title: "CREATE VENUE", description: "Register a new venue" };
+      case "list":
+        return { title: "VENUE LIST", description: "Manage all venues" };
       default:
-        return { title: '', description: '' };
+        return { title: "", description: "" };
     }
   };
 
   const tabInfo = getTabInfo();
-
-  if (isLoading && activeTab === 'list') {
-    return <Spinner mode="inline" text="LOADING..." />;
-  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6">
@@ -102,25 +103,27 @@ export default function VenueManagement() {
       <div className="lg:col-span-1 space-y-4">
         <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
           <div className="mb-4">
-            <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase mb-3">SELECT MENU</h3>
+            <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase mb-3">
+              SELECT MENU
+            </h3>
             <div className="space-y-2">
               <button
-                onClick={() => setActiveTab('create')}
+                onClick={() => setActiveTab("create")}
                 className={`w-full p-3 font-mono text-xs tracking-wider uppercase transition-colors text-left ${
-                  activeTab === 'create'
-                    ? 'bg-white text-black'
-                    : 'bg-gray-800 text-gray-400 hover:text-white border border-gray-700'
+                  activeTab === "create"
+                    ? "bg-white text-black"
+                    : "bg-gray-800 text-gray-400 hover:text-white border border-gray-700"
                 }`}
               >
                 <i className="ri-add-line mr-2"></i>
                 CREATE
               </button>
               <button
-                onClick={() => setActiveTab('list')}
+                onClick={() => setActiveTab("list")}
                 className={`w-full p-3 font-mono text-xs tracking-wider uppercase transition-colors text-left ${
-                  activeTab === 'list'
-                    ? 'bg-white text-black'
-                    : 'bg-gray-800 text-gray-400 hover:text-white border border-gray-700'
+                  activeTab === "list"
+                    ? "bg-white text-black"
+                    : "bg-gray-800 text-gray-400 hover:text-white border border-gray-700"
                 }`}
               >
                 <i className="ri-store-2-line mr-2"></i>
@@ -141,25 +144,35 @@ export default function VenueManagement() {
           </div>
           <div className="text-center mb-4">
             <div className="text-white font-mono text-3xl sm:text-4xl tracking-wider">
-              {activeTab === 'list' ? venues.length : '-'}
+              {activeTab === "list" ? venues.length : "-"}
             </div>
             <div className="text-cyan-300 text-xs font-mono tracking-wider uppercase">
-              {activeTab === 'list' ? 'TOTAL VENUES' : ''}
+              {activeTab === "list" ? "TOTAL VENUES" : ""}
             </div>
           </div>
 
-          {activeTab === 'list' && (
-            <StatGrid items={[
-              { label: 'ACTIVE', value: venues.filter(v => v.active).length, color: 'green' },
-              { label: 'INACTIVE', value: venues.filter(v => !v.active).length, color: 'red' },
-            ]} />
+          {activeTab === "list" && (
+            <StatGrid
+              items={[
+                {
+                  label: "ACTIVE",
+                  value: venues.filter((v) => v.active).length,
+                  color: "green",
+                },
+                {
+                  label: "INACTIVE",
+                  value: venues.filter((v) => !v.active).length,
+                  color: "red",
+                },
+              ]}
+            />
           )}
         </div>
       </div>
 
       {/* Main content */}
       <div className="lg:col-span-3">
-        {activeTab === 'create' && (
+        {activeTab === "create" && (
           <div className="space-y-6">
             <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
               <h2 className="font-mono text-lg tracking-wider text-white uppercase mb-4">
@@ -174,7 +187,9 @@ export default function VenueManagement() {
                   <input
                     type="text"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
                     className="w-full bg-black border border-gray-700 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
                     placeholder="Club Name"
                     required
@@ -190,11 +205,16 @@ export default function VenueManagement() {
                       <button
                         key={opt.value}
                         type="button"
-                        onClick={() => setFormData({ ...formData, type: opt.value as Venue['type'] })}
+                        onClick={() =>
+                          setFormData({
+                            ...formData,
+                            type: opt.value as Venue["type"],
+                          })
+                        }
                         className={`p-3 border font-mono text-xs tracking-wider uppercase transition-colors ${
                           formData.type === opt.value
-                            ? 'bg-white text-black border-white'
-                            : 'bg-black text-gray-400 border-gray-700 hover:text-white hover:border-gray-500'
+                            ? "bg-white text-black border-white"
+                            : "bg-black text-gray-400 border-gray-700 hover:text-white hover:border-gray-500"
                         }`}
                       >
                         {opt.label}
@@ -210,7 +230,9 @@ export default function VenueManagement() {
                   <input
                     type="text"
                     value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, address: e.target.value })
+                    }
                     className="w-full bg-black border border-gray-700 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
                     placeholder="Gangnam-gu, Seoul..."
                   />
@@ -218,24 +240,23 @@ export default function VenueManagement() {
 
                 <div>
                   <label className="block text-gray-400 font-mono text-xs tracking-wider uppercase mb-2">
-                    DESCRIPTION <span className="text-gray-600">(OPTIONAL)</span>
+                    DESCRIPTION{" "}
+                    <span className="text-gray-600">(OPTIONAL)</span>
                   </label>
                   <textarea
                     value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, description: e.target.value })
+                    }
                     className="w-full bg-black border border-gray-700 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white resize-none"
                     rows={3}
                     placeholder="Venue description..."
                   />
                 </div>
 
-                {formError && (
-                  <Alert type="error" message={formError} />
-                )}
+                {formError && <Alert type="error" message={formError} />}
 
-                {formSuccess && (
-                  <Alert type="success" message={formSuccess} />
-                )}
+                {formSuccess && <Alert type="success" message={formSuccess} />}
 
                 <button
                   type="submit"
@@ -248,7 +269,7 @@ export default function VenueManagement() {
                       <span>CREATING...</span>
                     </div>
                   ) : (
-                    'CREATE VENUE'
+                    "CREATE VENUE"
                   )}
                 </button>
               </form>
@@ -256,20 +277,27 @@ export default function VenueManagement() {
           </div>
         )}
 
-        {activeTab === 'list' && (
+        {activeTab === "list" && (
           <div className="bg-gray-900 border border-gray-700">
             <PanelHeader
               title="VENUE LIST"
               count={venues.length}
               onRefresh={loadVenues}
+              isLoading={isLoading}
             />
             <div className="p-4">
-              {venues.length === 0 ? (
+              {isLoading && venues.length === 0 ? (
+                <Spinner mode="inline" text="LOADING..." />
+              ) : venues.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-gray-400 font-mono text-sm">No venues found.</p>
+                  <p className="text-gray-400 font-mono text-sm">
+                    No venues found.
+                  </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div
+                  className={`grid grid-cols-1 md:grid-cols-2 gap-4 transition-opacity duration-200 ${isLoading ? "opacity-50 pointer-events-none" : ""}`}
+                >
                   {venues.map((venue) => (
                     <VenueCard
                       key={venue.id}
@@ -303,24 +331,33 @@ function VenueCard({
 }: {
   venue: Venue;
   onToggleActive: (venue: Venue) => void;
-  onSave: (id: string, updates: Partial<Pick<Venue, 'name' | 'type' | 'address' | 'description'>>) => Promise<any>;
+  onSave: (
+    id: string,
+    updates: Partial<Pick<Venue, "name" | "type" | "address" | "description">>,
+  ) => Promise<any>;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({
     name: venue.name,
     type: venue.type,
-    address: venue.address || '',
-    description: venue.description || '',
+    address: venue.address || "",
+    description: venue.description || "",
   });
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'club': return 'text-purple-400';
-      case 'bar': return 'text-amber-400';
-      case 'lounge': return 'text-cyan-400';
-      case 'festival': return 'text-pink-400';
-      case 'private': return 'text-gray-400';
-      default: return 'text-gray-400';
+      case "club":
+        return "text-purple-400";
+      case "bar":
+        return "text-amber-400";
+      case "lounge":
+        return "text-cyan-400";
+      case "festival":
+        return "text-pink-400";
+      case "private":
+        return "text-gray-400";
+      default:
+        return "text-gray-400";
     }
   };
 
@@ -338,13 +375,19 @@ function VenueCard({
     <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
       <div className="flex justify-between items-start mb-3">
         <div>
-          <h3 className="text-white font-mono text-sm sm:text-base tracking-wider">{venue.name}</h3>
+          <h3 className="text-white font-mono text-sm sm:text-base tracking-wider">
+            {venue.name}
+          </h3>
           {venue.address && (
-            <p className="text-gray-500 font-mono text-xs mt-1">{venue.address}</p>
+            <p className="text-gray-500 font-mono text-xs mt-1">
+              {venue.address}
+            </p>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <span className={`font-mono text-xs tracking-wider uppercase ${getTypeColor(venue.type)}`}>
+          <span
+            className={`font-mono text-xs tracking-wider uppercase ${getTypeColor(venue.type)}`}
+          >
             {venue.type.toUpperCase()}
           </span>
           {!venue.active && (
@@ -358,18 +401,28 @@ function VenueCard({
       {!isEditing ? (
         <div>
           {venue.description && (
-            <p className="text-gray-400 font-mono text-xs mb-3">{venue.description}</p>
+            <p className="text-gray-400 font-mono text-xs mb-3">
+              {venue.description}
+            </p>
           )}
           <div className="grid grid-cols-2 gap-2 mb-3">
             <div>
-              <p className="text-gray-500 font-mono text-xs uppercase mb-1">Status</p>
-              <p className={`font-mono text-xs sm:text-sm ${venue.active ? 'text-green-400' : 'text-red-400'}`}>
-                {venue.active ? 'ACTIVE' : 'INACTIVE'}
+              <p className="text-gray-500 font-mono text-xs uppercase mb-1">
+                Status
+              </p>
+              <p
+                className={`font-mono text-xs sm:text-sm ${venue.active ? "text-green-400" : "text-red-400"}`}
+              >
+                {venue.active ? "ACTIVE" : "INACTIVE"}
               </p>
             </div>
             <div>
-              <p className="text-gray-500 font-mono text-xs uppercase mb-1">Type</p>
-              <p className={`font-mono text-xs sm:text-sm ${getTypeColor(venue.type)}`}>
+              <p className="text-gray-500 font-mono text-xs uppercase mb-1">
+                Type
+              </p>
+              <p
+                className={`font-mono text-xs sm:text-sm ${getTypeColor(venue.type)}`}
+              >
                 {venue.type.toUpperCase()}
               </p>
             </div>
@@ -385,11 +438,11 @@ function VenueCard({
               onClick={() => onToggleActive(venue)}
               className={`font-mono text-xs tracking-wider uppercase py-2 sm:py-3 transition-colors border ${
                 venue.active
-                  ? 'bg-red-900/30 hover:bg-red-900/50 text-red-400 border-red-700'
-                  : 'bg-green-900/30 hover:bg-green-900/50 text-green-400 border-green-700'
+                  ? "bg-red-900/30 hover:bg-red-900/50 text-red-400 border-red-700"
+                  : "bg-green-900/30 hover:bg-green-900/50 text-green-400 border-green-700"
               }`}
             >
-              {venue.active ? 'DEACTIVATE' : 'ACTIVATE'}
+              {venue.active ? "DEACTIVATE" : "ACTIVATE"}
             </button>
           </div>
         </div>
@@ -402,7 +455,9 @@ function VenueCard({
             <input
               type="text"
               value={editData.name}
-              onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+              onChange={(e) =>
+                setEditData({ ...editData, name: e.target.value })
+              }
               className="w-full bg-gray-800 border border-gray-600 px-3 py-2 sm:py-3 text-white font-mono text-sm focus:outline-none focus:border-white"
             />
           </div>
@@ -416,11 +471,16 @@ function VenueCard({
                 <button
                   key={opt.value}
                   type="button"
-                  onClick={() => setEditData({ ...editData, type: opt.value as Venue['type'] })}
+                  onClick={() =>
+                    setEditData({
+                      ...editData,
+                      type: opt.value as Venue["type"],
+                    })
+                  }
                   className={`p-2 border font-mono text-xs tracking-wider uppercase transition-colors ${
                     editData.type === opt.value
-                      ? 'bg-white text-black border-white'
-                      : 'bg-gray-800 text-gray-400 border-gray-600 hover:text-white hover:border-gray-500'
+                      ? "bg-white text-black border-white"
+                      : "bg-gray-800 text-gray-400 border-gray-600 hover:text-white hover:border-gray-500"
                   }`}
                 >
                   {opt.label}
@@ -436,7 +496,9 @@ function VenueCard({
             <input
               type="text"
               value={editData.address}
-              onChange={(e) => setEditData({ ...editData, address: e.target.value })}
+              onChange={(e) =>
+                setEditData({ ...editData, address: e.target.value })
+              }
               className="w-full bg-gray-800 border border-gray-600 px-3 py-2 sm:py-3 text-white font-mono text-sm focus:outline-none focus:border-white"
             />
           </div>
@@ -447,7 +509,9 @@ function VenueCard({
             </label>
             <textarea
               value={editData.description}
-              onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+              onChange={(e) =>
+                setEditData({ ...editData, description: e.target.value })
+              }
               className="w-full bg-gray-800 border border-gray-600 px-3 py-2 sm:py-3 text-white font-mono text-sm focus:outline-none focus:border-white resize-none"
               rows={2}
             />
@@ -466,8 +530,8 @@ function VenueCard({
                 setEditData({
                   name: venue.name,
                   type: venue.type,
-                  address: venue.address || '',
-                  description: venue.description || '',
+                  address: venue.address || "",
+                  description: venue.description || "",
                 });
               }}
               className="bg-gray-700 hover:bg-gray-600 text-white font-mono text-xs tracking-wider uppercase py-2 sm:py-3 transition-colors"

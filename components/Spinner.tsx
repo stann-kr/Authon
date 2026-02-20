@@ -13,36 +13,46 @@
  */
 
 interface SpinnerProps {
-  mode?: 'fullscreen' | 'inline' | 'button';
+  mode?: "fullscreen" | "inline" | "button";
   text?: string;
   /** 스피너 테두리 색상. 기본: 'white' */
-  color?: 'white' | 'black' | 'gray';
+  color?: "white" | "black" | "gray";
 }
 
 const colorMap = {
-  white: 'border-white border-t-transparent',
-  black: 'border-black border-t-transparent',
-  gray: 'border-gray-400 border-t-transparent',
+  white: "border-white border-t-transparent",
+  black: "border-black border-t-transparent",
+  gray: "border-gray-400 border-t-transparent",
 };
 
-export default function Spinner({ mode = 'inline', text, color = 'white' }: SpinnerProps) {
-  if (mode === 'fullscreen') {
+export default function Spinner({
+  mode = "inline",
+  text,
+  color = "white",
+}: SpinnerProps) {
+  if (mode === "fullscreen") {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
-          <div className={`w-8 h-8 border ${colorMap[color]} rounded-full animate-spin mx-auto mb-4`}></div>
+          <div
+            className={`w-8 h-8 border ${colorMap[color]} rounded-full animate-spin mx-auto mb-4`}
+          ></div>
           {text && (
-            <p className="text-white font-mono text-sm tracking-wider uppercase">{text}</p>
+            <p className="text-white font-mono text-sm tracking-wider uppercase">
+              {text}
+            </p>
           )}
         </div>
       </div>
     );
   }
 
-  if (mode === 'inline') {
+  if (mode === "inline") {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className={`w-6 h-6 border ${colorMap[color]} rounded-full animate-spin`}></div>
+      <div className="flex-1 min-h-[200px] flex items-center justify-center p-8">
+        <div
+          className={`w-6 h-6 border ${colorMap[color]} rounded-full animate-spin`}
+        ></div>
         {text && (
           <span className="ml-2 text-white font-mono text-sm">{text}</span>
         )}
