@@ -1,6 +1,10 @@
 [auth.email]
 # 1 day = 86400 seconds
-invite_confirm_expire = 86400
+# Expiration settings should be managed in the Supabase Dashboard
+# invite_confirm_expire = 86400
 
 [functions.create-user]
+verify_jwt = false
+
+[functions.external-dj-links]
 verify_jwt = false
