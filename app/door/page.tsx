@@ -318,7 +318,7 @@ function DoorPageContent() {
                                   : "text-gray-400 hover:bg-gray-800 hover:text-white"
                               }`}
                             >
-                              {link.djName}
+                              {link.djName} (EXT)
                             </button>
                           ))}
                         </div>

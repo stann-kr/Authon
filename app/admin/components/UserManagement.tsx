@@ -293,28 +293,13 @@ function UserCard({
     setIsEditing(false);
   };
 
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case "super_admin":
-        return "text-purple-400";
-      case "venue_admin":
-        return "text-red-400";
-      case "door_staff":
-        return "text-blue-400";
-      case "staff":
-        return "text-cyan-400";
-      case "dj":
-        return "text-green-400";
-      default:
-        return "text-gray-400";
-    }
-  };
-
   // Available roles for editing depend on current user
   const editableRoles = ["venue_admin", "door_staff", "staff", "dj"];
 
   return (
-    <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
+    <div
+      className={`bg-gray-900 border border-gray-700 p-4 sm:p-5 transition-opacity duration-200 ${!user.active ? "opacity-60" : ""}`}
+    >
       <div className="flex justify-between items-start mb-3">
         <div>
           <h3 className="text-white font-mono text-sm sm:text-base tracking-wider">
@@ -325,10 +310,8 @@ function UserCard({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span
-            className={`font-mono text-xs tracking-wider uppercase ${getRoleColor(user.role)}`}
-          >
-            <RoleLabel role={user.role} />
+          <span className="font-mono text-xs tracking-wider uppercase">
+            <RoleLabel role={user.role} colored />
           </span>
         </div>
       </div>
@@ -338,7 +321,7 @@ function UserCard({
           <div className="grid grid-cols-2 gap-4 mb-3">
             <div>
               <p className="text-gray-500 font-mono text-xs uppercase mb-1">
-                Guest Limit
+                GUEST LIMIT
               </p>
               <p className="text-white font-mono text-xs sm:text-sm">
                 {user.guestLimit}
@@ -408,7 +391,7 @@ function UserCard({
 
           <div>
             <label className="block text-gray-400 font-mono text-xs tracking-wider uppercase mb-2">
-              Guest limit
+              GUEST LIMIT
             </label>
             <input
               type="number"

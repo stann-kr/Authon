@@ -11,6 +11,8 @@ import StatGrid from "../../../components/StatGrid";
 import PanelHeader from "../../../components/PanelHeader";
 import Spinner from "../../../components/Spinner";
 import Alert from "../../../components/Alert";
+import EmptyState from "../../../components/EmptyState";
+import { getVenueTypeColor } from "../../../lib/colors";
 
 const VENUE_TYPES = [
   { value: "club", label: "CLUB" },
@@ -289,11 +291,7 @@ export default function VenueManagement() {
               {isLoading && venues.length === 0 ? (
                 <Spinner mode="inline" text="LOADING..." />
               ) : venues.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-400 font-mono text-sm">
-                    No venues found.
-                  </p>
-                </div>
+                <EmptyState icon="ri-store-2-line" message="NO VENUES FOUND" />
               ) : (
                 <div
                   className={`grid grid-cols-1 md:grid-cols-2 gap-4 transition-opacity duration-200 ${isLoading ? "opacity-50 pointer-events-none" : ""}`}
@@ -344,23 +342,6 @@ function VenueCard({
     description: venue.description || "",
   });
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case "club":
-        return "text-purple-400";
-      case "bar":
-        return "text-amber-400";
-      case "lounge":
-        return "text-cyan-400";
-      case "festival":
-        return "text-pink-400";
-      case "private":
-        return "text-gray-400";
-      default:
-        return "text-gray-400";
-    }
-  };
-
   const handleSave = async () => {
     const error = await onSave(venue.id, {
       name: editData.name,
@@ -372,7 +353,9 @@ function VenueCard({
   };
 
   return (
-    <div className="bg-gray-900 border border-gray-700 p-4 sm:p-5">
+    <div
+      className={`bg-gray-900 border border-gray-700 p-4 sm:p-5 transition-opacity duration-200 ${!venue.active ? "opacity-60" : ""}`}
+    >
       <div className="flex justify-between items-start mb-3">
         <div>
           <h3 className="text-white font-mono text-sm sm:text-base tracking-wider">
@@ -386,7 +369,7 @@ function VenueCard({
         </div>
         <div className="flex items-center gap-2">
           <span
-            className={`font-mono text-xs tracking-wider uppercase ${getTypeColor(venue.type)}`}
+            className={`font-mono text-xs tracking-wider uppercase ${getVenueTypeColor(venue.type)}`}
           >
             {venue.type.toUpperCase()}
           </span>
@@ -408,7 +391,7 @@ function VenueCard({
           <div className="grid grid-cols-2 gap-2 mb-3">
             <div>
               <p className="text-gray-500 font-mono text-xs uppercase mb-1">
-                Status
+                STATUS
               </p>
               <p
                 className={`font-mono text-xs sm:text-sm ${venue.active ? "text-green-400" : "text-red-400"}`}
@@ -421,7 +404,7 @@ function VenueCard({
                 Type
               </p>
               <p
-                className={`font-mono text-xs sm:text-sm ${getTypeColor(venue.type)}`}
+                className={`font-mono text-xs sm:text-sm ${getVenueTypeColor(venue.type)}`}
               >
                 {venue.type.toUpperCase()}
               </p>

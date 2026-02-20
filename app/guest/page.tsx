@@ -13,6 +13,7 @@ import Alert from "@/components/Alert";
 import VenueSelector, { useVenueSelector } from "@/components/VenueSelector";
 import DatePicker from "@/components/DatePicker";
 import { BRAND_NAME } from "@/lib/brand";
+import GuestListCard from "@/components/GuestListCard";
 import { getBusinessDate, formatDateDisplay } from "@/lib/date";
 import {
   fetchGuestsByDate,
@@ -283,53 +284,18 @@ function ExternalDJGuestPage({ token }: { token: string }) {
                 ) : (
                   <div className="divide-y divide-gray-700 lg:overflow-y-auto">
                     {displayGuests.map((guest, index) => (
-                      <div key={guest.id} className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3 sm:gap-4">
-                            <div className="w-8 h-8 sm:w-10 sm:h-10 border border-gray-600 flex items-center justify-center">
-                              <span className="text-xs sm:text-sm font-mono text-gray-400">
-                                {String(index + 1).padStart(2, "0")}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="font-mono text-sm sm:text-base tracking-wider text-white uppercase">
-                                {guest.name}
-                              </span>
-                              {guest.checkInTime && (
-                                <div className="mt-1">
-                                  <span className="text-xs font-mono text-green-400">
-                                    IN: {formatTime(guest.checkInTime)}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {guest.status === "checked" ? (
-                              <span className="px-4 py-2 bg-green-600/20 border border-green-600 text-green-400 font-mono text-xs tracking-wider uppercase">
-                                ACTIVE
-                              </span>
-                            ) : (
-                              <span className="px-4 py-2 bg-gray-800 border border-gray-600 text-gray-400 font-mono text-xs tracking-wider uppercase">
-                                REGISTERED
-                              </span>
-                            )}
-                            {guest.status === "pending" && (
-                              <button
-                                onClick={() => handleDelete(guest.id)}
-                                disabled={deletingId === guest.id}
-                                className="px-3 py-2 border border-gray-600 text-gray-400 font-mono text-xs tracking-wider uppercase hover:bg-gray-800 transition-colors disabled:opacity-50"
-                              >
-                                {deletingId === guest.id ? (
-                                  <div className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-                                ) : (
-                                  <i className="ri-close-line"></i>
-                                )}
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
+                      <GuestListCard
+                        key={guest.id}
+                        guest={guest}
+                        index={index}
+                        variant="user"
+                        onDelete={
+                          guest.status === "pending"
+                            ? () => handleDelete(guest.id)
+                            : undefined
+                        }
+                        isDeleteLoading={deletingId === guest.id}
+                      />
                     ))}
                   </div>
                 )}
@@ -650,64 +616,18 @@ function AuthenticatedGuestPage() {
                     className={`divide-y divide-gray-700 lg:overflow-y-auto transition-opacity duration-200 ${isFetching ? "opacity-50 pointer-events-none" : ""}`}
                   >
                     {displayGuests.map((guest, index) => (
-                      <div key={guest.id} className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3 sm:gap-4">
-                            <div className="w-8 h-8 sm:w-10 sm:h-10 border border-gray-600 flex items-center justify-center">
-                              <span className="text-xs sm:text-sm font-mono text-gray-400">
-                                {String(index + 1).padStart(2, "0")}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="font-mono text-sm sm:text-base tracking-wider text-white uppercase">
-                                {guest.name}
-                              </span>
-                              {(guest.createdAt || guest.checkInTime) && (
-                                <div className="flex gap-2 mt-1">
-                                  {guest.createdAt && (
-                                    <span className="text-xs font-mono text-gray-500">
-                                      {formatTime(guest.createdAt)}
-                                    </span>
-                                  )}
-                                  {guest.checkInTime && (
-                                    <span className="text-xs font-mono text-green-400">
-                                      IN: {formatTime(guest.checkInTime)}
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            {guest.status === "pending" && (
-                              <button
-                                onClick={() => handleDelete(guest.id)}
-                                disabled={isLoading}
-                                className="px-3 sm:px-4 py-2 sm:py-3 bg-red-600 text-white font-mono text-xs tracking-wider uppercase hover:bg-red-700 transition-colors disabled:opacity-50"
-                              >
-                                {isLoading ? (
-                                  <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
-                                ) : (
-                                  "DELETE"
-                                )}
-                              </button>
-                            )}
-
-                            {guest.status === "checked" && (
-                              <span className="px-4 sm:px-6 py-2 sm:py-3 bg-green-600/20 border border-green-600 text-green-400 font-mono text-xs tracking-wider uppercase">
-                                ACTIVE
-                              </span>
-                            )}
-
-                            {guest.status === "deleted" && (
-                              <span className="px-4 sm:px-6 py-2 sm:py-3 bg-gray-800 text-gray-500 font-mono text-xs tracking-wider uppercase">
-                                REMOVED
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
+                      <GuestListCard
+                        key={guest.id}
+                        guest={guest}
+                        index={index}
+                        variant="user"
+                        onDelete={
+                          guest.status === "pending"
+                            ? () => handleDelete(guest.id)
+                            : undefined
+                        }
+                        isDeleteLoading={isLoading}
+                      />
                     ))}
                   </div>
                 )}
