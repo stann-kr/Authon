@@ -114,10 +114,6 @@ export default function UserManagement() {
 
   const tabInfo = getTabInfo();
 
-  if (isLoading && activeTab === "users") {
-    return <Spinner mode="inline" text="LOADING..." />;
-  }
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6">
       <div className="lg:col-span-1 space-y-4">
@@ -218,16 +214,21 @@ export default function UserManagement() {
               title="USER LIST"
               count={users.length}
               onRefresh={loadUsers}
+              isLoading={isLoading}
             />
             <div className="p-4">
-              {users.length === 0 ? (
+              {isLoading && users.length === 0 ? (
+                <Spinner mode="inline" text="LOADING..." />
+              ) : users.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-gray-400 font-mono text-sm">
                     No users found.
                   </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div
+                  className={`grid grid-cols-1 md:grid-cols-2 gap-4 transition-opacity duration-200 ${isLoading ? "opacity-50 pointer-events-none" : ""}`}
+                >
                   {users.map((user) => (
                     <UserCard
                       key={user.id}

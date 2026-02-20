@@ -8,22 +8,39 @@ import Footer from "@/components/Footer";
 import Spinner from "@/components/Spinner";
 import RoleLabel from "@/components/RoleLabel";
 import { BRAND_NAME, BRAND_TAGLINE } from "@/lib/brand";
+import { createClient } from "@/lib/supabase/client";
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const supabase = createClient();
 
   useEffect(() => {
-    const currentUser = getUser();
+    const checkAuth = async () => {
+      // 1. 서버 측 실제 세션 확인
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-    if (!currentUser) {
-      router.push("/auth/login");
-      return;
-    }
+      if (!session) {
+        // 세션이 만료되었거나 없다면 로컬 저장소를 비우고 로그인 페이지로 이동
+        await logout();
+        return;
+      }
 
-    setUser(currentUser);
-    setIsLoading(false);
+      // 2. 세션이 유효하다면 로컬 스토리지 정보 연동 (빠른 렌더링용)
+      const currentUser = getUser();
+      if (!currentUser) {
+        await logout();
+        return;
+      }
+
+      setUser(currentUser);
+      setIsLoading(false);
+    };
+
+    checkAuth();
   }, [router]);
 
   if (isLoading) {
