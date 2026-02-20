@@ -47,6 +47,27 @@ function DoorPageContent() {
   const [isFetching, setIsFetching] = useState(true);
   const [sortMode, setSortMode] = useState<"default" | "alpha">("default");
 
+  // 로딩 중 이전 데이터를 유지하여 화면 깜빡임 방지
+  const displayCacheRef = useRef<{
+    guests: Guest[];
+    users: User[];
+    externalLinks: ExternalDJLink[];
+  }>({
+    guests: [],
+    users: [],
+    externalLinks: [],
+  });
+
+  useEffect(() => {
+    if (!isFetching) {
+      displayCacheRef.current = { guests, users, externalLinks };
+    }
+  }, [isFetching, guests, users, externalLinks]);
+
+  const displayData = isFetching
+    ? displayCacheRef.current
+    : { guests, users, externalLinks };
+
   const { venueId, venues, selectedVenueId, setSelectedVenueId, isSuperAdmin } =
     useVenueSelector();
 
@@ -124,11 +145,13 @@ function DoorPageContent() {
   // Helper: get contributor name for a guest (user or external DJ)
   const getContributorName = (guest: Guest): string | undefined => {
     if (guest.createdByUserId) {
-      const u = users.find((u) => u.id === guest.createdByUserId);
+      const u = displayData.users.find((u) => u.id === guest.createdByUserId);
       return u?.name;
     }
     if (guest.externalLinkId) {
-      const link = externalLinks.find((l) => l.id === guest.externalLinkId);
+      const link = displayData.externalLinks.find(
+        (l) => l.id === guest.externalLinkId,
+      );
       return link ? `${link.djName} (EXT)` : undefined;
     }
     return undefined;
@@ -136,12 +159,14 @@ function DoorPageContent() {
 
   const filteredGuests =
     selectedDJ === "all"
-      ? guests
+      ? displayData.guests
       : selectedDJ.startsWith("ext:")
-        ? guests.filter(
+        ? displayData.guests.filter(
             (guest) => guest.externalLinkId === selectedDJ.replace("ext:", ""),
           )
-        : guests.filter((guest) => guest.createdByUserId === selectedDJ);
+        : displayData.guests.filter(
+            (guest) => guest.createdByUserId === selectedDJ,
+          );
 
   const pendingGuests = filteredGuests.filter(
     (guest) => guest.status === "pending",
@@ -166,14 +191,14 @@ function DoorPageContent() {
     if (selectedDJ === "all")
       return { name: "ALL USERS", event: "TOTAL OVERVIEW" };
     if (selectedDJ.startsWith("ext:")) {
-      const link = externalLinks.find(
+      const link = displayData.externalLinks.find(
         (l) => l.id === selectedDJ.replace("ext:", ""),
       );
       return link
         ? { name: link.djName, event: "EXTERNAL DJ" }
         : { name: "", event: "" };
     }
-    const u = users.find((u) => u.id === selectedDJ);
+    const u = displayData.users.find((u) => u.id === selectedDJ);
     return u
       ? { name: u.name, event: u.role.toUpperCase() }
       : { name: "", event: "" };
@@ -184,24 +209,26 @@ function DoorPageContent() {
   const getSelectedDJName = () => {
     if (selectedDJ === "all") return "SELECT USER";
     if (selectedDJ.startsWith("ext:")) {
-      const link = externalLinks.find(
+      const link = displayData.externalLinks.find(
         (l) => l.id === selectedDJ.replace("ext:", ""),
       );
       return link ? link.djName : "SELECT USER";
     }
-    const u = users.find((u) => u.id === selectedDJ);
+    const u = displayData.users.find((u) => u.id === selectedDJ);
     return u ? u.name : "SELECT USER";
   };
 
   // Only show users/links who registered guests on the selected date
   const activeUserIds = new Set(
-    guests.map((g) => g.createdByUserId).filter(Boolean),
+    displayData.guests.map((g) => g.createdByUserId).filter(Boolean),
   );
-  const filteredUsers = users.filter((u) => activeUserIds.has(u.id));
+  const filteredUsers = displayData.users.filter((u) =>
+    activeUserIds.has(u.id),
+  );
   const activeExtLinkIds = new Set(
-    guests.map((g) => g.externalLinkId).filter(Boolean),
+    displayData.guests.map((g) => g.externalLinkId).filter(Boolean),
   );
-  const filteredExtLinks = externalLinks.filter((l) =>
+  const filteredExtLinks = displayData.externalLinks.filter((l) =>
     activeExtLinkIds.has(l.id),
   );
 
@@ -315,9 +342,7 @@ function DoorPageContent() {
                 </div>
                 <div className="text-center mb-4">
                   <div className="text-white font-mono text-3xl sm:text-4xl tracking-wider">
-                    {isFetching
-                      ? "..."
-                      : pendingGuests.length + checkedGuests.length}
+                    {pendingGuests.length + checkedGuests.length}
                   </div>
                   <div className="text-cyan-300 text-xs font-mono tracking-wider uppercase">
                     TOTAL GUESTS

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import VenueSelector, {
   useVenueSelector,
 } from "../../../components/VenueSelector";
@@ -44,6 +44,17 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
   }>({});
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // 로딩 중 이전 데이터를 유지하여 화면 깜빡임 방지
+  const displayCacheRef = useRef<ExternalDJLink[]>([]);
+
+  useEffect(() => {
+    if (!isFetching) {
+      displayCacheRef.current = links;
+    }
+  }, [isFetching, links]);
+
+  const displayLinks = isFetching ? displayCacheRef.current : links;
 
   const {
     venueId,
@@ -197,8 +208,8 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
     setLoadingStates((prev) => ({ ...prev, [`activate_${id}`]: false }));
   };
 
-  const activeLinks = links.filter((l) => l.active);
-  const inactiveLinks = links.filter((l) => !l.active);
+  const activeLinks = displayLinks.filter((l) => l.active);
+  const inactiveLinks = displayLinks.filter((l) => !l.active);
 
   const getTabInfo = () => {
     switch (activeTab) {
@@ -273,7 +284,7 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
           </div>
           <div className="text-center mb-4">
             <div className="text-white font-mono text-3xl sm:text-4xl tracking-wider">
-              {links.length}
+              {displayLinks.length}
             </div>
             <div className="text-cyan-300 text-xs font-mono tracking-wider uppercase">
               TOTAL LINKS
@@ -446,24 +457,24 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
             <div className="bg-gray-900 border border-gray-700">
               <PanelHeader
                 title="LINK LIST"
-                count={links.length}
+                count={displayLinks.length}
                 onRefresh={loadLinks}
                 isLoading={isFetching}
               />
 
-              {isFetching && links.length === 0 ? (
+              {isFetching && displayLinks.length === 0 ? (
                 <Spinner mode="inline" text="LOADING..." />
               ) : (
                 <div
                   className={`divide-y divide-gray-700 lg:max-h-[600px] lg:overflow-y-auto transition-opacity duration-200 ${isFetching ? "opacity-50 pointer-events-none" : ""}`}
                 >
-                  {links.length === 0 ? (
+                  {displayLinks.length === 0 ? (
                     <EmptyState
                       icon="ri-link"
                       message="NO LINKS FOUND FOR THIS DATE"
                     />
                   ) : (
-                    links.map((link, index) => (
+                    displayLinks.map((link, index) => (
                       <div
                         key={link.id}
                         className={`p-4 ${!link.active ? "opacity-50" : ""}`}
