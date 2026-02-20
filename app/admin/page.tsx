@@ -6,6 +6,7 @@ import GuestList from "./components/GuestList";
 import LinkManagement from "./components/LinkManagement";
 import UserManagement from "./components/UserManagement";
 import VenueManagement from "./components/VenueManagement";
+import EventManagement from "./components/EventManagement";
 import AuthGuard from "../../components/AuthGuard";
 import Footer from "../../components/Footer";
 import { getBusinessDate, formatDateDisplay } from "../../lib/date";
@@ -30,6 +31,7 @@ function AdminPageContent() {
   }, []);
 
   const tabs = [
+    { id: "events", label: "EVENTS", icon: "ri-calendar-event-line" },
     { id: "guests", label: "GUEST", icon: "ri-group-line" },
     { id: "links", label: "LINKS", icon: "ri-link" },
     { id: "users", label: "USERS", icon: "ri-user-settings-line" },
@@ -45,7 +47,13 @@ function AdminPageContent() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 w-full lg:flex-1 lg:min-h-0 flex flex-col">
           <div className="mb-4 lg:mb-6 flex-shrink-0">
             <div
-              className={`grid ${tabs.length === 4 ? "grid-cols-4" : "grid-cols-3"} gap-px bg-gray-700`}
+              className={`grid ${
+                tabs.length === 5
+                  ? "grid-cols-5"
+                  : tabs.length === 4
+                    ? "grid-cols-4"
+                    : "grid-cols-3"
+              } gap-px bg-gray-700`}
             >
               {tabs.map((tab) => (
                 <button
@@ -85,6 +93,14 @@ function AdminPageContent() {
           )}
 
           <div className="lg:flex-1 lg:min-h-0 flex flex-col min-h-[460px] lg:min-h-[520px]">
+            {activeTab === "events" && (
+              <EventManagement
+                onEventSelect={(date) => {
+                  setSelectedDate(date);
+                  setActiveTab("guests");
+                }}
+              />
+            )}
             {activeTab === "guests" && (
               <GuestList selectedDate={selectedDate} />
             )}

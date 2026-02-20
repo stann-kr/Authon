@@ -1,5 +1,7 @@
+name: authon-dev
 services:
   web:
+    container_name: authon-app
     build:
       context: .
       dockerfile: Dockerfile
@@ -12,16 +14,30 @@ services:
       - NODE_ENV=development
     command: npm run dev
 
-  # Supabase CLI for deploying Edge Functions
+  # Supabase CLI (Docker-out-of-Docker)
+  # docker compose up  → supabase start (DB, Auth 등 13개 컨테이너 자동 기동)
+  # docker compose down → supabase stop  (13개 컨테이너 자동 종료)
   supabase:
+    container_name: authon-supabase
     build:
       context: .
       dockerfile: Dockerfile.supabase
     volumes:
-      - ./:/app
+      - ./:/authon-local
       - supabase-config:/root/.supabase
-    working_dir: /app
-    entrypoint: supabase
+      - /var/run/docker.sock:/var/run/docker.sock
+    working_dir: /authon-local
+    network_mode: "host"
+    stop_grace_period: 30s
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        # 폴더명을 /authon-local로 바꿨으므로 프로젝트 ID도 자동으로 바뀝니다.
+        trap 'echo "Stopping Supabase..."; supabase stop; exit 0' SIGTERM SIGINT
+        supabase start
+        echo "Supabase is running. Waiting for shutdown signal..."
+        while true; do sleep 1; done
 
 volumes:
   supabase-config:

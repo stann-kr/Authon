@@ -2,7 +2,7 @@
 FROM alpine:3.19
 
 # Install dependencies
-RUN apk add --no-cache curl bash
+RUN apk add --no-cache curl bash docker-cli docker-cli-compose
 
 # Install Supabase CLI
 RUN curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz \
