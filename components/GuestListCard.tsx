@@ -88,7 +88,7 @@ const GuestListCard: React.FC<GuestListCardProps> = ({
                 <button
                   onClick={handleCheck}
                   disabled={isCheckLoading}
-                  className="px-4 sm:px-6 py-2 sm:py-3 bg-white text-black font-mono text-xs tracking-wider uppercase hover:bg-gray-200 transition-colors disabled:opacity-50"
+                  className="px-4 sm:px-6 py-2 sm:py-3 border border-gray-500 text-gray-300 font-mono text-xs tracking-wider uppercase hover:border-white hover:text-white transition-colors disabled:opacity-50"
                 >
                   {isCheckLoading ? (
                     <div className="flex items-center justify-center">
