@@ -321,13 +321,29 @@ serve(async (req) => {
         guest_limit: targetUser.guest_limit,
       };
 
-      const result = await supabaseAdmin.auth.admin.inviteUserByEmail(
+      let result: any = await supabaseAdmin.auth.admin.inviteUserByEmail(
         targetUser.email,
         {
           data: userData,
           redirectTo: `${req.headers.get("origin") || Deno.env.get("SITE_URL") || ""}/auth/reset-password`,
         },
       );
+
+      // If they clicked the old link, their email was verified but they never set a password.
+      if (
+        result.error &&
+        result.error.message.includes("already been registered")
+      ) {
+        console.log(
+          "User already verified but inactive. Sending reset password email as fallback.",
+        );
+        result = await supabaseAdmin.auth.resetPasswordForEmail(
+          targetUser.email,
+          {
+            redirectTo: `${req.headers.get("origin") || Deno.env.get("SITE_URL") || ""}/auth/reset-password`,
+          },
+        );
+      }
 
       if (result.error) {
         return new Response(JSON.stringify({ error: result.error.message }), {
