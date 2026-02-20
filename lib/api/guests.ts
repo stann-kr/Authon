@@ -291,9 +291,6 @@ export async function createUserViaEdge(params: {
   }
   const { data, error } = await supabase.functions.invoke("create-user", {
     body: params,
-    headers: {
-      Authorization: `Bearer ${session.access_token}`,
-    },
   });
 
   if (error) {
@@ -337,9 +334,6 @@ export async function deleteUserViaEdge(
   }
   const { data, error } = await supabase.functions.invoke("create-user", {
     body: { action: "delete", userId },
-    headers: {
-      Authorization: `Bearer ${session.access_token}`,
-    },
   });
 
   if (error || data?.error) {
@@ -371,9 +365,6 @@ export async function resendInvitationViaEdge(
   }
   const { data, error } = await supabase.functions.invoke("create-user", {
     body: { action: "resend-invite", userId },
-    headers: {
-      Authorization: `Bearer ${session.access_token}`,
-    },
   });
 
   if (error || data?.error) {

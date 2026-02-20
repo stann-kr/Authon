@@ -91,19 +91,17 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
-    // Create user client to verify caller identity
-    const supabaseUser = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader } } },
-    );
+    // Extract the JWT
+    const token = authHeader.replace(/^Bearer\s+/i, "");
 
-    // Verify caller
+    // Verify caller using the Admin client's getUser(jwt) method
     const {
       data: { user: caller },
       error: authError,
-    } = await supabaseUser.auth.getUser();
+    } = await supabaseAdmin.auth.getUser(token);
+
     if (authError || !caller) {
+      console.error("Auth verify error:", authError);
       return new Response(JSON.stringify({ error: "Authentication failed." }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
