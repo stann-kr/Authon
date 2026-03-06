@@ -81,12 +81,24 @@ function AdminPageContent() {
                     SELECT DATE
                   </h3>
                 </div>
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="block w-full max-w-full box-border bg-black border border-gray-600 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
-                />
+                <div className="relative h-[46px] group">
+                  {/* Mirroring UI Layer */}
+                  <div className="absolute inset-0 bg-black border border-gray-600 px-4 py-3 flex items-center justify-between pointer-events-none group-focus-within:border-white transition-colors">
+                    <span className="text-white font-mono text-sm tracking-wider">
+                      {formatDateDisplay(selectedDate)}
+                    </span>
+                    <i className="ri-calendar-line text-gray-400"></i>
+                  </div>
+
+                  {/* Hidden Native Input */}
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    onClick={(e) => (e.target as any).showPicker?.()}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 [color-scheme:dark]"
+                  />
+                </div>
               </div>
             </div>
           )}

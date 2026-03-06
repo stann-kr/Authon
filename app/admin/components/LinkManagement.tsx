@@ -321,15 +321,27 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
                     <label className="block font-mono text-xs tracking-wider text-gray-400 uppercase mb-2">
                       DATE
                     </label>
-                    <input
-                      type="date"
-                      value={formData.date}
-                      onChange={(e) =>
-                        setFormData({ ...formData, date: e.target.value })
-                      }
-                      className="w-full bg-black border border-gray-600 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
-                      required
-                    />
+                    <div className="relative h-[46px] group">
+                      {/* Mirroring UI Layer */}
+                      <div className="absolute inset-0 bg-black border border-gray-600 px-4 py-3 flex items-center justify-between pointer-events-none group-focus-within:border-white transition-colors">
+                        <span className="text-white font-mono text-sm tracking-wider">
+                          {formatDateDisplay(formData.date)}
+                        </span>
+                        <i className="ri-calendar-line text-gray-400"></i>
+                      </div>
+
+                      {/* Hidden Native Input */}
+                      <input
+                        type="date"
+                        value={formData.date}
+                        onChange={(e) =>
+                          setFormData({ ...formData, date: e.target.value })
+                        }
+                        onClick={(e) => (e.target as any).showPicker?.()}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 [color-scheme:dark]"
+                        required
+                      />
+                    </div>
                   </div>
 
                   <div>

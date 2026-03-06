@@ -33,12 +33,10 @@ body {
   }
 }
 
-/* iOS Safari: date input 네이티브 렌더링 overflow 방지 */
+/* iOS Safari: date input 네이티브 렌더링 overflow 방지 및 기본 달력 렌더링 보장 */
 input[type="date"] {
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
   min-width: 0;
+  color-scheme: dark;
 }
 
 @layer components {
