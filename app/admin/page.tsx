@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useLocalStorage } from "../../lib/hooks";
 import AdminHeader from "./components/AdminHeader";
 import GuestList from "./components/GuestList";
 import LinkManagement from "./components/LinkManagement";
@@ -20,8 +21,14 @@ export default function AdminPage() {
 }
 
 function AdminPageContent() {
-  const [activeTab, setActiveTab] = useState("guests");
-  const [selectedDate, setSelectedDate] = useState(getBusinessDate());
+  const [activeTab, setActiveTab] = useLocalStorage(
+    "admin:activeTab",
+    "guests",
+  );
+  const [selectedDate, setSelectedDate] = useLocalStorage(
+    "admin:selectedDate",
+    getBusinessDate(),
+  );
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   useEffect(() => {

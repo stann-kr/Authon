@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "cross-env NODE_ENV=development next dev -H 0.0.0.0 -p 3000",
     "build": "next build",
-    "lint": "next lint"
+    "lint": "next lint",
+    "use:local": "cp .env.local.dev .env.local && echo 'Switched to LOCAL Supabase'",
+    "use:prod": "cp .env.local.prod .env.local && echo 'Switched to PROD Supabase'"
   },
   "dependencies": {
     "@react-google-maps/api": "^2.19.3",
