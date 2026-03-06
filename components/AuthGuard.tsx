@@ -55,16 +55,23 @@ export default function AuthGuard({
           .single();
 
         if (!userError && userData) {
-          if (!userData.active) {
+          const typedUserData = userData as {
+            role: string;
+            guest_limit: number;
+            active: boolean;
+            venue_id: string | null;
+          };
+
+          if (!typedUserData.active) {
             await supabase.auth.signOut();
             localStorage.removeItem("user");
             router.push("/auth/login");
             return;
           }
 
-          currentUser.role = userData.role;
-          currentUser.guest_limit = userData.guest_limit;
-          currentUser.venue_id = userData.venue_id;
+          currentUser.role = typedUserData.role as any;
+          currentUser.guest_limit = typedUserData.guest_limit;
+          currentUser.venue_id = typedUserData.venue_id || undefined;
 
           localStorage.setItem("user", JSON.stringify(currentUser));
         }

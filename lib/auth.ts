@@ -10,12 +10,13 @@ export interface User {
   guest_limit: number;
 }
 
-const supabase = createClient();
+// lib/auth.ts에서는 필요한 곳에서만 supabase를 초기화하여 사용합니다.
 
 export const login = async (
   email: string,
   password: string,
 ): Promise<{ success: boolean; message?: string }> => {
+  const supabase = createClient();
   try {
     const {
       data: { user },
@@ -88,8 +89,11 @@ export const login = async (
 };
 
 export const logout = async () => {
+  const supabase = createClient();
   await supabase.auth.signOut();
-  localStorage.removeItem("user");
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("user");
+  }
   if (typeof window !== "undefined") {
     window.location.href = "/auth/login";
   }
@@ -103,11 +107,12 @@ export const getUser = (): User | null => {
   if (typeof window === "undefined") return null;
 
   const userStr = localStorage.getItem("user");
-  if (!userStr) return null;
+  if (!userStr || userStr === "undefined" || userStr === "null") return null;
 
   try {
     return JSON.parse(userStr);
-  } catch {
+  } catch (e) {
+    console.error("Failed to parse user from localStorage", e);
     return null;
   }
 };
