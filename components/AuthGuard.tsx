@@ -1,16 +1,19 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { getUser, hasAccess, User } from '../lib/auth';
-import { createClient } from '../lib/supabase/client';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { getUser, hasAccess, User } from "../lib/auth";
+import { createClient } from "../lib/supabase/client";
 
 interface AuthGuardProps {
   children: React.ReactNode;
   requiredAccess: string[];
 }
 
-export default function AuthGuard({ children, requiredAccess }: AuthGuardProps) {
+export default function AuthGuard({
+  children,
+  requiredAccess,
+}: AuthGuardProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
@@ -19,11 +22,13 @@ export default function AuthGuard({ children, requiredAccess }: AuthGuardProps) 
   useEffect(() => {
     const checkAuth = async () => {
       // 1. Check Supabase Session
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
       if (!session) {
         // 세션이 없으면 로그인 페이지로
-        router.push('/auth/login');
+        router.push("/auth/login");
         return;
       }
 
@@ -37,13 +42,39 @@ export default function AuthGuard({ children, requiredAccess }: AuthGuardProps) 
         // 세션은 있는데 로컬 데이터가 날라간 경우 -> 다시 로그인 유도 혹은 프로필 재조회 필요
         // 여기서는 간단히 재로그인 유도
         await supabase.auth.signOut();
-        router.push('/auth/login');
+        router.push("/auth/login");
         return;
+      }
+
+      // Check if user is active and sync latest info (guest_limit, role, venue_id)
+      try {
+        const { data: userData, error: userError } = await supabase
+          .from("users")
+          .select("role, guest_limit, active, venue_id")
+          .eq("auth_user_id", session.user.id)
+          .single();
+
+        if (!userError && userData) {
+          if (!userData.active) {
+            await supabase.auth.signOut();
+            localStorage.removeItem("user");
+            router.push("/auth/login");
+            return;
+          }
+
+          currentUser.role = userData.role;
+          currentUser.guest_limit = userData.guest_limit;
+          currentUser.venue_id = userData.venue_id;
+
+          localStorage.setItem("user", JSON.stringify(currentUser));
+        }
+      } catch (err) {
+        console.warn("Failed to sync user profile", err);
       }
 
       // 3. Check Role Access
       if (!hasAccess(currentUser.role, requiredAccess)) {
-        router.push('/');
+        router.push("/");
         return;
       }
 
@@ -54,9 +85,11 @@ export default function AuthGuard({ children, requiredAccess }: AuthGuardProps) 
     checkAuth();
 
     // Listen for auth state changes (e.g. sign out from another tab)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: any, session: any) => {
-      if (event === 'SIGNED_OUT' || !session) {
-        router.push('/auth/login');
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event: any, session: any) => {
+      if (event === "SIGNED_OUT" || !session) {
+        router.push("/auth/login");
       }
     });
 

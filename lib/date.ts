@@ -15,8 +15,8 @@ const DAY_CHANGE_HOUR = 6;
 
 function formatLocalYmd(date: Date): string {
   const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
 
@@ -35,12 +35,18 @@ export function getBusinessDate(): string {
 }
 
 /**
- * 날짜를 표시용 포맷으로 변환 (YYYY.MM.DD)
+ * 날짜를 표시용 포맷으로 변환 (YYYY.MM.DD (DDD))
  */
 export function formatDateDisplay(dateString: string): string {
   const ymdMatch = dateString.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (ymdMatch) {
     const [, year, month, day] = ymdMatch;
+    const date = new Date(`${year}-${month}-${day}T00:00:00`);
+    if (!Number.isNaN(date.getTime())) {
+      const days = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+      const dayName = days[date.getDay()];
+      return `${year}.${month}.${day} (${dayName})`;
+    }
     return `${year}.${month}.${day}`;
   }
 
@@ -49,5 +55,7 @@ export function formatDateDisplay(dateString: string): string {
     return dateString;
   }
 
-  return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
+  const days = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+  const dayName = days[date.getDay()];
+  return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")} (${dayName})`;
 }

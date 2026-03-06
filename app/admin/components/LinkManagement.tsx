@@ -318,16 +318,22 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
               <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div>
-                    <label className="block font-mono text-xs tracking-wider text-gray-400 uppercase mb-2">
-                      DATE
-                    </label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block font-mono text-xs tracking-wider text-gray-400 uppercase">
+                        DATE
+                      </label>
+                      <span className="text-gray-500 font-mono text-xs tracking-wider capitalize">
+                        {formatDateDisplay(formData.date).split(" ").pop()}
+                      </span>
+                    </div>
                     <input
                       type="date"
                       value={formData.date}
                       onChange={(e) =>
                         setFormData({ ...formData, date: e.target.value })
                       }
-                      className="w-full bg-black border border-gray-600 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
+                      onClick={(e) => (e.target as any).showPicker?.()}
+                      className="w-full bg-black border border-gray-600 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white cursor-pointer [color-scheme:dark]"
                       required
                     />
                   </div>

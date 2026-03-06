@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDateDisplay } from "@/lib/date";
+
 /**
  * DatePicker — 날짜 선택 패널 컴포넌트.
  *
@@ -22,16 +24,20 @@ export default function DatePicker({
     <div
       className={`bg-gray-900 border border-gray-700 p-4 sm:p-5 ${className}`}
     >
-      <div className="mb-2">
+      <div className="mb-2 flex items-center justify-between">
         <h3 className="font-mono text-xs sm:text-sm tracking-wider text-gray-400 uppercase">
           SELECT DATE
         </h3>
+        <span className="text-gray-500 font-mono text-xs tracking-wider">
+          {formatDateDisplay(value)}
+        </span>
       </div>
       <input
         type="date"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full max-w-full box-border bg-black border border-gray-600 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white"
+        onClick={(e) => (e.target as any).showPicker?.()}
+        className="block w-full max-w-full box-border bg-black border border-gray-600 px-4 py-3 text-white font-mono text-sm tracking-wider focus:outline-none focus:border-white cursor-pointer [color-scheme:dark]"
       />
     </div>
   );
