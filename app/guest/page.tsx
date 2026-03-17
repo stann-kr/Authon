@@ -15,6 +15,7 @@ import VenueSelector, { useVenueSelector } from "@/components/VenueSelector";
 import DatePicker from "@/components/DatePicker";
 import { BRAND_NAME } from "@/lib/brand";
 import GuestListCard from "@/components/GuestListCard";
+import GuestSearchInput from "@/components/GuestSearchInput";
 import { getBusinessDate, formatDateDisplay } from "@/lib/date";
 import {
   fetchGuestsByDate,
@@ -96,6 +97,7 @@ function ExternalDJGuestPage({ token }: { token: string }) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [guests, setGuests] = useState<Guest[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [sortMode, setSortMode] = useLocalStorage<"default" | "alpha">(
     "guest:sortMode",
     "default",
@@ -198,10 +200,15 @@ function ExternalDJGuestPage({ token }: { token: string }) {
 
   const remaining = linkInfo ? linkInfo.maxGuests - linkInfo.usedGuests : 0;
   const isAtLimit = remaining <= 0;
-  const displayGuests =
+  const sortedGuests =
     sortMode === "alpha"
       ? sortGuestsByName(guests)
       : sortGuestsByCreatedAt(guests);
+  const displayGuests = searchQuery
+    ? sortedGuests.filter((g) =>
+        g.name.toLowerCase().includes(searchQuery.toLowerCase()),
+      )
+    : sortedGuests;
 
   const externalHeader = (
     <div className="fixed top-0 left-0 right-0 z-50 bg-black border-b border-gray-800">
@@ -278,6 +285,11 @@ function ExternalDJGuestPage({ token }: { token: string }) {
                       prev === "default" ? "alpha" : "default",
                     )
                   }
+                />
+
+                <GuestSearchInput
+                  value={searchQuery}
+                  onChange={setSearchQuery}
                 />
 
                 {guests.length === 0 ? (
@@ -368,6 +380,7 @@ function AuthenticatedGuestPage() {
   const [isFetching, setIsFetching] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [guests, setGuests] = useState<Guest[]>([]);
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [sortMode, setSortMode] = useLocalStorage<"default" | "alpha">(
     "guest:sortMode",
     "default",
@@ -522,10 +535,15 @@ function AuthenticatedGuestPage() {
   );
   const guestLimit = user?.guest_limit ?? 0;
   const isAtLimit = guestLimit > 0 && activeGuests.length >= guestLimit;
-  const displayGuests =
+  const sortedGuests =
     sortMode === "alpha"
       ? sortGuestsByName(filteredGuests)
       : sortGuestsByCreatedAt(filteredGuests);
+  const displayGuests = searchQuery
+    ? sortedGuests.filter((g) =>
+        g.name.toLowerCase().includes(searchQuery.toLowerCase()),
+      )
+    : sortedGuests;
 
   return (
     <div className="min-h-screen bg-black flex flex-col">
@@ -609,6 +627,11 @@ function AuthenticatedGuestPage() {
                     )
                   }
                   isLoading={isFetching}
+                />
+
+                <GuestSearchInput
+                  value={searchQuery}
+                  onChange={setSearchQuery}
                 />
 
                 {isFetching && filteredGuests.length === 0 ? (

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocalStorage } from "../../../lib/hooks";
 import GuestListCard from "../../../components/GuestListCard";
+import GuestSearchInput from "../../../components/GuestSearchInput";
 import StatGrid from "../../../components/StatGrid";
 import PanelHeader from "../../../components/PanelHeader";
 import Spinner from "../../../components/Spinner";
@@ -35,6 +36,7 @@ export default function GuestList({ selectedDate }: GuestListProps) {
   const [externalLinks, setExternalLinks] = useState<ExternalDJLink[]>([]);
   const [guests, setGuests] = useState<Guest[]>([]);
   const [isFetching, setIsFetching] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const [sortMode, setSortMode] = useLocalStorage<"default" | "alpha">(
     "guestlist:sortMode",
     "default",
@@ -154,7 +156,7 @@ export default function GuestList({ selectedDate }: GuestListProps) {
   const checkedGuests = filteredGuests.filter(
     (guest) => guest.status === "checked",
   );
-  const displayGuests =
+  const sortedGuests =
     sortMode === "alpha"
       ? [...filteredGuests].sort((a, b) =>
           (a.name || "").localeCompare(b.name || "", "ko-KR", {
@@ -166,6 +168,11 @@ export default function GuestList({ selectedDate }: GuestListProps) {
           const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
           return timeA - timeB;
         });
+  const displayGuests = searchQuery
+    ? sortedGuests.filter((g) =>
+        (g.name || "").toLowerCase().includes(searchQuery.toLowerCase()),
+      )
+    : sortedGuests;
 
   const getSelectedDJInfo = () => {
     if (selectedDJ === "all")
@@ -299,6 +306,11 @@ export default function GuestList({ selectedDate }: GuestListProps) {
             }
             onRefresh={loadData}
             isLoading={isFetching}
+          />
+
+          <GuestSearchInput
+            value={searchQuery}
+            onChange={setSearchQuery}
           />
 
           {isFetching && filteredGuests.length === 0 ? (

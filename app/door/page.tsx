@@ -6,6 +6,7 @@ import AdminHeader from "../admin/components/AdminHeader";
 import AuthGuard from "../../components/AuthGuard";
 import Footer from "../../components/Footer";
 import GuestListCard from "../../components/GuestListCard";
+import GuestSearchInput from "../../components/GuestSearchInput";
 import VenueSelector, {
   useVenueSelector,
 } from "../../components/VenueSelector";
@@ -49,6 +50,7 @@ function DoorPageContent() {
   const [externalLinks, setExternalLinks] = useState<ExternalDJLink[]>([]);
   const [guests, setGuests] = useState<Guest[]>([]);
   const [isFetching, setIsFetching] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const [sortMode, setSortMode] = useLocalStorage<"default" | "alpha">(
     "door:sortMode",
     "default",
@@ -181,7 +183,7 @@ function DoorPageContent() {
   const checkedGuests = filteredGuests.filter(
     (guest) => guest.status === "checked",
   );
-  const displayGuests =
+  const sortedGuests =
     sortMode === "alpha"
       ? [...filteredGuests].sort((a, b) =>
           (a.name || "").localeCompare(b.name || "", "ko-KR", {
@@ -193,6 +195,11 @@ function DoorPageContent() {
           const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
           return timeA - timeB;
         });
+  const displayGuests = searchQuery
+    ? sortedGuests.filter((g) =>
+        (g.name || "").toLowerCase().includes(searchQuery.toLowerCase()),
+      )
+    : sortedGuests;
 
   const getSelectedDJInfo = () => {
     if (selectedDJ === "all")
@@ -386,6 +393,11 @@ function DoorPageContent() {
                   }
                   onRefresh={loadData}
                   isLoading={isFetching}
+                />
+
+                <GuestSearchInput
+                  value={searchQuery}
+                  onChange={setSearchQuery}
                 />
 
                 {isFetching && filteredGuests.length === 0 ? (
