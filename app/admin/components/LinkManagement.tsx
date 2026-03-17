@@ -390,7 +390,7 @@ export default function LinkManagement({ selectedDate }: LinkManagementProps) {
                   <input
                     type="number"
                     min="1"
-                    max="20"
+                    max="999"
                     value={formData.maxGuests}
                     onChange={(e) =>
                       setFormData({
